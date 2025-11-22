@@ -16,7 +16,7 @@ class LayoutController {
 
         // Initial sizes (matching CSS defaults)
         this.leftWidth = 280;
-        this.rightWidth = 300;
+        this.rightWidth = 400;
         this.bottomHeight = 200;
 
         this.isResizing = false;
@@ -334,6 +334,7 @@ class VariableController {
     }
 
     updateVariableProperty(variable, property, newValue) {
+        console.log('[updateVariableProperty] Called for:', variable.name, 'property:', property, 'newValue:', newValue);
         const oldValue = variable[property];
         let needsFullRender = false;
         let needsNodeLibraryUpdate = false;
@@ -366,8 +367,16 @@ class VariableController {
             this.app.compiler.registerRename(oldName, newName);
 
             needsFullRender = true;
-        } else if (property === 'isInstanceEditable') {
+        } else if (property === 'isInstanceEditable' || property === 'replication') {
             variable[property] = newValue;
+            // Reset Replication Condition if Replication is None
+            if (property === 'replication' && newValue === 'None') {
+                variable.replicationCondition = 'None';
+            }
+            needsFullRender = true;
+        } else if (property === 'defaultValue') {
+            variable[property] = newValue;
+            // Re-render the details panel to show updated array/map elements
             needsFullRender = true;
         } else {
             variable[property] = newValue;
@@ -621,10 +630,7 @@ class VariableController {
             typeName.className = 'ue5-variable-type-name';
             typeName.textContent = variable.type.charAt(0).toUpperCase() + variable.type.slice(1);
             typeName.style.color = color;
-            typeName.style.fontSize = '10px';
-            typeName.style.marginLeft = '4px';
-            typeName.style.marginRight = '8px';
-            typeName.style.minWidth = '40px'; // Ensure alignment
+            // Inline styles removed in favor of CSS class .ue5-variable-type-name
 
             // Eye icon (Instance Editable indicator)
             const eyeIcon = document.createElement('i');
@@ -1401,17 +1407,20 @@ class DetailsController {
             <div class="detail-row">
                 <label>Variable Type</label>
                 <div style="display: flex; gap: 5px; align-items: center; flex-grow: 1;">
-                    <div id="var-container-trigger" style="display: flex; align-items: center; gap: 5px; padding: 4px 8px; background-color: #1a1a1a; border: 1px solid #444; border-radius: 3px; cursor: pointer; min-width: 60px;">
-                        <div style="width: 16px; display: flex; justify-content: center;">
-                            ${this.getContainerIcon(variable.containerType, variable.type)}
-                        </div>
-                        <i class="fas fa-caret-down" style="margin-left: auto; font-size: 10px; color: #888;"></i>
+                    
+                    <!-- Type Trigger Pill -->
+                    <div id="var-type-trigger" class="ue5-dropdown-pill" style="flex-grow: 1; margin-right: 2px;">
+                        <span class="param-color-dot" style="background-color: ${color}"></span>
+                        <span style="margin-left: 8px; flex-grow: 1; text-align: left;">${variable.type.charAt(0).toUpperCase() + variable.type.slice(1)}</span>
+                        <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 4px;"></i>
                     </div>
-                    <div id="var-type-trigger" style="display: flex; align-items: center; gap: 5px; padding: 4px 8px; background-color: #1a1a1a; border: 1px solid #444; border-radius: 3px; cursor: pointer; flex-grow: 1;">
-                        <span class="param-color-dot" style="background-color: ${color};"></span>
-                        <span style="color: ${color}; font-weight: 600;">${variable.type.charAt(0).toUpperCase() + variable.type.slice(1)}</span>
-                        <i class="fas fa-caret-down" style="margin-left: auto; font-size: 10px; color: #888;"></i>
+
+                    <!-- Container Trigger Pill -->
+                    <div id="var-container-trigger" class="ue5-dropdown-pill" style="width: 40px; justify-content: center;">
+                        ${this.getContainerIcon(variable.containerType, variable.type)}
+                        <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 8px;"></i>
                     </div>
+
                 </div>
             </div>
 
@@ -1466,16 +1475,28 @@ class DetailsController {
                 <select class="details-select" data-prop="replication" style="flex-grow: 1;">
                     <option value="None" ${variable.replication === 'None' ? 'selected' : ''}>None</option>
                     <option value="Replicated" ${variable.replication === 'Replicated' ? 'selected' : ''}>Replicated</option>
+                    <option value="RepNotify" ${variable.replication === 'RepNotify' ? 'selected' : ''}>RepNotify</option>
                 </select>
             </div>
 
             <!-- Replication Condition -->
-            <div class="detail-row">
+            <div class="detail-row" ${variable.replication === 'None' ? 'style="opacity: 0.5;"' : ''}>
                 <label>Replication Condition</label>
-                <select class="details-select" data-prop="replicationCondition" style="flex-grow: 1;">
+                <select class="details-select" data-prop="replicationCondition" style="flex-grow: 1;" ${variable.replication === 'None' ? 'disabled' : ''}>
                     <option value="None" ${variable.replicationCondition === 'None' ? 'selected' : ''}>None</option>
                     <option value="InitialOnly" ${variable.replicationCondition === 'InitialOnly' ? 'selected' : ''}>Initial Only</option>
                     <option value="OwnerOnly" ${variable.replicationCondition === 'OwnerOnly' ? 'selected' : ''}>Owner Only</option>
+                    <option value="SkipOwner" ${variable.replicationCondition === 'SkipOwner' ? 'selected' : ''}>Skip Owner</option>
+                    <option value="SimulatedOnly" ${variable.replicationCondition === 'SimulatedOnly' ? 'selected' : ''}>Simulated Only</option>
+                    <option value="AutonomousOnly" ${variable.replicationCondition === 'AutonomousOnly' ? 'selected' : ''}>Autonomous Only</option>
+                    <option value="SimulatedOrPhysics" ${variable.replicationCondition === 'SimulatedOrPhysics' ? 'selected' : ''}>Simulated Or Physics</option>
+                    <option value="InitialOrOwner" ${variable.replicationCondition === 'InitialOrOwner' ? 'selected' : ''}>Initial Or Owner</option>
+                    <option value="Custom" ${variable.replicationCondition === 'Custom' ? 'selected' : ''}>Custom</option>
+                    <option value="ReplayOrOwner" ${variable.replicationCondition === 'ReplayOrOwner' ? 'selected' : ''}>Replay Or Owner</option>
+                    <option value="ReplayOnly" ${variable.replicationCondition === 'ReplayOnly' ? 'selected' : ''}>Replay Only</option>
+                    <option value="SimulatedOnlyNoReplay" ${variable.replicationCondition === 'SimulatedOnlyNoReplay' ? 'selected' : ''}>Simulated Only No Replay</option>
+                    <option value="SimulatedOrPhysicsNoReplay" ${variable.replicationCondition === 'SimulatedOrPhysicsNoReplay' ? 'selected' : ''}>Simulated Or Physics No Replay</option>
+                    <option value="SkipReplay" ${variable.replicationCondition === 'SkipReplay' ? 'selected' : ''}>Skip Replay</option>
                 </select>
             </div>
         `;
@@ -1521,6 +1542,57 @@ class DetailsController {
         `;
     }
 
+    // Helper method for Variable section
+    _renderVariableSection(variable) {
+        return `
+            <!--Variable Section-->
+            <div class="details-group">
+                <div id="variable-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
+                    <i id="variable-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>VARIABLE</span>
+                </div>
+                <div id="variable-content">
+                    ${this._renderVariableFields(variable)}
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper method for Advanced section
+    _renderAdvancedSection(variable, propertyFlagsHTML) {
+        return `
+            <!--Collapsible Advanced Section-->
+            <div class="details-group" style="border-bottom: none; padding-bottom: 0;">
+                <div id="advanced-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase;">
+                    <i id="advanced-icon" class="fas fa-caret-right" style="width: 15px;"></i> <span>Advanced</span>
+                </div>
+                <div id="advanced-content" style="display: none; margin-top: 10px;">
+                    ${this._renderAdvancedFields(variable)}
+                    
+                    <!-- Defined Property Flags (Inside Advanced) -->
+                    <div style="color: #ddd; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 15px;">Defined Property Flags</div>
+                    <div class="property-flags-list" style="background: #111; padding: 5px; border: 1px solid #333;">
+                        ${propertyFlagsHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper method for Default Value section
+    _renderDefaultValueSection(variable) {
+        return `
+            <!--Collapsible Default Value Section-->
+            <div class="details-group">
+                <div id="default-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
+                    <i id="default-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>Default Value</span>
+                </div>
+                <div id="default-content">
+                    ${this.renderDefaultValueInput(variable)}
+                </div>
+            </div>
+        `;
+    }
+
     // UPDATED: Variable and Default Value sections are now collapsible (default: Expanded)
     showVariableDetails(variable, isPrimarySelection = false) {
         if (isPrimarySelection) {
@@ -1544,169 +1616,18 @@ class DetailsController {
             ${this.renderPropertyFlag('CPF_HasGetValueTypeHash', variable.cpfHasGetValueTypeHash)}
         `;
 
+        // Compose the full panel using helper methods
         this.panel.innerHTML = `
-            <!--Variable Section-->
-            <div class="details-group">
-                <div id="variable-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
-                    <i id="variable-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>VARIABLE</span>
-                </div>
-                
-                <div id="variable-content">
-                    <!-- Variable Name -->
-                    <div class="detail-row">
-                        <label>Variable Name</label>
-                        <input type="text" id="variable-name-input" class="details-input" value="${variable.name}" data-prop="name">
-                    </div>
-
-                    <!-- Variable Type (Custom Pill Selectors) -->
-                    <div class="detail-row">
-                        <label>Variable Type</label>
-                        <div style="display: flex; gap: 5px; align-items: center; flex-grow: 1;">
-                            
-                            <!-- Type Trigger Pill -->
-                            <div id="var-type-trigger" class="ue5-dropdown-pill" style="flex-grow: 1; margin-right: 2px;">
-                                <span class="param-color-dot" style="background-color: ${Utils.getPinColor(variable.type)}"></span>
-                                <span style="margin-left: 8px; flex-grow: 1; text-align: left;">${variable.type.charAt(0).toUpperCase() + variable.type.slice(1)}</span>
-                                <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 4px;"></i>
-                            </div>
-
-                            <!-- Container Trigger Pill -->
-                            <div id="var-container-trigger" class="ue5-dropdown-pill" style="width: 40px; justify-content: center;">
-                                ${this.getContainerIcon(variable.containerType, variable.type)}
-                                <i class="fas fa-chevron-down" style="margin-left: 4px; font-size: 8px;"></i>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="detail-row">
-                        <label>Description</label>
-                        <input type="text" id="variable-description-input" class="details-input" value="${variable.description || ''}" data-prop="description" placeholder="Tooltip">
-                    </div>
-
-                    <!-- Flags Section (Right Aligned Checkboxes) -->
-                    <div class="detail-checkbox-row">
-                        <label>Instance Editable</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="isInstanceEditable" ${variable.isInstanceEditable ? 'checked' : ''}>
-                    </div>
-
-                    <div class="detail-checkbox-row">
-                        <label>Blueprint Read Only</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="blueprintReadOnly" ${variable.blueprintReadOnly ? 'checked' : ''}>
-                    </div>
-
-                    <div class="detail-checkbox-row">
-                        <label>Expose on Spawn</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="exposeOnSpawn" ${variable.exposeOnSpawn ? 'checked' : ''}>
-                    </div>
-
-                    <div class="detail-checkbox-row">
-                        <label>Private</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="private" ${variable.private ? 'checked' : ''}>
-                    </div>
-
-                    <div class="detail-checkbox-row">
-                        <label>Expose to Cinematics</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="exposeToCinematics" ${variable.exposeToCinematics ? 'checked' : ''}>
-                    </div>
-
-                    <!-- Category -->
-                    <div class="detail-row">
-                        <label>Category</label>
-                        <select class="details-select" data-prop="category" style="flex-grow: 1;">
-                            <option value="Default" ${variable.category === 'Default' ? 'selected' : ''}>Default</option>
-                            <option value="Config" ${variable.category === 'Config' ? 'selected' : ''}>Config</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Replication (Dropdowns) -->
-                    <div class="detail-row">
-                        <label>Replication</label>
-                        <select class="details-select" data-prop="replication" style="flex-grow: 1;">
-                            <option value="None" ${variable.replication === 'None' ? 'selected' : ''}>None</option>
-                            <option value="Replicated" ${variable.replication === 'Replicated' ? 'selected' : ''}>Replicated</option>
-                            <option value="RepNotify" ${variable.replication === 'RepNotify' ? 'selected' : ''}>RepNotify</option>
-                        </select>
-                    </div>
-
-                    <div class="detail-row">
-                        <label>Replication Condition</label>
-                        <select class="details-select" data-prop="replicationCondition" style="flex-grow: 1;">
-                            <option value="None" ${variable.replicationCondition === 'None' ? 'selected' : ''}>None</option>
-                            <option value="InitialOnly" ${variable.replicationCondition === 'InitialOnly' ? 'selected' : ''}>Initial Only</option>
-                            <option value="OwnerOnly" ${variable.replicationCondition === 'OwnerOnly' ? 'selected' : ''}>Owner Only</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <!--Collapsible Advanced Section-->
-            <div class="details-group" style="border-bottom: none; padding-bottom: 0;">
-                <div id="advanced-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase;">
-                     <i id="advanced-icon" class="fas fa-caret-right" style="width: 15px;"></i> <span>Advanced</span>
-                </div>
-                <div id="advanced-content" style="display: none; margin-top: 10px;">
-                    <div class="detail-checkbox-row">
-                        <label>Config Variable</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="configVariable" ${variable.configVariable ? 'checked' : ''}>
-                    </div>
-                    <div class="detail-checkbox-row">
-                        <label>Transient</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="transient" ${variable.transient ? 'checked' : ''}>
-                    </div>
-                    <div class="detail-checkbox-row">
-                        <label>SaveGame</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="saveGame" ${variable.saveGame ? 'checked' : ''}>
-                    </div>
-                    <div class="detail-checkbox-row">
-                        <label>Advanced Display</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="advancedDisplay" ${variable.advancedDisplay ? 'checked' : ''}>
-                    </div>
-                    <div class="detail-checkbox-row">
-                        <label>Multi line</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="multiLine" ${variable.multiLine ? 'checked' : ''}>
-                    </div>
-                    <div class="detail-checkbox-row">
-                        <label>Deprecated</label>
-                        <input type="checkbox" class="ue5-checkbox" data-prop="deprecated" ${variable.deprecated ? 'checked' : ''}>
-                    </div>
-                    <div class="detail-row">
-                        <label>Deprecation Message</label>
-                        <input type="text" class="details-input" data-prop="deprecationMessage" value="${variable.deprecationMessage || ''}">
-                    </div>
-                    <div class="detail-row">
-                        <label>Drop-down Options</label>
-                         <select class="details-select" style="flex-grow: 1;">
-                            <option value="">None</option>
-                        </select>
-                    </div>
-
-                    <!-- Defined Property Flags (Inside Advanced) -->
-                    <div style="color: #ddd; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 15px;">Defined Property Flags</div>
-                    <div class="property-flags-list" style="background: #111; padding: 5px; border: 1px solid #333;">
-                        ${propertyFlagsHTML}
-                    </div>
-                </div>
-            </div>
-
-
-            <!--Collapsible Default Value Section-->
-            <div class="details-group">
-                        <div id="default-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
-                            <i id="default-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>Default Value</span>
-                        </div>
-                        <div id="default-content">
-                            ${this.renderDefaultValueInput(variable)}
-                        </div>
-                    </div>
-                `;
+            ${this._renderVariableSection(variable)}
+            ${this._renderAdvancedSection(variable, propertyFlagsHTML)}
+            ${this._renderDefaultValueSection(variable)}
+        `;
 
         // Reusable function to attach toggle behavior
         const setupToggle = (toggleId, contentId, iconId, isExpanded = true) => {
-            const toggle = this.panel.querySelector(`#${toggleId} `);
-            const content = this.panel.querySelector(`#${contentId} `);
-            const icon = this.panel.querySelector(`#${iconId} `);
+            const toggle = this.panel.querySelector(`#${toggleId}`);
+            const content = this.panel.querySelector(`#${contentId}`);
+            const icon = this.panel.querySelector(`#${iconId}`);
 
             if (toggle && content && icon) {
                 // Set initial state
@@ -1714,14 +1635,14 @@ class DetailsController {
                 icon.className = isExpanded ? 'fas fa-caret-down' : 'fas fa-caret-right';
 
                 toggle.addEventListener('click', () => {
-                    const isHidden = content.style.display === 'none' || content.style.display === '';
+                    const isHidden = content.style.display === 'none';
                     content.style.display = isHidden ? 'block' : 'none';
                     icon.className = isHidden ? 'fas fa-caret-down' : 'fas fa-caret-right';
                 });
             }
-        }
+        };
 
-        // Initialize toggles with specific default states
+        // Setup Toggles
         setupToggle('variable-toggle', 'variable-content', 'variable-icon', true); // Variable: Expanded
         setupToggle('advanced-toggle', 'advanced-content', 'advanced-icon', false); // Advanced: Collapsed
         setupToggle('default-toggle', 'default-content', 'default-icon', true); // Default Value: Expanded
@@ -1744,6 +1665,7 @@ class DetailsController {
                 e.stopPropagation();
                 const rect = containerTrigger.getBoundingClientRect();
                 this.showContainerTypeMenu(rect.left, rect.bottom + 5, variable.type, (newContainerType) => {
+                    console.log('[Container Type Menu] Callback triggered with newContainerType:', newContainerType);
                     this.app.variables.updateVariableProperty(variable, 'containerType', newContainerType);
                 });
             });
@@ -1753,6 +1675,10 @@ class DetailsController {
         this.panel.querySelectorAll('[data-prop]').forEach(input => {
             input.addEventListener('change', (e) => {
                 const prop = e.target.dataset.prop;
+                const arrayIndex = e.target.dataset.arrayIndex;
+                const mapIndex = e.target.dataset.mapIndex;
+                const mapField = e.target.dataset.mapField;
+
                 let value;
                 if (e.target.type === 'checkbox') {
                     value = e.target.checked;
@@ -1769,23 +1695,60 @@ class DetailsController {
                 } else {
                     value = e.target.value;
                 }
-                this.app.variables.updateVariableProperty(variable, prop, value);
+
+                if (mapIndex !== undefined && mapField !== undefined) {
+                    // Handle Map Update
+                    const index = parseInt(mapIndex);
+                    const newMap = [...variable.defaultValue];
+                    if (!newMap[index]) newMap[index] = {};
+                    newMap[index][mapField] = value;
+                    this.app.variables.updateVariableProperty(variable, 'defaultValue', newMap);
+                } else if (arrayIndex !== undefined) {
+                    // Handle Array Update
+                    const index = parseInt(arrayIndex);
+                    const newArray = [...variable.defaultValue];
+                    newArray[index] = value;
+                    this.app.variables.updateVariableProperty(variable, 'defaultValue', newArray);
+                } else {
+                    this.app.variables.updateVariableProperty(variable, prop, value);
+                }
             });
+
             if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
                 input.addEventListener('input', (e) => {
                     const prop = e.target.dataset.prop;
+                    const arrayIndex = e.target.dataset.arrayIndex;
+                    const mapIndex = e.target.dataset.mapIndex;
+                    const mapField = e.target.dataset.mapField;
+
                     let value = e.target.value;
                     if (e.target.type === 'number') {
                         value = parseFloat(e.target.value);
                     }
-                    this.app.variables.updateVariableProperty(variable, prop, value);
+
+                    if (mapIndex !== undefined && mapField !== undefined) {
+                        // Handle Map Update
+                        const index = parseInt(mapIndex);
+                        const newMap = [...variable.defaultValue];
+                        if (!newMap[index]) newMap[index] = {};
+                        newMap[index][mapField] = value;
+                        this.app.variables.updateVariableProperty(variable, 'defaultValue', newMap);
+                    } else if (arrayIndex !== undefined) {
+                        // Handle Array Update (Debounced or immediate? Immediate for now)
+                        const index = parseInt(arrayIndex);
+                        const newArray = [...variable.defaultValue];
+                        newArray[index] = value;
+                        this.app.variables.updateVariableProperty(variable, 'defaultValue', newArray);
+                    } else {
+                        this.app.variables.updateVariableProperty(variable, prop, value);
+                    }
                 });
             }
         });
 
         if (isPrimarySelection) {
             setTimeout(() => {
-                const varEl = document.querySelector(`.tree - item[data -var-id="${variable.id}"]`);
+                const varEl = document.querySelector(`.tree-item[data-var-id="${variable.id}"]`);
                 if (varEl) {
                     varEl.focus();
                 }
@@ -1793,46 +1756,257 @@ class DetailsController {
         }
     }
 
-    renderDefaultValueInput(variable) {
-        const type = variable.type;
-        const value = variable.defaultValue;
-        const label = variable.name;
-
+    _renderSingleValueInput(type, value, extraAttrs = '') {
         if (type === 'bool') {
-            return `
-                    <div class="detail-checkbox-row">
-                    <label>${label}</label>
-                    <input type="checkbox" id="default-value-input" class="ue5-checkbox" data-prop="defaultValue" ${value ? 'checked' : ''}>
-                </div>
-                `;
+            return `<input type="checkbox" class="ue5-checkbox" data-prop="defaultValue" ${value ? 'checked' : ''} ${extraAttrs}>`;
         }
         if (type === 'int' || type === 'int64' || type === 'byte' || type === 'float') {
             const step = (type === 'float') ? '0.01' : '1';
-            return `
-                    <div class="detail-row">
-                    <label>${label}</label>
-                    <input type="number" id="default-value-input" class="details-input" value="${value}" step="${step}" data-prop="defaultValue">
-                </div>
-                `;
+            return `<input type="number" class="details-input" value="${value}" step="${step}" data-prop="defaultValue" ${extraAttrs}>`;
         }
         if (type === 'string' || type === 'name' || type === 'text') {
-            return `
-                    <div class="detail-row">
-                    <label>${label}</label>
-                    <input type="text" id="default-value-input" class="details-input" value="${value}" data-prop="defaultValue">
+            return `<input type="text" class="details-input" value="${value}" data-prop="defaultValue" ${extraAttrs}>`;
+        }
+        if (type === 'vector' || type === 'rotator' || type === 'transform') {
+            return `<input type="text" class="details-input" value="${value}" data-prop="defaultValue" style="width: 100%;" ${extraAttrs}>`;
+        }
+        return `<p class="detail-value-static">No editor available</p>`;
+    }
+
+    _renderArrayDefaultValue(variable) {
+        // Ensure defaultValue is an array
+        if (!Array.isArray(variable.defaultValue)) {
+            variable.defaultValue = [];
+        }
+
+        const values = variable.defaultValue;
+        const count = values.length;
+        const type = variable.type;
+
+        // Header Row matching UE5 style
+        let html = `
+            <div class="detail-row">
+                <div style="display: flex; align-items: center; height: 100%;">
+                    <i class="fas fa-caret-down" style="margin-right: 4px; color: #888; font-size: 10px;"></i>
+                    <label style="margin: 0; cursor: pointer;">${variable.name}</label>
                 </div>
-                `;
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 8px; height: 100%;">
+                    <span style="color: #888; font-size: 10px;">${count} Array element${count !== 1 ? 's' : ''}</span>
+                    <i class="fas fa-plus-circle" style="cursor: pointer; color: #ccc;" onclick="window.app.details.addArrayElement('${variable.id}')" title="Add Element"></i>
+                    <i class="fas fa-trash" style="cursor: pointer; color: #ccc; font-size: 10px;" onclick="window.app.details.clearArrayElements('${variable.id}')" title="Clear All"></i>
+                </div>
+            </div>
+        `;
+
+        // Render list items
+        values.forEach((val, index) => {
+            html += `
+                <div class="detail-row">
+                    <label style="padding-left: 24px; color: #888; font-size: 11px;">Index [ ${index} ]</label>
+                    <div style="display: flex; align-items: center; width: 100%; padding-right: 4px;">
+                        <div style="flex-grow: 1; margin-right: 4px;">
+                            ${this._renderSingleValueInput(type, val, `data-array-index="${index}"`)}
+                        </div>
+                        <i class="fas fa-trash-alt" style="cursor: pointer; color: #666; font-size: 10px;" onclick="window.app.details.removeArrayElement('${variable.id}', ${index})" title="Remove"></i>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    _renderMapDefaultValue(variable) {
+        // Ensure defaultValue is a Map wrapped as an array of key-value pairs
+        // Format: [{key: 'key1', value: 'value1'}, {key: 'key2', value: 'value2'}]
+        if (!Array.isArray(variable.defaultValue)) {
+            variable.defaultValue = [];
+        }
+
+        const entries = variable.defaultValue;
+        const count = entries.length;
+        const type = variable.type;
+
+        // Header Row matching UE5 style
+        let html = `
+            <div class="detail-row">
+                <div style="display: flex; align-items: center; height: 100%;">
+                    <i class="fas fa-caret-down" style="margin-right: 4px; color: #888; font-size: 10px;"></i>
+                    <label style="margin: 0; cursor: pointer;">${variable.name}</label>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 8px; height: 100%;">
+                    <span style="color: #888; font-size: 10px;">${count} Map element${count !== 1 ? 's' : ''}</span>
+                    <i class="fas fa-plus-circle" style="cursor: pointer; color: #ccc;" onclick="window.app.details.addMapElement('${variable.id}')" title="Add Element"></i>
+                    <i class="fas fa-trash" style="cursor: pointer; color: #ccc; font-size: 10px;" onclick="window.app.details.clearMapElements('${variable.id}')" title="Clear All"></i>
+                </div>
+            </div>
+        `;
+
+        // Render list items - each entry is a key-value pair
+        entries.forEach((entry, index) => {
+            const key = entry.key !== undefined ? entry.key : '';
+            const value = entry.value !== undefined ? entry.value : '';
+
+            html += `
+                <div class="detail-row" style="flex-direction: column; align-items: stretch; padding: 4px 8px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                        <label style="padding-left: 16px; color: #888; font-size: 11px; flex-shrink: 0; width: 80px;">Index [ ${index} ]</label>
+                        <i class="fas fa-trash-alt" style="cursor: pointer; color: #666; font-size: 10px; margin-left: auto;" onclick="window.app.details.removeMapElement('${variable.id}', ${index})" title="Remove"></i>
+                    </div>
+                    <div style="display: flex; gap: 8px; padding-left: 16px;">
+                        <div style="flex: 1;">
+                            <label style="color: #888; font-size: 9px; display: block; margin-bottom: 2px;">Key</label>
+                            ${this._renderSingleValueInput('string', key, `data-map-index="${index}" data-map-field="key"`)}
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="color: #888; font-size: 9px; display: block; margin-bottom: 2px;">Value</label>
+                            ${this._renderSingleValueInput(type, value, `data-map-index="${index}" data-map-field="value"`)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    renderDefaultValueInput(variable) {
+        if (variable.containerType === 'array') {
+            return this._renderArrayDefaultValue(variable);
+        }
+
+        if (variable.containerType === 'map') {
+            return this._renderMapDefaultValue(variable);
+        }
+
+        const type = variable.type;
+        const value = variable.defaultValue;
+        const label = variable.name;
+        const inputHTML = this._renderSingleValueInput(type, value);
+
+        if (type === 'bool') {
+            return `
+                <div class="detail-checkbox-row">
+                    <label>${label}</label>
+                    ${inputHTML}
+                </div>
+            `;
+        }
+        if (type === 'int' || type === 'int64' || type === 'byte' || type === 'float' || type === 'string' || type === 'name' || type === 'text') {
+            return `
+                <div class="detail-row">
+                    <label>${label}</label>
+                    ${inputHTML}
+                </div>
+            `;
         }
         if (type === 'vector' || type === 'rotator' || type === 'transform') {
             return `
-                    <div class="detail-row-column">
+                <div class="detail-row-column">
                     <label>Value (X, Y, Z)</label>
-                    <input type="text" id="default-value-input" class="details-input" value="${value}" data-prop="defaultValue" style="width: 100%;">
+                    ${inputHTML}
                 </div>
-                `;
+            `;
         }
 
         return `<p class="detail-value-static">No editor available for type: ${type}</p>`;
+    }
+
+    addArrayElement(varId) {
+        console.log('[addArrayElement] Called with varId:', varId);
+        // Try currentVariable first, then search by ID
+        let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
+
+        // If not found, search through all variables by ID
+        if (!variable) {
+            variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
+        }
+
+        console.log('[addArrayElement] Variable found:', variable ? variable.name : 'null');
+        if (!variable) return;
+
+        if (!Array.isArray(variable.defaultValue)) {
+            variable.defaultValue = [];
+        }
+
+        // Add default value based on type
+        const type = variable.type;
+        let newVal = '';
+        if (type === 'bool') newVal = false;
+        else if (type === 'int' || type === 'int64' || type === 'byte' || type === 'float') newVal = 0;
+        else if (type === 'vector') newVal = '(0,0,0)';
+        else if (type === 'rotator') newVal = '(0,0,0)';
+        else if (type === 'transform') newVal = '(0,0,0|0,0,0|1,1,1)';
+
+        const newArray = [...variable.defaultValue, newVal];
+        console.log('[addArrayElement] Adding element. Old length:', variable.defaultValue.length, 'New length:', newArray.length);
+        this.app.variables.updateVariableProperty(variable, 'defaultValue', newArray);
+    }
+
+    removeArrayElement(varId, index) {
+        let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
+        if (!variable) variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
+        if (!variable) return;
+
+        if (Array.isArray(variable.defaultValue)) {
+            const newArray = [...variable.defaultValue];
+            newArray.splice(index, 1);
+            this.app.variables.updateVariableProperty(variable, 'defaultValue', newArray);
+        }
+    }
+
+    clearArrayElements(varId) {
+        let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
+        if (!variable) variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
+        if (!variable) return;
+
+        this.app.variables.updateVariableProperty(variable, 'defaultValue', []);
+    }
+
+    addMapElement(varId) {
+        console.log('[addMapElement] Called with varId:', varId);
+        let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
+        if (!variable) variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
+        console.log('[addMapElement] Variable found:', variable ? variable.name : 'null');
+        if (!variable) return;
+
+        if (!Array.isArray(variable.defaultValue)) {
+            variable.defaultValue = [];
+        }
+
+        // Add default key-value pair based on type
+        const type = variable.type;
+        let newVal = '';
+        if (type === 'bool') newVal = false;
+        else if (type === 'int' || type === 'int64' || type === 'byte' || type === 'float') newVal = 0;
+        else if (type === 'vector') newVal = '(0,0,0)';
+        else if (type === 'rotator') newVal = '(0,0,0)';
+        else if (type === 'transform') newVal = '(0,0,0|0,0,0|1,1,1)';
+
+        const newEntry = { key: '', value: newVal };
+        const newMap = [...variable.defaultValue, newEntry];
+        console.log('[addMapElement] Adding map entry. Old length:', variable.defaultValue.length, 'New length:', newMap.length);
+        this.app.variables.updateVariableProperty(variable, 'defaultValue', newMap);
+    }
+
+    removeMapElement(varId, index) {
+        let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
+        if (!variable) variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
+        if (!variable) return;
+
+        if (Array.isArray(variable.defaultValue)) {
+            const newMap = [...variable.defaultValue];
+            newMap.splice(index, 1);
+            this.app.variables.updateVariableProperty(variable, 'defaultValue', newMap);
+        }
+    }
+
+    clearMapElements(varId) {
+        let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
+        if (!variable) variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
+        if (!variable) return;
+
+        this.app.variables.updateVariableProperty(variable, 'defaultValue', []);
     }
 
     showNodeDetails(node) {
@@ -1866,7 +2040,7 @@ class DetailsController {
         }
 
         this.panel.innerHTML = `
-                    < div class="details-group" >
+            < div class="details-group" >
                 <h4>Node Details</h4>
                 <div class="detail-row">
                     <label>Title</label>
@@ -1881,10 +2055,10 @@ class DetailsController {
                     <span class="detail-value-static">${node.nodeKey}</span>
                 </div>
             </div >
-                    <div class="details-group">
-                        <p style="color: #aaa;">This is a basic inspector. Full configuration options would appear here.</p>
-                    </div>
-                `;
+            <div class="details-group">
+                <p style="color: #aaa;">This is a basic inspector. Full configuration options would appear here.</p>
+            </div>
+        `;
     }
 
     showCustomEventDetails(node) {
@@ -1905,7 +2079,7 @@ class DetailsController {
         };
 
         this.panel.innerHTML = `
-                    < div class="details-group" >
+            < div class="details-group" >
                 <h4 style="color: #ddd; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">
                     <i class="fas fa-caret-down"></i> Graph Node
                 </h4>
@@ -1963,7 +2137,7 @@ class DetailsController {
                 </div>
                 <div id="custom-inputs-list"></div>
             </div>
-                `;
+        `;
 
         updateReliableState();
 
@@ -2045,9 +2219,9 @@ class DetailsController {
         const customPins = node.pins.filter(p => p.isCustom);
 
         if (customPins.length === 0) {
-            list.innerHTML = `<div style="background-color: #111; padding: 8px; color: #888; font-style: italic; font-size: 10px; border: 1px solid #333;">
-                    Please press the + icon above to add parameters
-            </div>`;
+            list.innerHTML = `< div style = "background-color: #111; padding: 8px; color: #888; font-style: italic; font-size: 10px; border: 1px solid #333;" >
+            Please press the + icon above to add parameters
+            </div > `;
             return;
         }
 

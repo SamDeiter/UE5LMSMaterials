@@ -345,11 +345,6 @@ class Node {
             container.appendChild(pinContainer);
         }
 
-        // 2. Separator Dot (The grey dot in the middle)
-        const sep = document.createElement('div');
-        sep.className = 'compact-node-separator';
-        container.appendChild(sep);
-
         // --- INSERT LABEL ---
         const labelSpan = document.createElement('span');
         labelSpan.className = 'compact-node-label';
