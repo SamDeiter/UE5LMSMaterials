@@ -1387,6 +1387,140 @@ class DetailsController {
         `;
     }
 
+    // Helper: Render variable fields (name, type, description, etc.)
+    _renderVariableFields(variable) {
+        const color = Utils.getPinColor(variable.type);
+        return `
+            <!-- Variable Name -->
+            <div class="detail-row">
+                <label>Variable Name</label>
+                <input type="text" id="variable-name-input" class="details-input" value="${variable.name}" data-prop="name">
+            </div>
+
+            <!-- Variable Type (Custom Pill Selectors) -->
+            <div class="detail-row">
+                <label>Variable Type</label>
+                <div style="display: flex; gap: 5px; align-items: center; flex-grow: 1;">
+                    <div id="var-container-trigger" style="display: flex; align-items: center; gap: 5px; padding: 4px 8px; background-color: #1a1a1a; border: 1px solid #444; border-radius: 3px; cursor: pointer; min-width: 60px;">
+                        <div style="width: 16px; display: flex; justify-content: center;">
+                            ${this.getContainerIcon(variable.containerType, variable.type)}
+                        </div>
+                        <i class="fas fa-caret-down" style="margin-left: auto; font-size: 10px; color: #888;"></i>
+                    </div>
+                    <div id="var-type-trigger" style="display: flex; align-items: center; gap: 5px; padding: 4px 8px; background-color: #1a1a1a; border: 1px solid #444; border-radius: 3px; cursor: pointer; flex-grow: 1;">
+                        <span class="param-color-dot" style="background-color: ${color};"></span>
+                        <span style="color: ${color}; font-weight: 600;">${variable.type.charAt(0).toUpperCase() + variable.type.slice(1)}</span>
+                        <i class="fas fa-caret-down" style="margin-left: auto; font-size: 10px; color: #888;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="detail-row">
+                <label>Description</label>
+                <input type="text" class="details-input" value="${variable.description || ''}" data-prop="description" placeholder="Tooltip">
+            </div>
+
+            <!-- Instance Editable -->
+            <div class="detail-checkbox-row">
+                <label>Instance Editable</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="isInstanceEditable" ${variable.isInstanceEditable ? 'checked' : ''}>
+            </div>
+
+            <!-- Blueprint Read Only -->
+            <div class="detail-checkbox-row">
+                <label>Blueprint Read Only</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="blueprintReadOnly" ${variable.blueprintReadOnly ? 'checked' : ''}>
+            </div>
+
+            <!-- Expose on Spawn -->
+            <div class="detail-checkbox-row">
+                <label>Expose on Spawn</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="exposeOnSpawn" ${variable.exposeOnSpawn ? 'checked' : ''}>
+            </div>
+
+            <!-- Private -->
+            <div class="detail-checkbox-row">
+                <label>Private</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="private" ${variable.private ? 'checked' : ''}>
+            </div>
+
+            <!-- Expose to Cinematics -->
+            <div class="detail-checkbox-row">
+                <label>Expose to Cinematics</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="exposeToCinematics" ${variable.exposeToCinematics ? 'checked' : ''}>
+            </div>
+
+            <!-- Category -->
+            <div class="detail-row">
+                <label>Category</label>
+                <select class="details-select" data-prop="category" style="flex-grow: 1;">
+                    <option value="Default" ${variable.category === 'Default' ? 'selected' : ''}>Default</option>
+                    <option value="Config" ${variable.category === 'Config' ? 'selected' : ''}>Config</option>
+                </select>
+            </div>
+
+            <!-- Replication -->
+            <div class="detail-row">
+                <label>Replication</label>
+                <select class="details-select" data-prop="replication" style="flex-grow: 1;">
+                    <option value="None" ${variable.replication === 'None' ? 'selected' : ''}>None</option>
+                    <option value="Replicated" ${variable.replication === 'Replicated' ? 'selected' : ''}>Replicated</option>
+                </select>
+            </div>
+
+            <!-- Replication Condition -->
+            <div class="detail-row">
+                <label>Replication Condition</label>
+                <select class="details-select" data-prop="replicationCondition" style="flex-grow: 1;">
+                    <option value="None" ${variable.replicationCondition === 'None' ? 'selected' : ''}>None</option>
+                    <option value="InitialOnly" ${variable.replicationCondition === 'InitialOnly' ? 'selected' : ''}>Initial Only</option>
+                    <option value="OwnerOnly" ${variable.replicationCondition === 'OwnerOnly' ? 'selected' : ''}>Owner Only</option>
+                </select>
+            </div>
+        `;
+    }
+
+    // Helper: Render advanced fields
+    _renderAdvancedFields(variable) {
+        return `
+            <div class="detail-checkbox-row">
+                <label>Config Variable</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="configVariable" ${variable.configVariable ? 'checked' : ''}>
+            </div>
+            <div class="detail-checkbox-row">
+                <label>Transient</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="transient" ${variable.transient ? 'checked' : ''}>
+            </div>
+            <div class="detail-checkbox-row">
+                <label>SaveGame</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="saveGame" ${variable.saveGame ? 'checked' : ''}>
+            </div>
+            <div class="detail-checkbox-row">
+                <label>Advanced Display</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="advancedDisplay" ${variable.advancedDisplay ? 'checked' : ''}>
+            </div>
+            <div class="detail-checkbox-row">
+                <label>Multi line</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="multiLine" ${variable.multiLine ? 'checked' : ''}>
+            </div>
+            <div class="detail-checkbox-row">
+                <label>Deprecated</label>
+                <input type="checkbox" class="ue5-checkbox" data-prop="deprecated" ${variable.deprecated ? 'checked' : ''}>
+            </div>
+            <div class="detail-row">
+                <label>Deprecation Message</label>
+                <input type="text" class="details-input" data-prop="deprecationMessage" value="${variable.deprecationMessage || ''}">
+            </div>
+            <div class="detail-row">
+                <label>Drop-down Options</label>
+                <select class="details-select" style="flex-grow: 1;">
+                    <option value="">None</option>
+                </select>
+            </div>
+        `;
+    }
+
     // UPDATED: Variable and Default Value sections are now collapsible (default: Expanded)
     showVariableDetails(variable, isPrimarySelection = false) {
         if (isPrimarySelection) {
@@ -1911,9 +2045,9 @@ class DetailsController {
         const customPins = node.pins.filter(p => p.isCustom);
 
         if (customPins.length === 0) {
-            list.innerHTML = `< div style = "background-color: #111; padding: 8px; color: #888; font-style: italic; font-size: 10px; border: 1px solid #333;" >
+            list.innerHTML = `<div style="background-color: #111; padding: 8px; color: #888; font-style: italic; font-size: 10px; border: 1px solid #333;">
                     Please press the + icon above to add parameters
-            </div > `;
+            </div>`;
             return;
         }
 
