@@ -1,0 +1,1314 @@
+/* --- GLOBAL STYLES & LAYOUT --- */
+:root {
+    /* General Theme */
+    --color-bg-dark: #151515;
+    --color-bg-medium: #262626;
+    --color-bg-light: #333333;
+    --color-text-main: #e0e0e0;
+    --color-accent-blue: #0077D8;
+    --color-border: #111;
+    --color-selection: rgba(255, 165, 0, 0.5);
+    --color-comment: rgba(255, 255, 255, 0.05);
+    --color-reroute: #FFFFFF;
+    --color-breakpoint: #FF4444;
+
+    /* Node Header Gradients */
+    --header-event-start: #8B0000;
+    --header-event-end: #400000;
+    --header-flow-start: #666666;
+    --header-flow-end: #333333;
+    --header-function-start: #005580;
+    --header-function-end: #002a40;
+
+    /* Pin Colors (Full Palette) */
+    --color-exec: #FFFFFF;
+    --color-bool: #8C0202;
+    --color-byte: #00665E;
+    --color-int: #28E897;
+    --color-int64: #76D37E;
+    --color-float: #96EE35;
+    --color-name: #CC99FF;
+    --color-string: #FF00FF;
+    --color-text: #E27696;
+    --color-vector: #FFC700;
+    --color-rotator: #99CCFF;
+    --color-transform: #FF7300;
+    --color-object: #00A2E8;
+    --color-dev-yellow: #FFC72C;
+    --color-dev-black: #202020;
+    --color-array-dim: 2px;
+}
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-main);
+    font-size: 11px;
+    user-select: none;
+}
+
+/* --- SCROLLBAR STYLING (UE5 Style) --- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background-color: #151515;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #333;
+    border-radius: 4px;
+    border: 2px solid #151515; /* Padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+::-webkit-scrollbar-corner {
+    background-color: #151515;
+}
+
+/* --- UI Elements --- */
+button,
+input,
+select,
+textarea {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    padding: 4px 6px;
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    color: #eee;
+    border-radius: 3px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+button:hover {
+    background-color: #444;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+    border-color: var(--color-accent-blue);
+    outline: none;
+}
+
+/* --- UE5 STYLE CHECKBOX --- */
+.ue5-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background-color: #080808;
+    border: 1px solid #555;
+    border-radius: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0; /* Override generic input padding */
+    margin: 0;
+    vertical-align: middle;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+    position: relative;
+}
+
+.ue5-checkbox:checked {
+    background-color: #080808;
+    border-color: #555;
+}
+
+.ue5-checkbox:checked::after {
+    content: '\f00c'; /* FontAwesome Check */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 12px;
+    color: var(--color-accent-blue);
+    text-shadow: 0 0 3px rgba(0, 119, 216, 0.4);
+}
+
+.ue5-checkbox:hover {
+    border-color: #888;
+}
+
+/* --- LAYOUT --- */
+#app-container {
+    height: 100%;
+    display: grid;
+    /* Grid Template: Left | Resizer | Graph | Resizer | Right */
+    grid-template-rows: 32px 1fr 4px 200px;
+    grid-template-columns: 280px 4px 1fr 4px 300px;
+    grid-template-areas:
+        "toolbar toolbar toolbar toolbar toolbar"
+        "left resizer-l center resizer-r right"
+        "resizer-b resizer-b resizer-b resizer-b resizer-b"
+        "bottom bottom bottom bottom bottom";
+}
+
+.panel {
+    overflow: hidden;
+    border: 1px solid #000;
+    background-color: var(--color-bg-medium);
+}
+
+/* --- RESIZERS --- */
+.resizer-vertical {
+    width: 4px;
+    background-color: #111;
+    cursor: col-resize;
+    z-index: 100;
+    transition: background-color 0.2s;
+}
+
+.resizer-vertical:hover {
+    background-color: var(--color-accent-blue);
+}
+
+.resizer-horizontal {
+    height: 4px;
+    background-color: #111;
+    cursor: row-resize;
+    z-index: 100;
+    transition: background-color 0.2s;
+}
+
+.resizer-horizontal:hover {
+    background-color: var(--color-accent-blue);
+}
+
+/* Map Resizer IDs to Grid Areas */
+#resizer-left { grid-area: resizer-l; }
+#resizer-right { grid-area: resizer-r; }
+#resizer-bottom { grid-area: resizer-b; }
+
+#toolbar {
+    grid-area: toolbar;
+    background-color: #222;
+    border-bottom: 1px solid #000;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 10px;
+    z-index: 100;
+}
+
+#toolbar .group {
+    display: flex;
+    gap: 5px;
+    border-right: 1px solid #444;
+    padding-right: 10px;
+    margin-right: 10px;
+}
+
+#toolbar button {
+    background-color: transparent;
+    border: none;
+}
+
+#toolbar button:hover {
+    background-color: #444;
+    border-radius: 4px;
+}
+
+.toolbar-status {
+    font-size: 10px;
+    color: #888;
+    margin-left: auto;
+    margin-right: 10px;
+}
+
+#left-panel {
+    grid-area: left;
+    display: flex; 
+    flex-direction: column;
+    background: #1a1a1a;
+}
+
+#left-sidebar-tabs {
+    flex-grow: 1; /* Allows this container to fill the left panel's vertical space */
+    display: flex;
+    flex-direction: column; /* Stack Components, My Blueprint, Palette */
+    overflow: hidden;
+}
+
+#components-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 200px; 
+    min-height: 100px;
+    border-bottom: 1px solid #000;
+}
+
+#my-blueprint {
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* Takes remaining space */
+    min-height: 100px;
+    border-bottom: 1px solid #000;
+}
+
+#palette {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 30%; /* Give Palette 30% of the space */
+    min-height: 100px;
+}
+
+
+#right-panel {
+    grid-area: right;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+}
+
+/* Ensure the main sidebar content fills the space if palette is hidden */
+#sidebar-top {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+
+.panel-header {
+    padding: 6px 10px;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #000;
+    font-weight: 700;
+    font-size: 12px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+}
+
+/* --- PANEL TOOLBAR (For Components & My Blueprint) --- */
+.panel-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    background-color: #222;
+    border-bottom: 1px solid #111;
+    gap: 6px;
+}
+
+/* Green Add Button Style */
+.btn-green-add {
+    background: linear-gradient(to bottom, #3c3c3c, #2c2c2c);
+    color: #4CAF50; /* Green text */
+    font-weight: bold;
+    border: 1px solid #111;
+    padding: 2px 10px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.8);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.btn-green-add:hover {
+    background: linear-gradient(to bottom, #444, #333);
+    color: #66bb6a;
+}
+
+/* Search Box inside Panel Toolbar */
+.search-box {
+    display: flex;
+    align-items: center;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 0 6px;
+    flex-grow: 1;
+}
+
+.search-box i {
+    color: #666;
+    font-size: 10px;
+    margin-right: 4px;
+}
+
+.search-box input {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    padding: 3px 0;
+    width: 100%;
+    font-size: 10px;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: transparent;
+}
+
+.panel-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrollbars */
+    padding: 5px;
+}
+
+/* Replaced variable controls strip with section headers */
+.sidebar-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background-color: #222;
+    border-bottom: 1px solid #111;
+    border-top: 1px solid #111;
+    color: #ccc;
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.sidebar-section-header:hover {
+    background-color: #2a2a2a;
+    color: white;
+}
+
+.sidebar-section-header .title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-section-header .action-group {
+    display: flex;
+    align-items: center;
+}
+
+/* NEW: Circular Add Icon Style (Wireframe Plus) */
+.section-add-icon {
+    color: #aaa;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    border: 1px solid #aaa; /* Thinner border matches Image 1 */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 8px; /* Smaller size for FA icon to float inside */
+    box-sizing: border-box;
+    transition: all 0.1s;
+    margin-right: 2px;
+}
+
+/* Deleted the ::before override to let FontAwesome icon render naturally */
+
+.section-add-icon:hover {
+    color: white;
+    border-color: white;
+    background-color: rgba(255,255,255,0.1);
+}
+
+#new-var-input-container {
+    padding: 8px;
+    background-color: #222;
+    border-bottom: 1px solid #444;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 5px;
+}
+
+#new-var-input-container input {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.tree-item {
+    padding: 4px 8px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border-radius: 3px;
+    color: #ddd;
+    border: 1px solid transparent;
+}
+
+/* --- RESPONSIVE VARIABLE ROW LAYOUT --- */
+.my-blueprint-variable-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+    height: 24px; 
+}
+
+.var-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    overflow: hidden;
+    min-width: 20px; 
+}
+
+/* Name Truncation */
+.var-left span, .var-left input {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.var-right {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Reduced gap */
+    font-size: 10px;
+    color: #aaa;
+    flex: 0 0 auto; 
+    margin-left: 6px;
+    /* SHIFTED LEFT significantly away from the scrollbar/edge */
+    padding-right: 30px; 
+}
+
+/* --- CRITICAL: COLLAPSE PRIORITIES --- */
+
+/* 1. Variable Type Name (e.g., "Boolean") */
+.var-type-tag {
+    color: #aaa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip; 
+    flex: 0 1 auto;
+    flex-shrink: 1000; /* Priority: Shrink/Disappear FIRST */
+    /* Limit max width so it truncates well before hitting icons */
+    max-width: 70px;
+    min-width: 0; 
+    text-align: right;
+}
+
+/* 2. Icons (Pill & Eye) */
+.var-color-pill, 
+.var-eye-icon {
+    flex: 0 0 auto;
+    flex-shrink: 0; /* Priority: NEVER shrink */
+}
+
+.var-color-pill {
+    width: 10px;
+    height: 4px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.var-eye-icon {
+    font-size: 10px;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.var-type-tag:hover {
+    color: white;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* --- Variable Rename Input Style --- */
+.var-name-edit {
+    background-color: #005080;
+    color: white;
+    border: 1px solid #0077D8;
+    border-radius: 2px;
+    padding: 0 4px;
+    width: 100%;
+    height: 18px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+}
+
+.tree-item:hover {
+    background-color: #333;
+    color: #fff;
+}
+
+.tree-item.selected {
+    background-color: #005080;
+    color: white;
+    border-color: #0077D8;
+}
+
+#graph-editor {
+    grid-area: center;
+    position: relative;
+    overflow: hidden;
+    background-color: #111;
+    cursor: grab;
+}
+
+#graph-editor.dragging {
+    cursor: grabbing;
+}
+
+#graph-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#graph-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+}
+
+#nodes-container {
+    position: absolute;
+    transform-origin: 0 0;
+    pointer-events: none;
+}
+
+/* --- NODE STYLES --- */
+.node {
+    position: absolute;
+    background-color: rgba(15, 15, 15, 0.9);
+    border: 1px solid #000;
+    border-radius: 8px;
+    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.5);
+    min-width: 200px;
+    z-index: 10;
+    pointer-events: all;
+    backdrop-filter: blur(5px);
+}
+
+.node.selected {
+    box-shadow: 0 0 0 2px #FFA500;
+}
+
+.node.compact-node,
+.node.set-node .compact-node {
+    min-width: auto;
+    border-radius: 20px; /* High border radius for pill shape */
+    padding: 2px 8px; /* Reduced padding */
+    border: 1px solid #000;
+    /* Glossy black gradient background */
+    background: linear-gradient(to bottom, #3a3a3a 0%, #1a1a1a 50%, #000000 100%);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white !important;
+    text-shadow: 0 1px 3px black;
+    white-space: nowrap; 
+}
+
+/* FIX: Ensure compact nodes show selection highlight properly while keeping gloss */
+.node.compact-node.selected {
+    box-shadow: 0 0 0 2px #FFA500, 0 2px 5px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Container inside the compact node */
+.compact-node-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ADDED: Compact Node Label (for Get Nodes) - Matches UI font styles */
+.compact-node-label {
+    font-weight: 600;
+    margin: 0 6px;
+    color: white;
+    text-shadow: 0 1px 2px black;
+    white-space: nowrap;
+}
+
+.compact-node .node-title {
+    display: none;
+}
+
+.compact-node .node-content {
+    padding: 0;
+    display: flex;
+}
+
+/* Separator Dot */
+.compact-node-separator {
+    width: 4px;
+    height: 4px;
+    background-color: #666;
+    border-radius: 50%;
+    box-shadow: 0 1px 1px black;
+}
+
+/* Compact Input Widget (for unconnected pins) */
+.compact-input-widget {
+    width: 14px;
+    height: 14px;
+    background-color: #000;
+    border: 1px solid #444;
+    border-radius: 2px;
+    margin-left: 4px;
+    /* If it's a checkbox, we might need appearance tweaks, but for now a box is good */
+    appearance: none; 
+    -webkit-appearance: none;
+    display: inline-block;
+    vertical-align: middle;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,1);
+}
+
+/* Checked state for boolean inputs inside compact nodes */
+.compact-input-widget:checked {
+    background-color: #000;
+}
+.compact-input-widget:checked::after {
+    content: '\f00c'; 
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 10px;
+    color: var(--color-accent-blue);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.node.set-node {
+    min-width: 190px;
+    background-color: rgba(15, 15, 15, 0.9);
+}
+
+/* Updated: Set Node Title */
+.node.set-node .node-title {
+    justify-content: center;
+    padding-left: 0;
+    background: transparent; 
+    border-bottom: none !important;
+    color: #fff; /* White Text */
+    font-style: italic;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Strong shadow */
+}
+
+/* Set Node Text Title Specific */
+.node.set-node .node-title span {
+    font-size: 16px; /* Matches Target Image size better than 22px */
+    letter-spacing: 1px;
+}
+
+.node.set-node .pin-row {
+    padding: 4px 0;
+}
+
+/* NEW: Set Node Pin Wrapper - Horizontal Alignment */
+.node.set-node .pin-wrapper {
+    display: flex;
+    flex-direction: row; /* Horizontal stacking */
+    align-items: center; /* Vertically centered */
+    justify-content: flex-start;
+    gap: 8px; /* Space between text and box */
+    margin-left: 4px;
+}
+
+/* Adjust the label inside set node */
+.node.set-node .pin-container .pin-label-in {
+    font-size: 13px; /* Slightly larger */
+    font-weight: 600;
+    color: #fff;
+    margin-left: 0; 
+    text-shadow: 0 1px 2px rgba(0,0,0,1);
+}
+
+/* Reset margins on inputs within Set nodes so they align */
+.node.set-node .ue5-checkbox,
+.node.set-node .node-literal-input {
+    margin-left: 0 !important; 
+}
+
+.node.set-node .pin-dot {
+    width: 14px;
+    height: 14px;
+}
+
+.node.set-node .pin-dot.exec-pin {
+    width: 18px;
+    height: 17px;
+}
+
+/* --- PIN STYLES (Base for Data Pins) --- */
+.pin-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    background-color: currentColor;
+    cursor: crosshair;
+    flex-shrink: 0;
+    z-index: 2;
+    transition: transform 0.1s;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.pin-dot:hover {
+    transform: scale(1.2);
+}
+
+.pin-dot.hollow {
+    background-color: #1a1a1a !important;
+    border: 2px solid currentColor;
+    width: 10px;
+    height: 10px;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+/* --- EXEC PIN STYLES (UPDATED: Hollow Arrow Style) --- */
+.pin-dot.exec-pin {
+    color: var(--color-exec);
+    width: 13px;
+    height: 14px; /* Slightly taller for arrow shape */
+    border: none;
+    border-radius: 0;
+    background-color: var(--color-exec);
+    /* Solid Pentagon Arrow */
+    clip-path: polygon(0 0, 60% 0, 100% 50%, 60% 100%, 0 100%);
+    box-shadow: none;
+}
+
+/* The Hollow Exec Pin (Unconnected) */
+.pin-dot.exec-pin.hollow {
+    background-color: #FFFFFF !important; /* Outer color (border) */
+    display: grid;
+    place-items: center;
+    border: none;
+    box-shadow: none;
+    /* Ensure the clip-path matches the outer shape */
+    clip-path: polygon(0 0, 60% 0, 100% 50%, 60% 100%, 0 100%);
+    padding: 1.5px; /* Thickness of the "border" */
+}
+
+.pin-dot.exec-pin.hollow::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: #151515; /* Inner match background */
+    /* Inner Arrow Shape */
+    clip-path: polygon(0 0, 60% 0, 100% 50%, 60% 100%, 0 100%);
+}
+
+.pin-container:not(.exec-pin) .pin-dot::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    border-left: 4px solid currentColor;
+    pointer-events: none;
+}
+
+/* Pin Colors */
+.pin-dot.exec-pin { color: var(--color-exec); }
+.pin-dot.bool-pin { color: var(--color-bool); }
+.pin-dot.byte-pin { color: var(--color-byte); }
+.pin-dot.int-pin { color: var(--color-int); }
+.pin-dot.int64-pin { color: var(--color-int64); }
+.pin-dot.float-pin { color: var(--color-float); }
+.pin-dot.name-pin { color: var(--color-name); }
+.pin-dot.string-pin { color: var(--color-string); }
+.pin-dot.text-pin { color: var(--color-text); }
+.pin-dot.vector-pin { color: var(--color-vector); }
+.pin-dot.rotator-pin { color: var(--color-rotator); }
+.pin-dot.transform-pin { color: var(--color-transform); }
+.pin-dot.object-pin { color: var(--color-object); }
+
+.pin-dot.array-pin {
+    border: var(--color-array-dim) solid currentColor;
+    box-shadow: 0 0 0 1px #000, 0 0 0 calc(var(--color-array-dim) + 1px) currentColor;
+    background-color: #000;
+}
+
+.node-title {
+    padding: 6px 10px;
+    font-weight: 700;
+    font-size: 12px;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-shadow: 0 1px 2px black;
+    position: relative;
+    overflow: hidden;
+    height: 22px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.node-title::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
+    pointer-events: none;
+}
+
+.node.event-node .node-title { background: linear-gradient(to bottom, var(--header-event-start), var(--header-event-end)); }
+.node.flow-node .node-title { background: linear-gradient(to bottom, var(--header-flow-start), var(--header-flow-end)); }
+.node.function-node .node-title { background: linear-gradient(to bottom, var(--header-function-start), var(--header-function-end)); }
+.node.variable-node .node-title, .node.pure-node .node-title { background: linear-gradient(to bottom, #306030, #153015); }
+
+.node-content { padding: 8px 0; }
+.node-content.pure-node-content { display: flex; justify-content: space-between; }
+
+.pin-column.out { display: flex; flex-direction: column; align-items: flex-end; width: 100%; }
+.pin-row { display: flex; align-items: center; justify-content: space-between; min-height: 22px; padding: 1px 0; }
+.pin-container { display: flex; align-items: center; padding: 0 8px; position: relative; pointer-events: all; }
+
+.pin-label-in, .pin-label-out {
+    color: #ddd;
+    font-size: 11px;
+    font-weight: 600;
+    text-shadow: 0 1px 1px black;
+}
+.pin-label-in { margin-left: 8px; }
+.pin-label-out { margin-right: 8px; }
+
+/* --- WIRE STYLES --- */
+.wire {
+    stroke-width: 3px;
+    fill: none;
+    stroke-linecap: round;
+    opacity: 0.8;
+    pointer-events: stroke;
+    transition: stroke-width 0.1s ease-out, opacity 0.1s ease-out, filter 0.1s ease-out;
+}
+
+.wire:hover, .wire.link-selected {
+    stroke-width: 5px;
+    opacity: 1;
+    filter: drop-shadow(0 0 5px var(--color-accent-blue));
+    cursor: pointer;
+}
+
+#action-menu, #context-menu {
+    position: absolute;
+    background-color: #2a2a2a;
+    border: 1px solid #000;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 5000;
+    min-width: 200px;
+    padding: 4px;
+}
+
+.menu-item {
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 2px;
+    color: #eee;
+}
+.menu-item:hover {
+    background-color: var(--color-accent-blue);
+    color: white;
+}
+
+.menu-separator {
+    height: 1px;
+    background-color: #444;
+    margin: 4px 0;
+}
+
+#action-menu-search {
+    width: 100%;
+    margin-bottom: 5px;
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+}
+
+#selection-marquee {
+    position: absolute;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.details-group {
+    padding: 10px;
+    border-bottom: 1px solid #000;
+}
+.details-group h4 {
+    margin: 0 0 8px 0;
+    color: var(--color-accent-blue);
+    cursor: pointer;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 11px;
+}
+.detail-row label {
+    color: #ccc;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+.detail-value-static { color: #888; }
+
+/* NEW: Specific style for checkbox rows to match alignment */
+.detail-checkbox-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 11px;
+    min-height: 22px;
+}
+.detail-checkbox-row label {
+    color: #ccc;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+
+.details-input, .details-select, .details-textarea {
+    background-color: #111;
+    border: 1px solid #333;
+    color: white;
+    padding: 4px;
+    border-radius: 2px;
+    width: 60%;
+}
+.details-textarea { width: 100%; resize: vertical; }
+
+.advanced-details-content {
+    display: none;
+    border-bottom: 1px solid #000;
+    background-color: rgba(0,0,0,0.1);
+}
+
+#bottom-strip {
+    grid-area: bottom;
+    display: flex;
+    flex-direction: column;
+}
+
+.bottom-tabs {
+    display: flex;
+    border-bottom: 1px solid #000;
+    background-color: #2a2a2a;
+}
+
+.bottom-tab {
+    padding: 5px 15px;
+    cursor: pointer;
+    background-color: #333;
+    border-right: 1px solid #111;
+    color: #ccc;
+}
+
+.bottom-tab.active {
+    background-color: var(--color-bg-medium);
+    border-top: 2px solid var(--color-accent-blue);
+    color: white;
+}
+
+#compiler-results {
+    overflow-y: auto;
+    flex-grow: 1;
+    background-color: #111;
+    padding: 5px;
+    font-family: monospace;
+}
+
+.compiler-issue { color: #ff5555; margin-bottom: 4px; }
+.compiler-success { color: #55ff55; margin-bottom: 4px; }
+.compiler-log { color: #ccc; margin-bottom: 4px; }
+
+#help-modal, #confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 6000;
+}
+
+.modal-content {
+    background-color: var(--color-bg-medium);
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    border: 1px solid #444;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+}
+
+.debug-highlight {
+    border: 2px solid var(--color-breakpoint) !important;
+    box-shadow: 0 0 15px var(--color-breakpoint);
+}
+
+.development-bar {
+    position: relative;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--color-text-main);
+    overflow: hidden;
+}
+
+.development-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-dev-yellow);
+    background-image: linear-gradient(-45deg, var(--color-dev-black) 25%, transparent 25%, transparent 50%, var(--color-dev-black) 50%, var(--color-dev-black) 75%, transparent 75%, transparent);
+    background-size: 15px 15px;
+    opacity: 0.8;
+    z-index: 1;
+}
+.development-bar span { position: relative; z-index: 2; }
+
+.action-header {
+    padding: 6px 10px; 
+    background-color: #333;
+    border-bottom: 1px solid #000; 
+    background: linear-gradient(to bottom, #444, #333); 
+    font-size: 11px;
+}
+.action-header-row { display: flex; align-items: center; gap: 8px; }
+
+.action-header-row:last-child {
+    justify-content: flex-end;
+    margin-top: 4px;
+    font-size: 10px;
+    color: #aaa;
+    padding-top: 4px;
+    border-top: 1px solid #444;
+    padding-bottom: 2px;
+}
+.action-header-row:first-child > span { font-weight: 700; color: white; }
+#context-sensitive-check { margin-right: 4px; }
+
+/* --- MATH NODE STYLES --- */
+.node.math-node {
+    background: linear-gradient(to bottom, #3a3a3a, #1a1a1a);
+    border-radius: 12px;
+    border: 1px solid #000;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 10px rgba(0, 0, 0, 0.5);
+    min-width: 100px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.math-node-container { display: flex; flex-direction: column; }
+.math-node-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 6px;
+    position: relative;
+}
+.math-inputs { display: flex; flex-direction: column; gap: 12px; }
+.math-outputs { display: flex; flex-direction: column; justify-content: center; }
+ 
+.math-operator {
+    color: #ccc;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px black;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.math-node-bottom {
+    padding: 4px 8px 6px 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.math-add-pin-btn {
+    color: #ddd;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+.math-add-pin-btn:hover { opacity: 1; color: white; }
+.math-add-pin-btn i { font-size: 12px; }
+.math-node .pin-container { padding: 0; }
+
+/* --- PARAMETER INPUT LIST --- */
+.param-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 5px;
+    align-items: center;
+    background-color: #222;
+    padding: 4px;
+    margin-bottom: 2px;
+    border-radius: 3px;
+    border: 1px solid #333;
+}
+
+.param-type-trigger {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #111;
+    border: 1px solid #444;
+    padding: 2px 6px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 10px;
+    color: #ccc;
+    min-width: 80px;
+    justify-content: space-between;
+}
+.param-type-trigger:hover { background-color: #333; border-color: #666; color: white; }
+.param-color-dot { width: 8px; height: 4px; border-radius: 2px; display: inline-block; }
+.param-delete-btn { color: #666; cursor: pointer; padding: 4px; font-size: 12px; }
+.param-delete-btn:hover { color: #ff4444; }
+
+/* --- TYPE SELECTOR DROPDOWN MENU --- */
+#type-selector-menu {
+    position: fixed;
+    background-color: #1a1a1a;
+    border: 1px solid #111;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    width: 220px;
+    z-index: 6000;
+    display: none;
+    flex-direction: column;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    color: #ccc;
+}
+
+.type-selector-header {
+    display: flex;
+    align-items: center;
+    background-color: #111;
+    padding: 4px 8px;
+    border-bottom: 1px solid #333;
+}
+.type-selector-header i {
+    color: #aaa;
+    margin-right: 6px;
+    font-size: 10px;
+}
+.type-selector-search-input {
+    background: transparent;
+    border: none;
+    color: #eee;
+    width: 100%;
+    outline: none;
+    font-size: 11px;
+    padding: 2px 0;
+}
+
+.type-selector-list {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #1a1a1a;
+    padding: 4px 0;
+}
+
+.type-option {
+    padding: 4px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #ddd;
+}
+.type-option:hover {
+    background-color: #0077D8;
+    color: white;
+}
+
+.type-selector-section {
+    padding: 4px 8px;
+    color: #aaa;
+    font-weight: bold;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.type-selector-section:hover {
+    background-color: #2a2a2a;
+    color: #eee;
+}
+
+.type-selector-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222;
+    border-top: 1px solid #111;
+    padding: 4px 8px;
+    font-size: 9px;
+    color: #888;
+}
+
+/* Custom Dropdown Pill (Variable Details) */
+.ue5-dropdown-pill {
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 2px 6px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    height: 22px;
+    box-sizing: border-box;
+}
+.ue5-dropdown-pill:hover {
+    background-color: #1a1a1a;
+    border-color: #555;
+}
