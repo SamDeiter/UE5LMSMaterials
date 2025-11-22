@@ -26,6 +26,7 @@ class LayoutController {
         this.startSize = 0;
 
         this.initResizers();
+        this.initDetailsResizer();
     }
 
     initResizers() {
@@ -85,8 +86,57 @@ class LayoutController {
         // Columns: Left | Resizer | Graph | Resizer | Right
         this.container.style.gridTemplateColumns = `${this.leftWidth}px 4px 1fr 4px ${this.rightWidth}px`;
 
-        // Rows: Toolbar | Graph | Resizer | Bottom
-        this.container.style.gridTemplateRows = `32px 1fr 4px ${this.bottomHeight}px`;
+        // Rows: Menu | Tab | Toolbar | Graph | Resizer | Bottom
+        this.container.style.gridTemplateRows = `32px 28px 44px 1fr 4px ${this.bottomHeight}px`;
+    }
+
+    initDetailsResizer() {
+        const panel = document.getElementById('details-panel');
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 140;
+
+        // We'll attach the event listener to the panel itself to catch events on the labels
+        panel.addEventListener('mousedown', (e) => {
+            // Check if we are clicking near the border of a label
+            // The label is the first child of .detail-row or .detail-checkbox-row
+            const row = e.target.closest('.detail-row, .detail-checkbox-row');
+            if (!row) return;
+
+            const label = row.querySelector('label');
+            if (!label) return;
+
+            const rect = label.getBoundingClientRect();
+            // Check if click is within 15px of the right edge for easier grabbing
+            if (Math.abs(e.clientX - rect.right) < 15) {
+                isResizing = true;
+                startX = e.clientX;
+                // Get current width from CSS variable or computed style
+                const rootStyle = getComputedStyle(document.documentElement);
+                const currentVal = rootStyle.getPropertyValue('--details-label-width').trim();
+                startWidth = parseInt(currentVal, 10) || 140;
+
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+                e.stopPropagation(); // Prevent text selection
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const delta = e.clientX - startX;
+            const newWidth = Math.max(140, Math.min(300, startWidth + delta)); // Clamp width between 140px and 300px
+
+            document.documentElement.style.setProperty('--details-label-width', `${newWidth}px`);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+            }
+        });
     }
 }
 
@@ -216,8 +266,8 @@ class VariableController {
     addVariable() {
         const name = this.generateUniqueVarName('NewVar');
         const id = Utils.uniqueId('var');
-        // Default to boolean, single, private
-        const variable = this.createVariableObject(id, name, 'bool', 'single', false);
+        // Default to boolean, single, public (private unchecked)
+        const variable = this.createVariableObject(id, name, 'bool', 'single', true);
 
         this.variables.set(name, variable);
 
@@ -287,6 +337,7 @@ class VariableController {
         const oldValue = variable[property];
         let needsFullRender = false;
         let needsNodeLibraryUpdate = false;
+        const affectedNodes = []; // Track nodes that need wire redraw
 
         if (property === 'type' && oldValue !== newValue) {
             variable.type = newValue;
@@ -317,8 +368,6 @@ class VariableController {
             needsFullRender = true;
         } else if (property === 'isInstanceEditable') {
             variable[property] = newValue;
-            // Sync private flag logic
-            variable.private = !newValue;
             needsFullRender = true;
         } else {
             variable[property] = newValue;
@@ -329,8 +378,6 @@ class VariableController {
             this.updateNodeLibrary();
 
             // UPDATE GRAPH NODES
-            // Track nodes that need wire redraw
-            const affectedNodes = [];
             for (const node of this.app.graph.nodes.values()) {
                 let isMatch = false;
                 if (property === 'name' && (node.nodeKey === `Get_${oldValue}` || node.nodeKey === `Set_${oldValue}`)) {
@@ -484,7 +531,7 @@ class VariableController {
 
         for (const variable of this.variables.values()) {
             const el = document.createElement('div');
-            el.className = 'tree-item my-blueprint-variable-row';
+            el.className = 'ue5-variable-item';
             el.dataset.varId = variable.id;
             el.setAttribute('tabindex', '0');
 
@@ -506,112 +553,99 @@ class VariableController {
                 this.renderPanel();
             });
 
-            // --- CONTENT GENERATION (New Layout) ---
-
-            // LEFT: Name (or Input if renaming)
-            const leftGroup = document.createElement('div');
-            leftGroup.className = 'var-left';
-
+            // Variable name (left side)
             if (this.renamingVarId === variable.id) {
-                // RENDER INPUT
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = variable.name;
-                input.className = 'var-name-edit'; // Special style for blue background
+                input.className = 'ue5-variable-rename-input';
 
-                // Events to commit rename
                 const commit = () => this.finishRenaming(variable, input.value.trim());
-
                 input.addEventListener('blur', commit);
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        input.blur(); // triggers commit
+                        input.blur();
                     }
                 });
 
-                leftGroup.appendChild(input);
-
-                // Auto-focus
+                el.appendChild(input);
                 requestAnimationFrame(() => {
                     input.focus();
                     input.select();
                 });
             } else {
-                // RENDER TEXT
                 const nameSpan = document.createElement('span');
+                nameSpan.className = 'ue5-variable-name-text';
                 nameSpan.textContent = variable.name;
-                // Allow double click to rename
+
+                // Double click to rename
                 nameSpan.addEventListener('dblclick', (e) => {
                     e.stopPropagation();
                     this.renamingVarId = variable.id;
                     this.renderPanel();
                 });
-                leftGroup.appendChild(nameSpan);
+
+                el.appendChild(nameSpan);
             }
 
-            // RIGHT: Pill + Type + Eye
+            // Right group: container icon + type name + menu
             const rightGroup = document.createElement('div');
-            rightGroup.className = 'var-right';
+            rightGroup.className = 'ue5-variable-type-group';
 
-            // 1. Variable Type Icon (Pill, Grid, Set, Map)
-            const typeIconContainer = document.createElement('div');
+            // Container type icon
             const color = Utils.getPinColor(variable.type);
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'ue5-variable-type-icon';
+            iconSpan.style.display = 'flex';
+            iconSpan.style.alignItems = 'center';
+            iconSpan.style.justifyContent = 'center';
+            iconSpan.style.width = '16px';
 
-            // Dynamic rendering based on container type
             if (variable.containerType === 'array') {
-                typeIconContainer.innerHTML = `<i class="fas fa-th" style="color:${color}; font-size:10px; margin-right: 2px;"></i>`;
+                // Array: 3x3 grid, colored
+                iconSpan.innerHTML = `<i class="fas fa-th" style="color: ${color}; font-size: 10px;"></i>`;
             } else if (variable.containerType === 'set') {
-                typeIconContainer.innerHTML = `<span style="color:${color}; font-weight:bold; font-size:10px; margin-right: 2px;">{ }</span>`;
+                // Set: Curly braces, colored
+                iconSpan.innerHTML = `<span style="color: ${color}; font-size: 10px; font-weight: bold;">{ }</span>`;
             } else if (variable.containerType === 'map') {
-                typeIconContainer.innerHTML = `<i class="fas fa-list-ul" style="color:${color}; font-size:10px; margin-right: 2px;"></i>`;
+                // Map: List icon, colored
+                iconSpan.innerHTML = `<i class="fas fa-list-ul" style="color: ${color}; font-size: 10px;"></i>`;
             } else {
-                // Default Single Pill
-                const pill = document.createElement('span');
-                pill.className = 'var-color-pill';
-                pill.style.backgroundColor = color;
-                typeIconContainer.appendChild(pill);
+                // Single: Pill shape, colored
+                iconSpan.innerHTML = `<span style="background-color: ${color}; width: 8px; height: 4px; border-radius: 2px; display: inline-block;"></span>`;
             }
 
-            // 2. Type Name (Clickable)
+            // Type name
             const typeName = document.createElement('span');
-            typeName.className = 'var-type-tag';
+            typeName.className = 'ue5-variable-type-name';
             typeName.textContent = variable.type.charAt(0).toUpperCase() + variable.type.slice(1);
-            typeName.style.cursor = 'pointer';
-            typeName.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Use DetailsController's type menu logic
-                const rect = typeName.getBoundingClientRect();
-                this.app.details.showTypeMenu(rect.left, rect.bottom + 5, (newType) => {
-                    this.updateVariableProperty(variable, 'type', newType);
-                });
-            });
+            typeName.style.color = color;
+            typeName.style.fontSize = '10px';
+            typeName.style.marginLeft = '4px';
+            typeName.style.marginRight = '8px';
+            typeName.style.minWidth = '40px'; // Ensure alignment
 
-            // 3. Eye Icon (Public/Private Toggle)
+            // Eye icon (Instance Editable indicator)
             const eyeIcon = document.createElement('i');
-            // UE5 style: "closed eye" is typical for private, open for public
-            // Added 'var-eye-icon' class for specific styling
-            eyeIcon.className = (variable.isInstanceEditable ? 'fas fa-eye' : 'fas fa-eye-slash') + ' var-eye-icon';
-
-            // UPDATED: Correct tooltip text based on visibility state
-            eyeIcon.title = variable.isInstanceEditable
-                ? 'Variable is public and is editable on each instance of this Blueprint.'
-                : 'Variable is not public and will not be editable on an instance of this Blueprint.';
-
-            if (!variable.isInstanceEditable) {
-                eyeIcon.style.opacity = '0.5';
-            }
-
+            // Use specific classes for styling
+            eyeIcon.className = `fas ${variable.isInstanceEditable ? 'fa-eye active' : 'fa-eye-slash'} var-eye-icon`;
+            eyeIcon.title = variable.isInstanceEditable ? 'Public (Instance Editable)' : 'Private';
             eyeIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.updateVariableProperty(variable, 'isInstanceEditable', !variable.isInstanceEditable);
             });
 
-            rightGroup.appendChild(typeIconContainer);
+            // Menu icon (3 dots) - Optional, but present in current UI
+            // const menuIcon = document.createElement('i');
+            // menuIcon.className = 'fas fa-ellipsis-v ue5-variable-menu-icon';
+            // ...
+
+            rightGroup.appendChild(iconSpan);
             rightGroup.appendChild(typeName);
             rightGroup.appendChild(eyeIcon);
+            // rightGroup.appendChild(menuIcon); // Removed to match cleaner look if desired, or keep if needed. Reference 1 is clean.
 
-            el.appendChild(leftGroup);
             el.appendChild(rightGroup);
 
             varSection.content.appendChild(el);
@@ -1287,12 +1321,14 @@ class DetailsController {
 
         options.forEach(opt => {
             const item = document.createElement('div');
-            item.className = 'type-option'; // Reuse style
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.gap = '8px';
-            item.innerHTML = `${opt.iconHTML} <span>${opt.label}</span>`;
-
+            item.className = 'type-option';
+            item.style.padding = '4px 12px 4px 12px'; // Increased padding
+            item.innerHTML = `
+                <div style="width: 20px; display: flex; justify-content: center;">
+                    ${this.getContainerIcon(opt.id, variableType)}
+                </div>
+                <span>${opt.label}</span>
+            `;
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 callback(opt.id);
@@ -1304,6 +1340,15 @@ class DetailsController {
 
         document.body.appendChild(menu);
         this.containerMenu = menu;
+
+        // Check bounds and adjust if off-screen
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            menu.style.left = `${x - rect.width} px`; // Shift to left of cursor
+        }
+        if (rect.bottom > window.innerHeight) {
+            menu.style.top = `${y - rect.height} px`; // Shift up
+        }
 
         // Close on click outside
         const closeHandler = (e) => {
@@ -1327,10 +1372,19 @@ class DetailsController {
         const color = Utils.getPinColor(variableType);
         switch (containerType) {
             case 'array': return `<i class="fas fa-th" style="color: ${color};"></i>`;
-            case 'set': return `<span style="color: ${color}; font-weight: bold; font-size: 10px;">{ }</span>`;
+            case 'set': return `<span style="color: ${color}; font-weight: bold; font-size: 10px;">{}</span>`;
             case 'map': return `<i class="fas fa-list-ul" style="color: ${color};"></i>`;
             default: return `<span class="param-color-dot" style="background-color: ${color};"></span>`; // Single
         }
+    }
+
+    renderPropertyFlag(name, isSet) {
+        return `
+            <div class="property-flag-item" style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #aaa; margin-bottom: 2px;">
+                <span>${name}</span>
+                ${isSet ? '<i class="fas fa-check" style="color: #007bff;"></i>' : ''}
+            </div>
+        `;
     }
 
     // UPDATED: Variable and Default Value sections are now collapsible (default: Expanded)
@@ -1344,8 +1398,20 @@ class DetailsController {
 
         // --- NEW: UE5-Style Panel Layout ---
         this.panel.innerHTML = ''; // Force DOM clear for refresh
+
+        // Generate property flags HTML before template
+        const propertyFlagsHTML = `
+            ${this.renderPropertyFlag('CPF_Edit', variable.cpfEdit)}
+            ${this.renderPropertyFlag('CPF_BlueprintVisible', variable.cpfBlueprintVisible)}
+            ${this.renderPropertyFlag('CPF_ZeroConstructor', variable.cpfZeroConstructor)}
+            ${this.renderPropertyFlag('CPF_DisableEditOnInstance', variable.cpfDisableEditOnInstance)}
+            ${this.renderPropertyFlag('CPF_IsPlainOldData', variable.cpfIsPlainOldData)}
+            ${this.renderPropertyFlag('CPF_NoDestructor', variable.cpfNoDestructor)}
+            ${this.renderPropertyFlag('CPF_HasGetValueTypeHash', variable.cpfHasGetValueTypeHash)}
+        `;
+
         this.panel.innerHTML = `
-            <!-- Variable Section -->
+            <!--Variable Section-->
             <div class="details-group">
                 <div id="variable-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
                     <i id="variable-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>VARIABLE</span>
@@ -1441,64 +1507,72 @@ class DetailsController {
                 </div>
             </div>
             
-            <!-- Collapsible Advanced Section -->
+            <!--Collapsible Advanced Section-->
             <div class="details-group" style="border-bottom: none; padding-bottom: 0;">
                 <div id="advanced-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase;">
                      <i id="advanced-icon" class="fas fa-caret-right" style="width: 15px;"></i> <span>Advanced</span>
                 </div>
-            </div>
-
-            <div id="advanced-content" class="advanced-details-content">
-                <div class="details-group" style="padding-top: 5px;">
-                    <!-- Config Variable -->
+                <div id="advanced-content" style="display: none; margin-top: 10px;">
                     <div class="detail-checkbox-row">
                         <label>Config Variable</label>
                         <input type="checkbox" class="ue5-checkbox" data-prop="configVariable" ${variable.configVariable ? 'checked' : ''}>
                     </div>
-                    <!-- Transient -->
                     <div class="detail-checkbox-row">
                         <label>Transient</label>
                         <input type="checkbox" class="ue5-checkbox" data-prop="transient" ${variable.transient ? 'checked' : ''}>
                     </div>
-                    <!-- SaveGame -->
                     <div class="detail-checkbox-row">
                         <label>SaveGame</label>
                         <input type="checkbox" class="ue5-checkbox" data-prop="saveGame" ${variable.saveGame ? 'checked' : ''}>
                     </div>
-                     <!-- Advanced Display -->
                     <div class="detail-checkbox-row">
                         <label>Advanced Display</label>
                         <input type="checkbox" class="ue5-checkbox" data-prop="advancedDisplay" ${variable.advancedDisplay ? 'checked' : ''}>
                     </div>
-                    <!-- Deprecated -->
+                    <div class="detail-checkbox-row">
+                        <label>Multi line</label>
+                        <input type="checkbox" class="ue5-checkbox" data-prop="multiLine" ${variable.multiLine ? 'checked' : ''}>
+                    </div>
                     <div class="detail-checkbox-row">
                         <label>Deprecated</label>
                         <input type="checkbox" class="ue5-checkbox" data-prop="deprecated" ${variable.deprecated ? 'checked' : ''}>
                     </div>
-                    <!-- Deprecation Message -->
                     <div class="detail-row">
                         <label>Deprecation Message</label>
-                        <input type="text" class="details-input" data-prop="deprecationMessage" value="${variable.deprecationMessage || ''}" style="opacity: ${variable.deprecated ? '1' : '0.3'}" ${variable.deprecated ? '' : 'disabled'}>
+                        <input type="text" class="details-input" data-prop="deprecationMessage" value="${variable.deprecationMessage || ''}">
+                    </div>
+                    <div class="detail-row">
+                        <label>Drop-down Options</label>
+                         <select class="details-select" style="flex-grow: 1;">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+
+                    <!-- Defined Property Flags (Inside Advanced) -->
+                    <div style="color: #ddd; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 15px;">Defined Property Flags</div>
+                    <div class="property-flags-list" style="background: #111; padding: 5px; border: 1px solid #333;">
+                        ${propertyFlagsHTML}
                     </div>
                 </div>
             </div>
 
-            <!-- Collapsible Default Value Section -->
+
+            <!--Collapsible Default Value Section-->
             <div class="details-group">
-                <div id="default-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
-                     <i id="default-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>Default Value</span>
-                </div>
-                <div id="default-content">
-                    ${this.renderDefaultValueInput(variable)}
-                </div>
-            </div>
-        `;
+                        <div id="default-toggle" style="display: flex; align-items: center; color: #ddd; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-bottom: 10px;">
+                            <i id="default-icon" class="fas fa-caret-down" style="width: 15px;"></i> <span>Default Value</span>
+                        </div>
+                        <div id="default-content">
+                            ${this.renderDefaultValueInput(variable)}
+                        </div>
+                    </div>
+                `;
 
         // Reusable function to attach toggle behavior
         const setupToggle = (toggleId, contentId, iconId, isExpanded = true) => {
-            const toggle = this.panel.querySelector(`#${toggleId}`);
-            const content = this.panel.querySelector(`#${contentId}`);
-            const icon = this.panel.querySelector(`#${iconId}`);
+            const toggle = this.panel.querySelector(`#${toggleId} `);
+            const content = this.panel.querySelector(`#${contentId} `);
+            const icon = this.panel.querySelector(`#${iconId} `);
 
             if (toggle && content && icon) {
                 // Set initial state
@@ -1577,7 +1651,7 @@ class DetailsController {
 
         if (isPrimarySelection) {
             setTimeout(() => {
-                const varEl = document.querySelector(`.tree-item[data-var-id="${variable.id}"]`);
+                const varEl = document.querySelector(`.tree - item[data -var-id="${variable.id}"]`);
                 if (varEl) {
                     varEl.focus();
                 }
@@ -1592,39 +1666,39 @@ class DetailsController {
 
         if (type === 'bool') {
             return `
-                <div class="detail-row">
+                    < div class="detail-checkbox-row" >
                     <label>${label}</label>
                     <input type="checkbox" id="default-value-input" class="ue5-checkbox" data-prop="defaultValue" ${value ? 'checked' : ''}>
                 </div>
-            `;
+                `;
         }
         if (type === 'int' || type === 'int64' || type === 'byte' || type === 'float') {
             const step = (type === 'float') ? '0.01' : '1';
             return `
-                <div class="detail-row">
+                    < div class="detail-row" >
                     <label>${label}</label>
                     <input type="number" id="default-value-input" class="details-input" value="${value}" step="${step}" data-prop="defaultValue">
                 </div>
-            `;
+                `;
         }
         if (type === 'string' || type === 'name' || type === 'text') {
             return `
-                <div class="detail-row">
+                    < div class="detail-row" >
                     <label>${label}</label>
                     <input type="text" id="default-value-input" class="details-input" value="${value}" data-prop="defaultValue">
                 </div>
-            `;
+                `;
         }
         if (type === 'vector' || type === 'rotator' || type === 'transform') {
             return `
-                <div class="detail-row-column">
+                    < div class="detail-row-column" >
                     <label>Value (X, Y, Z)</label>
                     <input type="text" id="default-value-input" class="details-input" value="${value}" data-prop="defaultValue" style="width: 100%;">
                 </div>
-            `;
+                `;
         }
 
-        return `<p class="detail-value-static">No editor available for type: ${type}</p>`;
+        return `< p class="detail-value-static" > No editor available for type: ${type}</p > `;
     }
 
     showNodeDetails(node) {
@@ -1658,7 +1732,7 @@ class DetailsController {
         }
 
         this.panel.innerHTML = `
-            <div class="details-group">
+                    < div class="details-group" >
                 <h4>Node Details</h4>
                 <div class="detail-row">
                     <label>Title</label>
@@ -1672,11 +1746,11 @@ class DetailsController {
                     <label>Class</label>
                     <span class="detail-value-static">${node.nodeKey}</span>
                 </div>
-            </div>
-            <div class="details-group">
-                <p style="color: #aaa;">This is a basic inspector. Full configuration options would appear here.</p>
-            </div>
-        `;
+            </div >
+                    <div class="details-group">
+                        <p style="color: #aaa;">This is a basic inspector. Full configuration options would appear here.</p>
+                    </div>
+                `;
     }
 
     showCustomEventDetails(node) {
@@ -1697,7 +1771,7 @@ class DetailsController {
         };
 
         this.panel.innerHTML = `
-            <div class="details-group">
+                    < div class="details-group" >
                 <h4 style="color: #ddd; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">
                     <i class="fas fa-caret-down"></i> Graph Node
                 </h4>
@@ -1705,7 +1779,7 @@ class DetailsController {
                     <label>Name</label>
                     <input type="text" id="node-title-input" class="details-input" value="${node.title}" style="width: 60%;">
                 </div>
-            </div>
+            </div >
 
             <div class="details-group">
                 <h4 style="color: #ddd; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">
@@ -1755,7 +1829,7 @@ class DetailsController {
                 </div>
                 <div id="custom-inputs-list"></div>
             </div>
-        `;
+                `;
 
         updateReliableState();
 
@@ -1837,9 +1911,9 @@ class DetailsController {
         const customPins = node.pins.filter(p => p.isCustom);
 
         if (customPins.length === 0) {
-            list.innerHTML = `<div style="background-color: #111; padding: 8px; color: #888; font-style: italic; font-size: 10px; border: 1px solid #333;">
-                Please press the + icon above to add parameters
-            </div>`;
+            list.innerHTML = `< div style = "background-color: #111; padding: 8px; color: #888; font-style: italic; font-size: 10px; border: 1px solid #333;" >
+                    Please press the + icon above to add parameters
+            </div > `;
             return;
         }
 

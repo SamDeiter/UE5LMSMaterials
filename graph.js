@@ -391,31 +391,33 @@ class Node {
         pinDot.title = `${pin.name} (${pin.type})`;
 
         // Handle container types with proper icons
-        if (pin.containerType === 'array') {
-            pinDot.classList.add('array-pin');
-            // Add array icon inside the pin dot
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-th';
-            icon.style.fontSize = '8px';
-            icon.style.color = Utils.getPinColor(pin.type);
-            pinDot.appendChild(icon);
-        } else if (pin.containerType === 'set') {
-            pinDot.classList.add('set-pin');
-            // Add set icon (curly braces) inside the pin dot
-            const icon = document.createElement('span');
-            icon.textContent = '{}';
-            icon.style.fontSize = '8px';
-            icon.style.fontWeight = 'bold';
-            icon.style.color = Utils.getPinColor(pin.type);
-            pinDot.appendChild(icon);
-        } else if (pin.containerType === 'map') {
-            pinDot.classList.add('map-pin');
-            // Add map icon inside the pin dot
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-list-ul';
-            icon.style.fontSize = '8px';
-            icon.style.color = Utils.getPinColor(pin.type);
-            pinDot.appendChild(icon);
+        // Only add container styling if it's not a single value
+        if (pin.containerType && pin.containerType !== 'single') {
+            pinDot.classList.add('container-pin'); // Remove default circle styling
+
+            if (pin.containerType === 'array') {
+                pinDot.classList.add('array-pin');
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-th';
+                icon.style.fontSize = '8px';
+                icon.style.color = Utils.getPinColor(pin.type);
+                pinDot.appendChild(icon);
+            } else if (pin.containerType === 'set') {
+                pinDot.classList.add('set-pin');
+                const icon = document.createElement('span');
+                icon.textContent = '{}';
+                icon.style.fontSize = '8px';
+                icon.style.fontWeight = 'bold';
+                icon.style.color = Utils.getPinColor(pin.type);
+                pinDot.appendChild(icon);
+            } else if (pin.containerType === 'map') {
+                pinDot.classList.add('map-pin');
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-list-ul';
+                icon.style.fontSize = '8px';
+                icon.style.color = Utils.getPinColor(pin.type);
+                pinDot.appendChild(icon);
+            }
         }
 
         return pinDot;
@@ -661,11 +663,14 @@ class WiringController {
                 e.stopPropagation();
                 this.toggleLinkSelection(link.id);
             });
-            const pinColor = Utils.getPinColor(startPin.type);
-            wireEl.setAttribute('stroke', pinColor);
         } else {
             wireEl.style.display = '';
         }
+
+        // Always update wire color based on current pin type
+        const pinColor = Utils.getPinColor(startPin.type);
+        wireEl.setAttribute('stroke', pinColor);
+
         const typeClass = Utils.getPinTypeClass(startPin.type);
         wireEl.setAttribute('class', `wire ${typeClass} ${this.selectedLinks.has(link.id) ? 'link-selected' : ''}`);
         const p1 = Utils.getPinPosition(startPin.element, this.app);

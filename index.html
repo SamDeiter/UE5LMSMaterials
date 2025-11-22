@@ -1,28 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blueprint Editor (UE5 Replica)</title>
-    
+
     <!-- Prevent caching during development -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
+
     <!-- Google Font (Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    
+
     <!-- External Stylesheet -->
     <link rel="stylesheet" href="style.css?v=20251121174100">
 </head>
+
 <body>
     <div id="app-container">
+        <!-- TOP MENU BAR -->
+        <div id="menubar" class="menubar">
+            <div class="menu-left">
+                <img src="assets/icons/ue-logo.svg" alt="UE Logo" class="ue-logo-icon">
+                <div class="menu-item">File</div>
+                <div class="menu-item">Edit</div>
+                <div class="menu-item">Asset</div>
+                <div class="menu-item">View</div>
+                <div class="menu-item">Debug</div>
+                <div class="menu-item">Window</div>
+                <div class="menu-item">Tools</div>
+                <div class="menu-item">Help</div>
+            </div>
+            <div class="menu-right">
+                <div class="window-controls">
+                    <i class="fas fa-minus"></i>
+                    <i class="far fa-square"></i>
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB BAR -->
+        <div id="tabbar" class="tabbar">
+            <div class="tab active">
+                <i class="fas fa-file-code" style="color: #4a90e2; margin-right: 6px;"></i>
+                <span>NewBlueprint*</span>
+                <i class="fas fa-times tab-close"></i>
+            </div>
+            <div class="tab-spacer"></div>
+            <div class="parent-class-label">Parent class: <a href="#">Actor</a></div>
+        </div>
+
         <!-- TOP TOOLBAR -->
         <div id="toolbar" class="panel">
             <div class="group">
@@ -48,32 +83,34 @@
         <!-- LEFT COLUMN (Components, My Blueprint, Palette) -->
         <div id="left-panel" class="panel">
             <div id="left-sidebar-tabs">
-                
+
                 <!-- NEW: COMPONENTS PANEL -->
                 <div id="components-panel">
                     <div class="panel-header">
                         <i class="fas fa-cube" style="margin-right: 6px; font-size: 10px; opacity: 0.7;"></i>
                         <span>Components</span>
-                        <i class="fas fa-times" style="margin-left: auto; font-size: 10px; color: #666; cursor: pointer;"></i>
+                        <i class="fas fa-times"
+                            style="margin-left: auto; font-size: 10px; color: #666; cursor: pointer;"></i>
                     </div>
                     <div class="panel-toolbar">
                         <button class="btn-green-add">
                             <i class="fas fa-plus"></i> <span style="margin-left: 4px;">Add</span>
                         </button>
                         <div class="search-box">
-                             <i class="fas fa-search"></i>
-                             <input type="text" placeholder="Search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search">
                         </div>
                     </div>
                     <div class="panel-content" style="padding: 0;">
-                         <div class="tree-item">
+                        <div class="tree-item">
                             <i class="fas fa-dot-circle" style="margin-right: 8px; color: #ccc;"></i>
                             <span>NewBlueprint (Self)</span>
-                         </div>
-                         <div class="tree-item" style="padding-left: 24px;">
-                            <i class="fas fa-location-arrow" style="margin-right: 8px; color: #ccc; transform: rotate(-45deg);"></i>
+                        </div>
+                        <div class="tree-item" style="padding-left: 24px;">
+                            <i class="fas fa-location-arrow"
+                                style="margin-right: 8px; color: #ccc; transform: rotate(-45deg);"></i>
                             <span>DefaultSceneRoot</span>
-                         </div>
+                        </div>
                     </div>
                 </div>
 
@@ -82,9 +119,10 @@
                     <div class="panel-header">
                         <i class="fas fa-book" style="margin-right: 6px; font-size: 10px; opacity: 0.7;"></i>
                         <span>My Blueprint</span>
-                         <i class="fas fa-times" style="margin-left: auto; font-size: 10px; color: #666; cursor: pointer;"></i>
+                        <i class="fas fa-times"
+                            style="margin-left: auto; font-size: 10px; color: #666; cursor: pointer;"></i>
                     </div>
-                    
+
                     <!-- Controls are now inside the tree sections via JS -->
                     <div id="new-var-input-container" style="display: none;">
                         <input type="text" id="new-var-name" placeholder="NewVariable" value="NewVariable">
@@ -106,12 +144,12 @@
                     </div>
 
                     <input type="text" id="my-blueprint-filter" placeholder="Search My Blueprint">
-                    
+
                     <div class="panel-content" id="my-blueprint-content" style="padding: 0;">
                         <!-- Dynamic tree content generated by JS -->
                     </div>
                 </div>
-                
+
                 <!-- PALETTE -->
                 <div id="palette">
                     <div class="panel-header">Palette</div>
@@ -130,16 +168,16 @@
         <div id="graph-editor" class="panel">
             <canvas id="graph-canvas"></canvas>
             <svg id="graph-svg" xmlns="http://www.w3.org/2000/svg">
-                 <g id="wire-group">
+                <g id="wire-group">
                     <path id="ghost-wire" class="wire" style="pointer-events: none; display: none;"></path>
-                 </g>
+                </g>
             </svg>
             <div id="nodes-container">
                 <!-- Nodes generated by JS -->
             </div>
             <div id="selection-marquee" style="display: none;"></div>
         </div>
-        
+
         <!-- RESIZER RIGHT -->
         <div id="resizer-right" class="resizer-vertical"></div>
 
@@ -158,7 +196,8 @@
         <!-- BOTTOM COMPILER STRIP -->
         <div id="bottom-strip" class="panel">
             <div class="bottom-tabs">
-                <div class="bottom-tab active" data-tab="compiler">Compiler Results (<span id="compiler-count">0</span>)</div>
+                <div class="bottom-tab active" data-tab="compiler">Compiler Results (<span id="compiler-count">0</span>)
+                </div>
                 <div class="bottom-tab" data-tab="find">Find Results</div>
             </div>
             <div id="compiler-results" class="panel-content">
@@ -166,16 +205,16 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Action Menu -->
     <div id="action-menu" style="display: none;">
         <input type="text" id="action-menu-search" placeholder="Search for nodes..." autocomplete="off">
         <div id="action-menu-list"></div>
     </div>
-    
+
     <!-- Context Menu -->
     <div id="context-menu" style="display: none;"></div>
-    
+
     <!-- Help Modal -->
     <div id="help-modal" style="display: none;">
         <div class="modal-content">
@@ -208,8 +247,10 @@
             <h3 style="margin-top: 0; color: #eee; font-size: 14px; margin-bottom: 15px;">CONFIRM DELETE</h3>
             <p id="confirmation-msg" style="color: #aaa; margin-bottom: 20px; font-size: 12px;">Are you sure?</p>
             <div style="display: flex; justify-content: center; gap: 15px;">
-                <button id="confirm-yes-btn" style="background-color: #d32f2f; color: white; border: 1px solid #000; padding: 6px 20px;">Delete</button>
-                <button id="confirm-no-btn" style="background-color: #444; color: white; border: 1px solid #000; padding: 6px 20px;">Cancel</button>
+                <button id="confirm-yes-btn"
+                    style="background-color: #d32f2f; color: white; border: 1px solid #000; padding: 6px 20px;">Delete</button>
+                <button id="confirm-no-btn"
+                    style="background-color: #444; color: white; border: 1px solid #000; padding: 6px 20px;">Cancel</button>
             </div>
         </div>
     </div>
@@ -217,4 +258,5 @@
     <!-- Main Application Logic -->
     <script type="module" src="app.js?v=20251121174100"></script>
 </body>
+
 </html>
