@@ -1666,7 +1666,7 @@ class DetailsController {
 
         if (type === 'bool') {
             return `
-                    < div class="detail-checkbox-row" >
+                    <div class="detail-checkbox-row">
                     <label>${label}</label>
                     <input type="checkbox" id="default-value-input" class="ue5-checkbox" data-prop="defaultValue" ${value ? 'checked' : ''}>
                 </div>
@@ -1675,7 +1675,7 @@ class DetailsController {
         if (type === 'int' || type === 'int64' || type === 'byte' || type === 'float') {
             const step = (type === 'float') ? '0.01' : '1';
             return `
-                    < div class="detail-row" >
+                    <div class="detail-row">
                     <label>${label}</label>
                     <input type="number" id="default-value-input" class="details-input" value="${value}" step="${step}" data-prop="defaultValue">
                 </div>
@@ -1683,7 +1683,7 @@ class DetailsController {
         }
         if (type === 'string' || type === 'name' || type === 'text') {
             return `
-                    < div class="detail-row" >
+                    <div class="detail-row">
                     <label>${label}</label>
                     <input type="text" id="default-value-input" class="details-input" value="${value}" data-prop="defaultValue">
                 </div>
@@ -1691,14 +1691,14 @@ class DetailsController {
         }
         if (type === 'vector' || type === 'rotator' || type === 'transform') {
             return `
-                    < div class="detail-row-column" >
+                    <div class="detail-row-column">
                     <label>Value (X, Y, Z)</label>
                     <input type="text" id="default-value-input" class="details-input" value="${value}" data-prop="defaultValue" style="width: 100%;">
                 </div>
                 `;
         }
 
-        return `< p class="detail-value-static" > No editor available for type: ${type}</p > `;
+        return `<p class="detail-value-static">No editor available for type: ${type}</p>`;
     }
 
     showNodeDetails(node) {
