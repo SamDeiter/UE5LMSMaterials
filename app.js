@@ -29,24 +29,6 @@ class BlueprintApp {
         // Register Node Definitions
         nodeRegistry.registerBatch(NodeDefinitions);
 
-        // --- Controller Initialization (Order is Crucial) ---
-
-        // 0. Layout Controller (Resizers) - Needs to be early to bind to DOM
-        BlueprintApp.layout = new LayoutController(BlueprintApp);
-
-        // 1. Core Graph/Canvas Handlers 
-        BlueprintApp.graph = new GraphController(
-            document.getElementById('graph-editor'),
-            document.getElementById('graph-svg'),
-            document.getElementById('nodes-container'),
-            BlueprintApp
-        );
-        BlueprintApp.grid = new GridController(
-            document.getElementById('graph-canvas'),
-            BlueprintApp
-        );
-
-        // 2. Data Model/UI Controllers
         BlueprintApp.wiring = new WiringController(document.getElementById('graph-svg'), BlueprintApp);
         BlueprintApp.variables = new VariableController(BlueprintApp);
         BlueprintApp.palette = new PaletteController(BlueprintApp);
@@ -76,20 +58,6 @@ class BlueprintApp {
         window.runTests = () => BlueprintApp.testRunner.run();
 
         // 5. Blueprint Validator
-        BlueprintApp.validator = new BlueprintValidator(BlueprintApp);
-        window.validateSampleTask = () => BlueprintApp.validator.validateTask(SAMPLE_TASK);
-
-        // --- Bind Events ---
-        BlueprintApp.graph.initEvents();
-
-        // CHANGED: Trigger full compilation logic instead of just validation
-        document.getElementById('compile-btn').addEventListener('click', () => BlueprintApp.compiler.compile());
-        document.getElementById('save-btn').addEventListener('click', () => BlueprintApp.persistence.save());
-
-        // Bind Undo/Redo Buttons
-        document.getElementById('undo-btn').addEventListener('click', () => BlueprintApp.history.undo());
-        document.getElementById('redo-btn').addEventListener('click', () => BlueprintApp.history.redo());
-
         // Bind Play/Stop Buttons
         document.getElementById('play-btn').addEventListener('click', () => BlueprintApp.sim.run());
         document.getElementById('stop-btn').addEventListener('click', () => BlueprintApp.sim.stop());

@@ -102,13 +102,21 @@ class Compiler {
         }
 
         // Force a redraw of wires to make them visible again (if they were hidden)
-        this.app.graph.drawAllWires();
+        if (this.app.graph) this.app.graph.drawAllWires();
     }
 
     /** Runs validation rules on the entire graph. */
     validate() {
         this.output.innerHTML = '';
         this.log("Running validation...");
+
+        // CRITICAL FIX: Ensure graph components are ready before accessing them.
+        if (!this.app.graph || !this.app.graph.nodes) {
+            this.log("Validation skipped: Graph model not yet initialized.", "error");
+            this.lastValidationErrors = 1;
+            if (this.countElement) this.countElement.textContent = 1;
+            return false;
+        }
 
         let errorCount = 0;
 
@@ -299,6 +307,8 @@ class HistoryManager {
             }
 
             // 4. Re-render UI
+            // The remaining checks here ensure that if any component fails to initialize (like graph), 
+            // we don't attempt to call methods on it, preventing the cascading 'renderAllNodes' error.
             if (this.app.graph) this.app.graph.renderAllNodes();
             if (this.app.graph) this.app.graph.drawAllWires();
             if (this.app.graph) this.app.graph.updateTransform();
@@ -442,12 +452,18 @@ class Persistence {
             }
         }
 
-        // This helper only ADDS nodes, then calls history.saveState to capture the new state
-        this.app.graph.addNode("EventBeginPlay", 50, 50);
-        this.app.graph.addNode("PrintString", 300, 50);
+        // --- CRITICAL FIX: Ensure graph and history are available before execution ---
+        if (this.app.graph && this.app.history) {
+            // This helper only ADDS nodes, then calls history.saveState to capture the new state
+            this.app.graph.addNode("EventBeginPlay", 50, 50);
+            this.app.graph.addNode("PrintString", 300, 50);
 
-        // FIX: Capture the state immediately here. HistoryManager handles adding it to the stack.
-        this.app.history.saveState('default graph load');
+            // Capture the state immediately here. HistoryManager handles adding it to the stack.
+            this.app.history.saveState('default graph load');
+        } else {
+            console.error("Persistence.loadDefaultGraph: Required components (graph/history) are undefined.");
+            // If this fails, the calling function (app.js init) must handle the cleanup.
+        }
     }
 }
 
