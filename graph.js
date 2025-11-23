@@ -963,6 +963,24 @@ class GraphController {
     addNode(nodeKey, x, y) {
         const nodeData = NodeLibrary[nodeKey];
         if (!nodeData) return null;
+
+        // Check for Singleton
+        if (nodeData.isSingleton) {
+            const existingNode = [...this.nodes.values()].find(n => n.nodeKey === nodeKey);
+            if (existingNode) {
+                // Flash/Select existing node
+                this.selectNode(existingNode.id, false, 'new');
+                // Optional: Pan to it (simple implementation)
+                const rect = this.editor.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                // We don't want to jarringly move the camera, but selecting it is good feedback.
+                // If we had a toast notification system, we'd use it here.
+                console.warn(`Cannot add ${nodeData.title}: Only one instance allowed.`);
+                return null;
+            }
+        }
+
         const id = Utils.uniqueId('node');
         const node = new Node(id, nodeData, x, y, nodeKey, this.app);
         this.nodes.set(id, node);

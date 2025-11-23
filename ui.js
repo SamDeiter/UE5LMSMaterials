@@ -742,11 +742,30 @@ class PaletteController {
         this.container.innerHTML = '';
         const filter = this.filterInput.value.toLowerCase();
         const nodeNames = Object.keys(NodeLibrary);
+
+        // 1. Filter Nodes
         const filtered = nodeNames.filter(name =>
             name.toLowerCase().includes(filter) ||
             (NodeLibrary[name].title && NodeLibrary[name].title.toLowerCase().includes(filter))
         );
+
+        // 2. Build Tree
+        const root = { name: 'root', children: {}, items: [] };
         filtered.forEach(name => {
+            const nodeData = NodeLibrary[name];
+            const parts = (nodeData.category || '').split('|').filter(p => p);
+            let current = root;
+            parts.forEach(part => {
+                if (!current.children[part]) {
+                    current.children[part] = { name: part, children: {}, items: [] };
+                }
+                current = current.children[part];
+            });
+            current.items.push(name);
+        });
+
+        // 3. Helper to create items
+        const createItem = (name) => {
             const nodeData = NodeLibrary[name];
             const el = document.createElement('div');
             el.className = 'tree-item';
@@ -768,8 +787,59 @@ class PaletteController {
                 e.dataTransfer.setData('text/plain', `PALETTE_NODE:${name}`);
                 e.dataTransfer.effectAllowed = 'copy';
             });
-            this.container.appendChild(el);
-        });
+            return el;
+        };
+
+        // 4. Recursive Render
+        const renderTree = (node, container, depth = 0) => {
+            // Render subcategories
+            Object.keys(node.children).sort().forEach(childName => {
+                const childNode = node.children[childName];
+
+                // Create Section
+                const section = document.createElement('div');
+                section.className = 'sidebar-section';
+
+                const header = document.createElement('div');
+                header.className = 'sidebar-section-header';
+                header.style.paddingLeft = `${4 + depth * 12}px`; // Indent header
+
+                const titleGroup = document.createElement('div');
+                titleGroup.className = 'title-group';
+                const arrow = document.createElement('i');
+                arrow.className = 'fas fa-caret-right'; // Default collapsed
+                const text = document.createElement('span');
+                text.textContent = childName;
+                titleGroup.appendChild(arrow);
+                titleGroup.appendChild(text);
+                header.appendChild(titleGroup);
+
+                const content = document.createElement('div');
+                content.style.display = 'none'; // Default collapsed
+
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = content.style.display === 'none';
+                    content.style.display = isHidden ? 'block' : 'none';
+                    arrow.className = isHidden ? 'fas fa-caret-down' : 'fas fa-caret-right';
+                });
+
+                section.appendChild(header);
+                section.appendChild(content);
+                container.appendChild(section);
+
+                renderTree(childNode, content, depth + 1);
+            });
+
+            // Render items in this node
+            node.items.forEach(name => {
+                const itemEl = createItem(name);
+                itemEl.style.paddingLeft = `${20 + depth * 12}px`; // Indent items
+                container.appendChild(itemEl);
+            });
+        };
+
+        renderTree(root, this.container);
     }
 }
 
@@ -1026,22 +1096,46 @@ class ActionMenu {
             }
             return matchesFilter;
         });
-        filtered.sort((a, b) => {
-            const typeA = NodeLibrary[a].type;
-            const typeB = NodeLibrary[b].type;
-            const order = { 'event-node': 1, 'flow-node': 2, 'function-node': 3, 'pure-node': 4, 'comment-node': 6 };
-            return (order[typeA] || 99) - (order[typeB] || 99);
+        // Sort uncategorized items by type/priority
+        const sortNodes = (names) => {
+            return names.sort((a, b) => {
+                const typeA = NodeLibrary[a].type;
+                const typeB = NodeLibrary[b].type;
+                const order = { 'event-node': 1, 'flow-node': 2, 'function-node': 3, 'pure-node': 4, 'comment-node': 6 };
+                return (order[typeA] || 99) - (order[typeB] || 99);
+            });
+        };
+
+        // Build Tree
+        const root = { name: 'root', children: {}, items: [] };
+        filtered.forEach(name => {
+            const nodeData = NodeLibrary[name];
+            const parts = (nodeData.category || '').split('|').filter(p => p);
+            let current = root;
+            parts.forEach(part => {
+                if (!current.children[part]) {
+                    current.children[part] = { name: part, children: {}, items: [] };
+                }
+                current = current.children[part];
+            });
+            current.items.push(name);
         });
+
+        console.log('Tree built:', root);
+        console.log('Root children:', Object.keys(root.children));
+
         if (filtered.length > 0 && needsSeparatorBeforeNodes) {
             const sep = document.createElement('div');
             sep.className = 'menu-separator';
             this.list.appendChild(sep);
         }
-        filtered.forEach(name => {
+
+        const createMenuItem = (name) => {
             const nodeData = NodeLibrary[name];
             const li = document.createElement('div');
             li.className = 'menu-item';
             li.textContent = nodeData.title || name;
+            li.style.paddingLeft = '20px'; // Base indent, will be overridden
             li.addEventListener('click', () => {
                 const newNode = this.app.graph.addNode(name, this.graphPos.x, this.graphPos.y);
                 if (this.sourcePin && newNode) {
@@ -1053,8 +1147,56 @@ class ActionMenu {
                 this.app.persistence.autoSave();
                 this.hide();
             });
-            this.list.appendChild(li);
-        });
+            return li;
+        };
+
+        // Recursive Render
+        const renderTree = (node, container, depth = 0) => {
+            Object.keys(node.children).sort().forEach(childName => {
+                const childNode = node.children[childName];
+                const catContainer = document.createElement('div');
+
+                const catHeader = document.createElement('div');
+                catHeader.className = 'menu-item menu-header-toggle';
+                catHeader.style.fontWeight = 'bold';
+                catHeader.style.display = 'flex';
+                catHeader.style.alignItems = 'center';
+                catHeader.style.paddingLeft = `${8 + depth * 12}px`;
+                catHeader.style.cursor = 'pointer';
+
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-caret-right'; // Default collapsed
+                icon.style.marginRight = '5px';
+                icon.style.width = '10px';
+
+                catHeader.appendChild(icon);
+                catHeader.appendChild(document.createTextNode(childName));
+
+                const content = document.createElement('div');
+                content.style.display = 'none'; // Default collapsed
+
+                catHeader.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = content.style.display === 'none';
+                    content.style.display = isHidden ? 'block' : 'none';
+                    icon.className = isHidden ? 'fas fa-caret-down' : 'fas fa-caret-right';
+                });
+
+                catContainer.appendChild(catHeader);
+                catContainer.appendChild(content);
+                container.appendChild(catContainer);
+
+                renderTree(childNode, content, depth + 1);
+            });
+
+            sortNodes(node.items).forEach(name => {
+                const li = createMenuItem(name);
+                li.style.paddingLeft = `${20 + depth * 12}px`;
+                container.appendChild(li);
+            });
+        };
+
+        renderTree(root, this.list);
         if (this.list.children.length === 0) {
             if (isGeneralClick && filter.length === 0) {
                 const placeholder = document.createElement('div');
@@ -1329,6 +1471,16 @@ class DetailsController {
             const item = document.createElement('div');
             item.className = 'type-option';
             item.style.padding = '4px 12px 4px 12px'; // Increased padding
+
+            // Disable Set and Map for Boolean type
+            const isDisabled = variableType === 'bool' && (opt.id === 'set' || opt.id === 'map');
+
+            if (isDisabled) {
+                item.style.opacity = '0.3';
+                item.style.cursor = 'not-allowed';
+                item.title = 'Not available for Boolean type';
+            }
+
             item.innerHTML = `
                 <div style="width: 20px; display: flex; justify-content: center;">
                     ${this.getContainerIcon(opt.id, variableType)}
@@ -1337,6 +1489,7 @@ class DetailsController {
             `;
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (isDisabled) return;
                 callback(opt.id);
                 menu.remove();
                 this.containerMenu = null;
@@ -1596,8 +1749,8 @@ class DetailsController {
     // UPDATED: Variable and Default Value sections are now collapsible (default: Expanded)
     showVariableDetails(variable, isPrimarySelection = false) {
         if (isPrimarySelection) {
-            this.currentVariable = variable;
             this.app.graph.clearSelection();
+            this.currentVariable = variable;
         }
 
         this.app.wiring.clearLinkSelection();
@@ -1696,7 +1849,23 @@ class DetailsController {
                     value = e.target.value;
                 }
 
-                if (mapIndex !== undefined && mapField !== undefined) {
+                const vectorComponent = e.target.dataset.vectorComponent;
+                const transformComponent = e.target.dataset.transformComponent;
+
+                if (vectorComponent) {
+                    // Handle Vector/Rotator component update
+                    const parsed = this._parseVectorValue(variable.defaultValue);
+                    parsed[vectorComponent] = parseFloat(e.target.value) || 0;
+                    const newValue = `(${parsed.x},${parsed.y},${parsed.z})`;
+                    this.app.variables.updateVariableProperty(variable, 'defaultValue', newValue);
+                } else if (transformComponent) {
+                    // Handle Transform component update (e.g., "location-x", "rotation-y", "scale-z")
+                    const [section, axis] = transformComponent.split('-');
+                    const parsed = this._parseTransformValue(variable.defaultValue);
+                    parsed[section][axis] = parseFloat(e.target.value) || 0;
+                    const newValue = `(${parsed.location.x},${parsed.location.y},${parsed.location.z}|${parsed.rotation.x},${parsed.rotation.y},${parsed.rotation.z}|${parsed.scale.x},${parsed.scale.y},${parsed.scale.z})`;
+                    this.app.variables.updateVariableProperty(variable, 'defaultValue', newValue);
+                } else if (mapIndex !== undefined && mapField !== undefined) {
                     // Handle Map Update
                     const index = parseInt(mapIndex);
                     const newMap = [...variable.defaultValue];
@@ -1726,7 +1895,23 @@ class DetailsController {
                         value = parseFloat(e.target.value);
                     }
 
-                    if (mapIndex !== undefined && mapField !== undefined) {
+                    const vectorComponent = e.target.dataset.vectorComponent;
+                    const transformComponent = e.target.dataset.transformComponent;
+
+                    if (vectorComponent) {
+                        // Handle Vector/Rotator component update
+                        const parsed = this._parseVectorValue(variable.defaultValue);
+                        parsed[vectorComponent] = parseFloat(e.target.value) || 0;
+                        const newValue = `(${parsed.x},${parsed.y},${parsed.z})`;
+                        this.app.variables.updateVariableProperty(variable, 'defaultValue', newValue);
+                    } else if (transformComponent) {
+                        // Handle Transform component update
+                        const [section, axis] = transformComponent.split('-');
+                        const parsed = this._parseTransformValue(variable.defaultValue);
+                        parsed[section][axis] = parseFloat(e.target.value) || 0;
+                        const newValue = `(${parsed.location.x},${parsed.location.y},${parsed.location.z}|${parsed.rotation.x},${parsed.rotation.y},${parsed.rotation.z}|${parsed.scale.x},${parsed.scale.y},${parsed.scale.z})`;
+                        this.app.variables.updateVariableProperty(variable, 'defaultValue', newValue);
+                    } else if (mapIndex !== undefined && mapField !== undefined) {
                         // Handle Map Update
                         const index = parseInt(mapIndex);
                         const newMap = [...variable.defaultValue];
@@ -1756,6 +1941,34 @@ class DetailsController {
         }
     }
 
+    _parseVectorValue(value) {
+        // Parse "(1.0, 2.0, 3.0)" or "1.0, 2.0, 3.0" into {x, y, z}
+        const str = String(value).replace(/[()]/g, '').trim();
+        const parts = str.split(',').map(p => parseFloat(p.trim()) || 0);
+        return {
+            x: parts[0] || 0,
+            y: parts[1] || 0,
+            z: parts[2] || 0
+        };
+    }
+
+    _parseTransformValue(value) {
+        // Parse "(0,0,0|0,0,0|1,1,1)" into {location, rotation, scale}
+        const str = String(value).replace(/[()]/g, '').trim();
+        const sections = str.split('|');
+
+        const parseSection = (section) => {
+            const parts = (section || '0,0,0').split(',').map(p => parseFloat(p.trim()) || 0);
+            return { x: parts[0] || 0, y: parts[1] || 0, z: parts[2] || 0 };
+        };
+
+        return {
+            location: parseSection(sections[0]),
+            rotation: parseSection(sections[1]),
+            scale: parseSection(sections[2])
+        };
+    }
+
     _renderSingleValueInput(type, value, extraAttrs = '') {
         if (type === 'bool') {
             return `<input type="checkbox" class="ue5-checkbox" data-prop="defaultValue" ${value ? 'checked' : ''} ${extraAttrs}>`;
@@ -1767,8 +1980,40 @@ class DetailsController {
         if (type === 'string' || type === 'name' || type === 'text') {
             return `<input type="text" class="details-input" value="${value}" data-prop="defaultValue" ${extraAttrs}>`;
         }
-        if (type === 'vector' || type === 'rotator' || type === 'transform') {
-            return `<input type="text" class="details-input" value="${value}" data-prop="defaultValue" style="width: 100%;" ${extraAttrs}>`;
+        if (type === 'vector' || type === 'rotator') {
+            const parsed = this._parseVectorValue(value);
+            return `
+                <div style="display: flex; gap: 4px; width: 100%;">
+                    <input type="number" class="details-input" value="${parsed.x}" step="0.01" data-prop="defaultValue" data-vector-component="x" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px;">
+                    <input type="number" class="details-input" value="${parsed.y}" step="0.01" data-prop="defaultValue" data-vector-component="y" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px;">
+                    <input type="number" class="details-input" value="${parsed.z}" step="0.01" data-prop="defaultValue" data-vector-component="z" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px;">
+                </div>
+            `;
+        }
+        if (type === 'transform') {
+            const parsed = this._parseTransformValue(value);
+            return `
+                <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
+                    <div style="display: flex; gap: 4px;">
+                        <span style="width: 70px; color: #888; font-size: 9px; display: flex; align-items: center;">Location</span>
+                        <input type="number" class="details-input" value="${parsed.location.x}" step="0.1" data-prop="defaultValue" data-transform-component="location-x" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #d63031;">
+                        <input type="number" class="details-input" value="${parsed.location.y}" step="0.1" data-prop="defaultValue" data-transform-component="location-y" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #00b894;">
+                        <input type="number" class="details-input" value="${parsed.location.z}" step="0.1" data-prop="defaultValue" data-transform-component="location-z" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #0984e3;">
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <span style="width: 70px; color: #888; font-size: 9px; display: flex; align-items: center;">Rotation</span>
+                        <input type="number" class="details-input" value="${parsed.rotation.x}" step="0.1" data-prop="defaultValue" data-transform-component="rotation-x" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #d63031;">
+                        <input type="number" class="details-input" value="${parsed.rotation.y}" step="0.1" data-prop="defaultValue" data-transform-component="rotation-y" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #00b894;">
+                        <input type="number" class="details-input" value="${parsed.rotation.z}" step="0.1" data-prop="defaultValue" data-transform-component="rotation-z" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #0984e3;">
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <span style="width: 70px; color: #888; font-size: 9px; display: flex; align-items: center;">Scale</span>
+                        <input type="number" class="details-input" value="${parsed.scale.x}" step="0.1" data-prop="defaultValue" data-transform-component="scale-x" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #d63031;">
+                        <input type="number" class="details-input" value="${parsed.scale.y}" step="0.1" data-prop="defaultValue" data-transform-component="scale-y" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #00b894;">
+                        <input type="number" class="details-input" value="${parsed.scale.z}" step="0.1" data-prop="defaultValue" data-transform-component="scale-z" ${extraAttrs} style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #0984e3;">
+                    </div>
+                </div>
+            `;
         }
         return `<p class="detail-value-static">No editor available</p>`;
     }
@@ -1900,11 +2145,69 @@ class DetailsController {
                 </div>
             `;
         }
-        if (type === 'vector' || type === 'rotator' || type === 'transform') {
+        if (type === 'vector' || type === 'rotator') {
+            // Parse the value like "(1.0, 2.0, 3.0)"
+            const parsed = this._parseVectorValue(value);
             return `
-                <div class="detail-row-column">
-                    <label>Value (X, Y, Z)</label>
-                    ${inputHTML}
+                <div class="detail-row" style="flex-direction: column; align-items: stretch; padding: 0;">
+                    <div style="display: flex; align-items: center; min-height: 24px; border-bottom: 1px solid #1a1a1a;">
+                        <label style="width: var(--details-label-width); padding: 4px 16px 4px 0; border-right: 1px solid #333; color: #ccc;">${type === 'vector' ? 'Vector' : 'Rotator'}</label>
+                    </div>
+                    <div style="display: flex; gap: 4px; padding: 4px 8px; background: rgba(0,0,0,0.2);">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                            <label style="color: #999; font-size: 9px;">X</label>
+                            <input type="number" class="details-input" value="${parsed.x}" step="0.01" data-prop="defaultValue" data-vector-component="x" style="padding: 2px 4px; font-size: 10px;">
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                            <label style="color: #999; font-size: 9px;">Y</label>
+                            <input type="number" class="details-input" value="${parsed.y}" step="0.01" data-prop="defaultValue" data-vector-component="y" style="padding: 2px 4px; font-size: 10px;">
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+                            <label style="color: #999; font-size: 9px;">Z</label>
+                            <input type="number" class="details-input" value="${parsed.z}" step="0.01" data-prop="defaultValue" data-vector-component="z" style="padding: 2px 4px; font-size: 10px;">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        if (type === 'transform') {
+            // Parse transform like "(0,0,0|0,0,0|1,1,1)" -> Location | Rotation | Scale
+            const parsed = this._parseTransformValue(value);
+            return `
+                <div class="detail-row" style="flex-direction: column; align-items: stretch; padding: 0;">
+                    <div style="display: flex; align-items: center; min-height: 24px; border-bottom: 1px solid #1a1a1a;">
+                        <label style="width: var(--details-label-width); padding: 4px 16px 4px 0; border-right: 1px solid #333; color: #ccc;">${label}</label>
+                    </div>
+                    
+                    <!-- Location Row -->
+                    <div style="display: flex; border-bottom: 1px solid #1a1a1a;">
+                        <span style="width: 80px; padding: 4px 8px; color: #888; font-size: 10px; border-right: 1px solid #1a1a1a; display: flex; align-items: center;">Location</span>
+                        <div style="flex: 1; display: flex; gap: 4px; padding: 4px 8px;">
+                            <input type="number" class="details-input" value="${parsed.location.x}" step="0.1" data-prop="defaultValue" data-transform-component="location-x" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #d63031;">
+                            <input type="number" class="details-input" value="${parsed.location.y}" step="0.1" data-prop="defaultValue" data-transform-component="location-y" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #00b894;">
+                            <input type="number" class="details-input" value="${parsed.location.z}" step="0.1" data-prop="defaultValue" data-transform-component="location-z" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #0984e3;">
+                        </div>
+                    </div>
+                    
+                    <!-- Rotation Row -->
+                    <div style="display: flex; border-bottom: 1px solid #1a1a1a;">
+                        <span style="width: 80px; padding: 4px 8px; color: #888; font-size: 10px; border-right: 1px solid #1a1a1a; display: flex; align-items: center;">Rotation</span>
+                        <div style="flex: 1; display: flex; gap: 4px; padding: 4px 8px;">
+                            <input type="number" class="details-input" value="${parsed.rotation.x}" step="0.1" data-prop="defaultValue" data-transform-component="rotation-x" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #d63031;">
+                            <input type="number" class="details-input" value="${parsed.rotation.y}" step="0.1" data-prop="defaultValue" data-transform-component="rotation-y" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #00b894;">
+                            <input type="number" class="details-input" value="${parsed.rotation.z}" step="0.1" data-prop="defaultValue" data-transform-component="rotation-z" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #0984e3;">
+                        </div>
+                    </div>
+                    
+                    <!-- Scale Row -->
+                    <div style="display: flex;">
+                        <span style="width: 80px; padding: 4px 8px; color: #888; font-size: 10px; border-right: 1px solid #1a1a1a; display: flex; align-items: center;">Scale</span>
+                        <div style="flex: 1; display: flex; gap: 4px; padding: 4px 8px;">
+                            <input type="number" class="details-input" value="${parsed.scale.x}" step="0.1" data-prop="defaultValue" data-transform-component="scale-x" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #d63031;">
+                            <input type="number" class="details-input" value="${parsed.scale.y}" step="0.1" data-prop="defaultValue" data-transform-component="scale-y" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #00b894;">
+                            <input type="number" class="details-input" value="${parsed.scale.z}" step="0.1" data-prop="defaultValue" data-transform-component="scale-z" style="flex: 1; padding: 2px 4px; font-size: 10px; border-left: 2px solid #0984e3;">
+                        </div>
+                    </div>
                 </div>
             `;
         }

@@ -154,6 +154,7 @@ const NodeLibrary = {
     "Conv_FloatToString": {
         title: "To String (Float)",
         type: "pure-node",
+        category: "String",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "float", dir: "in" },
@@ -163,6 +164,7 @@ const NodeLibrary = {
     "Conv_IntToString": {
         title: "To String (Int)",
         type: "pure-node",
+        category: "String",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "int", dir: "in" },
@@ -172,6 +174,7 @@ const NodeLibrary = {
     "Conv_BoolToString": {
         title: "To String (Bool)",
         type: "pure-node",
+        category: "String",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "bool", dir: "in" },
@@ -181,6 +184,7 @@ const NodeLibrary = {
     "Conv_ByteToString": {
         title: "To String (Byte)",
         type: "pure-node",
+        category: "String",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "byte", dir: "in" },
@@ -190,6 +194,7 @@ const NodeLibrary = {
     "Conv_NameToString": {
         title: "To String (Name)",
         type: "pure-node",
+        category: "String",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "name", dir: "in" },
@@ -199,6 +204,7 @@ const NodeLibrary = {
     "Conv_TextToString": {
         title: "To String (Text)",
         type: "pure-node",
+        category: "String",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "text", dir: "in" },
@@ -208,6 +214,7 @@ const NodeLibrary = {
     "Conv_IntToFloat": {
         title: "To Float (Int)",
         type: "pure-node",
+        category: "Math|Float",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "int", dir: "in" },
@@ -217,6 +224,7 @@ const NodeLibrary = {
     "Conv_ByteToInt": {
         title: "To Int (Byte)",
         type: "pure-node",
+        category: "Math|Integer",
         icon: "●",
         pins: [
             { id: "val_in", name: "", type: "byte", dir: "in" },
@@ -228,6 +236,7 @@ const NodeLibrary = {
     "EventBeginPlay": {
         title: "Event BeginPlay",
         type: "event-node",
+        category: "Events",
         icon: "fa-play",
         isSingleton: true, // Marks this node as unique in the graph
         pins: [
@@ -237,6 +246,7 @@ const NodeLibrary = {
     "EventTick": {
         title: "Event Tick",
         type: "event-node",
+        category: "Events",
         icon: "fa-clock",
         isSingleton: true, // Marks this node as unique in the graph
         pins: [
@@ -247,6 +257,7 @@ const NodeLibrary = {
     "CustomEvent": {
         title: "Custom Event",
         type: "event-node",
+        category: "Events",
         icon: "fa-bolt",
         pins: [
             { id: "exec_out", name: "Exec", type: "exec", dir: "out" }
@@ -256,6 +267,7 @@ const NodeLibrary = {
     "EventActorBeginOverlap": {
         title: "Event ActorBeginOverlap",
         type: "event-node",
+        category: "Events",
         icon: "fa-door-open",
         pins: [
             { id: "exec_out", name: "Exec", type: "exec", dir: "out" },
@@ -265,6 +277,7 @@ const NodeLibrary = {
     "EventOnClicked": {
         title: "Event OnClicked",
         type: "event-node",
+        category: "Events",
         icon: "fa-mouse-pointer",
         pins: [
             { id: "exec_out", name: "Exec", type: "exec", dir: "out" }
@@ -274,6 +287,7 @@ const NodeLibrary = {
     "Branch": {
         title: "Branch",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-code-branch",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -285,6 +299,7 @@ const NodeLibrary = {
     "Sequence": {
         title: "Sequence",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-list-ol",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -295,6 +310,7 @@ const NodeLibrary = {
     "DoOnce": {
         title: "DoOnce",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-step-forward",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -305,6 +321,7 @@ const NodeLibrary = {
     "DoN": {
         title: "Do N",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-redo-alt",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -317,6 +334,7 @@ const NodeLibrary = {
     "FlipFlop": {
         title: "FlipFlop",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-toggle-on",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -328,6 +346,7 @@ const NodeLibrary = {
     "ForLoop": {
         title: "ForLoop",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-sync-alt",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -341,6 +360,7 @@ const NodeLibrary = {
     "ForEachLoop": {
         title: "ForEachLoop",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-sync-alt",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -354,6 +374,7 @@ const NodeLibrary = {
     "Gate": {
         title: "Gate",
         type: "flow-node",
+        category: "Flow Control",
         icon: "fa-dungeon",
         pins: [
             { id: "exec_in", name: "Exec", type: "exec", dir: "in" },
@@ -368,6 +389,7 @@ const NodeLibrary = {
     "PrintString": {
         title: "Print String",
         type: "function-node",
+        category: "String",
         icon: "f",
         devWarning: "Development Only",
         pins: [
@@ -380,6 +402,7 @@ const NodeLibrary = {
     "AddInt": {
         title: "Add (Integer)",
         type: "pure-node",
+        category: "Math|Integer",
         icon: "fa-plus",
         pins: [
             { id: "a_in", name: "A", type: "int", dir: "in" },
@@ -390,6 +413,7 @@ const NodeLibrary = {
     "AddFloat": {
         title: "Add (Float)",
         type: "pure-node",
+        category: "Math|Float",
         icon: "+",
         pins: [
             { id: "a_in", name: "A", type: "float", dir: "in", defaultValue: 0.0 },
@@ -400,6 +424,7 @@ const NodeLibrary = {
     "SubtractFloat": {
         title: "Subtract (Float)",
         type: "pure-node",
+        category: "Math|Float",
         icon: "-",
         pins: [
             { id: "a_in", name: "A", type: "float", dir: "in", defaultValue: 0.0 },
@@ -410,6 +435,7 @@ const NodeLibrary = {
     "MultiplyFloat": {
         title: "Multiply (Float)",
         type: "pure-node",
+        category: "Math|Float",
         icon: "×",
         pins: [
             { id: "a_in", name: "A", type: "float", dir: "in", defaultValue: 1.0 },
@@ -420,6 +446,7 @@ const NodeLibrary = {
     "DivideFloat": {
         title: "Divide (Float)",
         type: "pure-node",
+        category: "Math|Float",
         icon: "÷",
         pins: [
             { id: "a_in", name: "A", type: "float", dir: "in", defaultValue: 1.0 },
@@ -431,6 +458,7 @@ const NodeLibrary = {
     "OR": {
         title: "OR",
         type: "pure-node",
+        category: "Math|Boolean",
         icon: "∨",
         pins: [
             { id: "a_in", name: "A", type: "bool", dir: "in", defaultValue: false },
@@ -441,6 +469,7 @@ const NodeLibrary = {
     "AND": {
         title: "AND",
         type: "pure-node",
+        category: "Math|Boolean",
         icon: "∧",
         pins: [
             { id: "a_in", name: "A", type: "bool", dir: "in", defaultValue: false },
@@ -451,6 +480,7 @@ const NodeLibrary = {
     "NOT": {
         title: "NOT",
         type: "pure-node",
+        category: "Math|Boolean",
         icon: "¬",
         pins: [
             { id: "a_in", name: "A", type: "bool", dir: "in", defaultValue: false },
@@ -461,6 +491,7 @@ const NodeLibrary = {
     "Comment": {
         title: "New Comment",
         type: "comment-node",
+        category: "Development",
         icon: "fa-comment-dots",
         pins: []
     },

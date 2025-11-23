@@ -8,6 +8,8 @@
 import { Pin, Node, WiringController, GraphController } from './graph.js';
 import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController } from './ui.js';
 import { Compiler, Persistence, GridController, HistoryManager, SimulationEngine } from './services.js';
+import { TestRunner, registerTests } from './tests.js';
+import { BlueprintValidator, SAMPLE_TASK } from './validator.js';
 
 
 /**
@@ -51,6 +53,15 @@ class BlueprintApp {
         BlueprintApp.contextMenu = new ContextMenu(BlueprintApp);
         BlueprintApp.compiler = new Compiler(BlueprintApp);
         BlueprintApp.sim = new SimulationEngine(BlueprintApp); // Initialize Simulation Engine
+
+        // 4. Test Runner
+        BlueprintApp.testRunner = new TestRunner(BlueprintApp);
+        registerTests(BlueprintApp.testRunner);
+        window.runTests = () => BlueprintApp.testRunner.run();
+
+        // 5. Blueprint Validator
+        BlueprintApp.validator = new BlueprintValidator(BlueprintApp);
+        window.validateSampleTask = () => BlueprintApp.validator.validateTask(SAMPLE_TASK);
 
         // --- Bind Events ---
         BlueprintApp.graph.initEvents();
