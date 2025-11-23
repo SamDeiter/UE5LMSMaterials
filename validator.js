@@ -166,3 +166,86 @@ export const SAMPLE_TASK = {
         }
     ]
 };
+
+// ===== LEVEL 1: FUNDAMENTALS =====
+
+/**
+ * Task 1.1: Health Initialization
+ * Verify understanding of variables, events, and basic execution flow.
+ */
+export const TASK_1_1_HEALTH_INIT = {
+    taskId: "level1_task1",
+    level: 1,
+    title: "Health Initialization",
+    description: "Create a system to initialize a player's health when the game starts.",
+    requirements: [
+        {
+            type: "variable_exists",
+            name: "Health",
+            varType: "float",
+            description: "1. Create a Float variable named 'Health'"
+        },
+        {
+            type: "node_exists",
+            nodeType: "EventBeginPlay",
+            description: "3. Add an Event BeginPlay node"
+        },
+        {
+            type: "singleton_check",
+            nodeType: "EventBeginPlay",
+            description: "Ensure only one BeginPlay node exists"
+        },
+        {
+            type: "node_exists",
+            nodeType: "Set_Health",
+            description: "4. Add a Set Health node"
+        },
+        {
+            type: "connection",
+            from: { nodeType: "EventBeginPlay", pin: "exec_out" },
+            to: { nodeType: "Set_Health", pin: "exec_in" },
+            description: "5. Connect BeginPlay to Set Health"
+        }
+    ]
+};
+
+/**
+ * Task 1.2: Simple Logic
+ * Print a message to the screen.
+ */
+export const TASK_1_2_PRINT_MESSAGE = {
+    taskId: "level1_task2",
+    level: 1,
+    title: "Simple Logic - Print Message",
+    description: "Print a message to the screen when the game starts.",
+    requirements: [
+        {
+            type: "node_exists",
+            nodeType: "EventBeginPlay",
+            description: "1. Add an Event BeginPlay node"
+        },
+        {
+            type: "singleton_check",
+            nodeType: "EventBeginPlay",
+            description: "Ensure only one BeginPlay node exists"
+        },
+        {
+            type: "node_exists",
+            nodeType: "PrintString",
+            description: "2. Add a Print String node"
+        },
+        {
+            type: "connection",
+            from: { nodeType: "EventBeginPlay", pin: "exec_out" },
+            to: { nodeType: "PrintString", pin: "exec_in" },
+            description: "3. Connect BeginPlay to Print String"
+        }
+    ]
+};
+
+// Task Library - All available tasks
+export const ALL_TASKS = [
+    SAMPLE_TASK,
+    TASK_1_1_HEALTH_INIT,
+    TASK_1_2_PRINT_MESSAGE
+];

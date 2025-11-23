@@ -97,16 +97,17 @@ export const registerTests = (runner) => {
 
     runner.register('Add Node to Graph', (app) => {
         const initialNodeCount = app.graph.nodes.size;
-        app.graph.addNode('Event_BeginPlay', 100, 100);
+        const newNode = app.graph.addNode('PrintString', 100, 100);
+        assert(newNode !== null, "addNode should return a node for PrintString");
         assert(app.graph.nodes.size === initialNodeCount + 1, "Node count should increase");
 
         const node = [...app.graph.nodes.values()].pop();
-        assert(node.nodeKey === 'Event_BeginPlay', "Node key should be Event_BeginPlay");
+        assert(node.nodeKey === 'PrintString', "Node key should be PrintString");
     });
 
     runner.register('Delete Node', (app) => {
         // Ensure we have a node
-        if (app.graph.nodes.size === 0) app.graph.addNode('Event_BeginPlay', 100, 100);
+        if (app.graph.nodes.size === 0) app.graph.addNode('PrintString', 100, 100);
         const initialNodeCount = app.graph.nodes.size;
         const node = [...app.graph.nodes.values()].pop();
 

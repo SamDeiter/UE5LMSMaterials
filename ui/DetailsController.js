@@ -380,6 +380,10 @@ export class DetailsController {
             if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
                 input.addEventListener('input', (e) => {
                     const prop = e.target.dataset.prop;
+
+                    // Skip live updates for Variable Name to prevent focus loss (update on blur/enter instead)
+                    if (prop === 'name') return;
+
                     const arrayIndex = e.target.dataset.arrayIndex;
                     const mapIndex = e.target.dataset.mapIndex;
                     const mapField = e.target.dataset.mapField;

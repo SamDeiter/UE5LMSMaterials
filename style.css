@@ -2160,3 +2160,34 @@ div .var-eye-icon.active {
 .var-eye-icon:hover {
     color: #aaa;
 }
+
+/* Compile Button States */
+#compile-btn.dirty {
+    background-color: #5a4a00;
+    border-color: #ffaa00;
+    color: #ffaa00;
+}
+
+#compile-btn.dirty i {
+    color: #ffaa00;
+}
+
+#compile-btn.success {
+    background-color: #2e5a2e;
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+#compile-btn.success i {
+    color: #4CAF50;
+}
+
+#compile-btn.error {
+    background-color: #5a2e2e;
+    border-color: #ff5555;
+    color: #ff5555;
+}
+
+#compile-btn.error i {
+    color: #ff5555;
+}

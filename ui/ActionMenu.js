@@ -1,7 +1,8 @@
 /**
  * ActionMenu - Handles the right-click action menu
  */
-import { Utils, NodeLibrary } from '../utils.js';
+import { Utils } from '../utils.js';
+import { nodeRegistry } from '../registries/NodeRegistry.js';
 import { Pin } from '../graph.js';
 import { buildCategoryTree, renderCategoryTree } from '../ui-helpers.js';
 
@@ -233,10 +234,10 @@ export class ActionMenu {
             return;
         }
         let needsSeparatorBeforeNodes = hasVariableAccess || contextHeader;
-        const nodeNames = Object.keys(NodeLibrary);
+        const nodeNames = Object.keys(nodeRegistry.getAll());
         let filtered = nodeNames.filter(name => {
             const isVariableNode = name.startsWith('Get_');
-            const nodeData = NodeLibrary[name];
+            const nodeData = nodeRegistry.get(name);
             const title = nodeData.title || name;
             const matchesFilter = title.toLowerCase().includes(filter) || name.toLowerCase().includes(filter);
             if (isVariableNode) return false;
@@ -265,7 +266,7 @@ export class ActionMenu {
         // We might want to pass a custom sort function if needed, but for now default is fine.
 
         // 2. Build Tree using shared helper
-        const root = buildCategoryTree(filtered, (name) => NodeLibrary[name].category || '');
+        const root = buildCategoryTree(filtered, (name) => nodeRegistry.get(name).category || '');
 
         if (filtered.length > 0 && needsSeparatorBeforeNodes) {
             const sep = document.createElement('div');
@@ -274,7 +275,7 @@ export class ActionMenu {
         }
 
         const createMenuItem = (name) => {
-            const nodeData = NodeLibrary[name];
+            const nodeData = nodeRegistry.get(name);
             const li = document.createElement('div');
             li.className = 'menu-item';
             li.textContent = nodeData.title || name;

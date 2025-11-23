@@ -1,4 +1,9 @@
-import { nodeRegistry } from './registries/NodeRegistry.js';
+
+import os
+
+file_path = r'c:\Users\Sam Deiter\Desktop\UE5LMSBlueprint-main\services.js'
+
+content = """import { nodeRegistry } from './registries/NodeRegistry.js';
 
 /**
  * Simple compiler to validate the graph for errors.
@@ -733,3 +738,9 @@ class SimulationEngine {
 }
 
 export { Compiler, Persistence, GridController, HistoryManager, SimulationEngine };
+"""
+
+with open(file_path, 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("Successfully restored services.js")

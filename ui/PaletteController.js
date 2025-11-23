@@ -1,7 +1,7 @@
 /**
  * PaletteController - Manages the node palette
  */
-import { NodeLibrary } from '../utils.js';
+import { nodeRegistry } from '../registries/NodeRegistry.js';
 import { buildCategoryTree, renderCategoryTree } from '../ui-helpers.js';
 
 export class PaletteController {
@@ -15,20 +15,20 @@ export class PaletteController {
     populateList() {
         this.container.innerHTML = '';
         const filter = this.filterInput.value.toLowerCase();
-        const nodeNames = Object.keys(NodeLibrary);
+        const nodeNames = Object.keys(nodeRegistry.getAll());
 
         // 1. Filter Nodes
         const filtered = nodeNames.filter(name =>
             name.toLowerCase().includes(filter) ||
-            (NodeLibrary[name].title && NodeLibrary[name].title.toLowerCase().includes(filter))
+            (nodeRegistry.get(name).title && nodeRegistry.get(name).title.toLowerCase().includes(filter))
         );
 
         // 2. Build Tree using shared helper
-        const root = buildCategoryTree(filtered, (name) => NodeLibrary[name].category || '');
+        const root = buildCategoryTree(filtered, (name) => nodeRegistry.get(name).category || '');
 
         // 3. Helper to create draggable items (Palette-specific)
         const createItem = (name) => {
-            const nodeData = NodeLibrary[name];
+            const nodeData = nodeRegistry.get(name);
             const el = document.createElement('div');
             el.className = 'tree-item';
             el.textContent = nodeData.title || name;

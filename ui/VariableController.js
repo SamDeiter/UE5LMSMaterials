@@ -1,7 +1,8 @@
 /**
  * VariableController - Manages variable creation, deletion, and list rendering
  */
-import { Utils, NodeLibrary } from '../utils.js';
+import { Utils } from '../utils.js';
+import { nodeRegistry } from '../registries/NodeRegistry.js';
 import { createCollapsibleHeader } from '../ui-helpers.js';
 
 export class VariableController {
@@ -184,8 +185,8 @@ export class VariableController {
         });
 
         this.variables.delete(name);
-        delete NodeLibrary[getKey];
-        delete NodeLibrary[setKey];
+        nodeRegistry.unregister(getKey);
+        nodeRegistry.unregister(setKey);
 
         if (this.app.details.currentVariable && this.app.details.currentVariable.id === variable.id) {
             this.app.details.clear();
@@ -497,15 +498,17 @@ export class VariableController {
     }
 
     updateNodeLibrary() {
-        for (const key of Object.keys(NodeLibrary)) {
+        const allKeys = Object.keys(nodeRegistry.getAll());
+        for (const key of allKeys) {
             if (key.startsWith('Get_') || key.startsWith('Set_')) {
-                delete NodeLibrary[key];
+                nodeRegistry.unregister(key);
             }
         }
         for (const variable of this.variables.values()) {
             const pinDefault = { defaultValue: variable.defaultValue };
-            NodeLibrary[`Get_${variable.name}`] = {
+            nodeRegistry.register(`Get_${variable.name}`, {
                 title: `Get ${variable.name}`,
+                category: 'Variables',
                 type: "pure-node",
                 variableType: variable.type,
                 variableId: variable.id,
@@ -513,9 +516,10 @@ export class VariableController {
                 pins: [
                     { id: "val_out", name: variable.name, type: variable.type, dir: "out", containerType: variable.containerType, ...pinDefault }
                 ]
-            };
-            NodeLibrary[`Set_${variable.name}`] = {
+            });
+            nodeRegistry.register(`Set_${variable.name}`, {
                 title: `Set ${variable.name}`,
+                category: 'Variables',
                 type: "variable-node",
                 variableType: variable.type,
                 variableId: variable.id,
@@ -526,7 +530,7 @@ export class VariableController {
                     { id: "exec_out", name: "Exec", type: "exec", dir: "out" },
                     { id: "val_out", name: variable.name, type: variable.type, dir: "out", containerType: variable.containerType }
                 ]
-            };
+            });
         }
         this.app.palette.populateList();
     }

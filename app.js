@@ -6,10 +6,14 @@
 
 // Import all controllers
 import { Pin, Node, WiringController, GraphController } from './graph.js';
-import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController } from './ui.js';
+import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController, TaskController } from './ui.js';
 import { Compiler, Persistence, GridController, HistoryManager, SimulationEngine } from './services.js';
 import { TestRunner, registerTests } from './tests.js';
 import { BlueprintValidator, SAMPLE_TASK } from './validator.js';
+import { TaskManager } from './TaskManager.js';
+import { nodeRegistry } from './registries/NodeRegistry.js';
+import { NodeDefinitions } from './data/NodeDefinitions.js';
+
 
 
 /**
@@ -22,6 +26,8 @@ class BlueprintApp {
     static init() {
         // Expose for inline events (onclick)
         window.app = BlueprintApp;
+        // Register Node Definitions
+        nodeRegistry.registerBatch(NodeDefinitions);
 
         // --- Controller Initialization (Order is Crucial) ---
 
@@ -53,6 +59,16 @@ class BlueprintApp {
         BlueprintApp.contextMenu = new ContextMenu(BlueprintApp);
         BlueprintApp.compiler = new Compiler(BlueprintApp);
         BlueprintApp.sim = new SimulationEngine(BlueprintApp); // Initialize Simulation Engine
+
+
+        // 6. Task Manager
+        BlueprintApp.taskManager = new TaskManager(BlueprintApp);
+        window.setTask = (taskId) => BlueprintApp.taskManager.setCurrentTask(taskId);
+        window.validateTask = () => BlueprintApp.taskManager.validateCurrentTask();
+        window.clearTask = () => BlueprintApp.taskManager.clearTask();
+
+        // 7. Task UI Controller
+        BlueprintApp.taskUI = new TaskController(BlueprintApp);
 
         // 4. Test Runner
         BlueprintApp.testRunner = new TestRunner(BlueprintApp);
