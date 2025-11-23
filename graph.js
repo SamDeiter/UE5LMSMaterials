@@ -930,9 +930,11 @@ class GraphController {
             this.isMarqueeing = true;
             this.marqueeStart.x = e.clientX;
             this.marqueeStart.y = e.clientY;
+            // Position marquee relative to the editor container
+            const rect = this.editor.getBoundingClientRect();
             this.marqueeEl.style.display = 'block';
-            this.marqueeEl.style.left = `${e.clientX}px`;
-            this.marqueeEl.style.top = `${e.clientY}px`;
+            this.marqueeEl.style.left = `${e.clientX - rect.left}px`;
+            this.marqueeEl.style.top = `${e.clientY - rect.top}px`;
             this.marqueeEl.style.width = '0px';
             this.marqueeEl.style.height = '0px';
 
@@ -1431,8 +1433,8 @@ class GraphController {
         const node = this.nodes.get(nodeId);
         if (!node) return;
 
-        // If initiating a *new* selection, clear existing
-        if (!addToSelection || mode === 'new') {
+        // If not adding to selection, clear existing selection once
+        if (!addToSelection) {
             this.clearSelection();
         }
 
