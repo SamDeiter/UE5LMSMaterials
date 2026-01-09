@@ -85,6 +85,11 @@ class Node {
         this.pinsOut = this.pins.filter(p => p.dir === 'out');
     }
 
+    /**
+     * Finds a pin by its full ID (format: nodeId-pinName).
+     * @param {string} pinId - The full pin identifier.
+     * @returns {Pin|null} The found pin, or null.
+     */
     findPinById(pinId) {
         return this.pins.find(p => p.id === pinId);
     }
@@ -788,6 +793,10 @@ class GraphController {
     }
 
 
+    /**
+     * Initializes all event listeners for the graph editor.
+     * Binds mouse, wheel, drag, and keyboard events.
+     */
     initEvents() {
         this.editor.addEventListener('mousedown', this.handleEditorMouseDown.bind(this));
         this.editor.addEventListener('wheel', this.handleZoom.bind(this));
@@ -1131,6 +1140,13 @@ class GraphController {
         }
     }
 
+    /**
+     * Creates and adds a new node to the graph.
+     * @param {string} nodeKey - The node type key from NodeRegistry.
+     * @param {number} x - X position in graph coordinates.
+     * @param {number} y - Y position in graph coordinates.
+     * @returns {Node|null} The created node, or null if failed.
+     */
     addNode(nodeKey, x, y) {
         const nodeData = nodeRegistry.get(nodeKey);
         if (!nodeData) return null;
@@ -1181,6 +1197,10 @@ class GraphController {
         this.app.compiler.markDirty();
     }
 
+    /**
+     * Duplicates all currently selected nodes.
+     * Preserves internal connections between duplicated nodes.
+     */
     duplicateSelectedNodes() {
         if (this.selectedNodes.size === 0) {
             this.app.wiring.deleteSelectedLinks();
@@ -1288,6 +1308,13 @@ class GraphController {
         return node ? node.findPinById(pinId) : null;
     }
 
+    /**
+     * Checks if two pins can be connected.
+     * Validates direction, type compatibility, and max links.
+     * @param {Pin} pinA - First pin.
+     * @param {Pin} pinB - Second pin.
+     * @returns {boolean} True if connection is valid.
+     */
     canConnect(pinA, pinB) {
         if (!pinA || !pinB || !pinA.node || !pinB.node) return false;
         if (pinA.node.id === pinB.node.id) return false;
@@ -1429,6 +1456,12 @@ class GraphController {
         this.redrawNodeWires(node.id);
     }
 
+    /**
+     * Selects or deselects a node based on the mode.
+     * @param {string} nodeId - The node ID to select.
+     * @param {boolean} addToSelection - If true, adds to current selection.
+     * @param {string} mode - Selection mode: 'add', 'remove', 'toggle', 'new'.
+     */
     selectNode(nodeId, addToSelection = false, mode = 'toggle') {
         const node = this.nodes.get(nodeId);
         if (!node) return;
@@ -1466,6 +1499,9 @@ class GraphController {
         }
     }
 
+    /**
+     * Clears all selected nodes.
+     */
     clearSelection() {
         this.selectedNodes.forEach(nodeId => {
             const node = this.nodes.get(nodeId);
@@ -1504,6 +1540,9 @@ class GraphController {
         }
     }
 
+    /**
+     * Deletes all currently selected nodes and their connections.
+     */
     deleteSelectedNodes() {
         if (this.selectedNodes.size === 0) return;
 
@@ -1546,6 +1585,9 @@ class GraphController {
         }
     }
 
+    /**
+     * Updates the CSS transform for pan and zoom.
+     */
     updateTransform() {
         const transform = `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.zoom})`;
         this.nodesContainer.style.transform = transform;
@@ -1556,10 +1598,17 @@ class GraphController {
         this.drawAllWires();
     }
 
+    /**
+     * Redraws all wires connected to a specific node.
+     * @param {string} nodeId - The node ID whose wires to redraw.
+     */
     redrawNodeWires(nodeId) {
         this.app.wiring.findLinksByNodeId(nodeId).forEach(link => this.app.wiring.drawWire(link));
     }
 
+    /**
+     * Redraws all wire connections in the graph.
+     */
     drawAllWires() {
         // Find all wires and ensure they are redrawn
         for (const link of this.app.wiring.links.values()) {
@@ -1567,6 +1616,9 @@ class GraphController {
         }
     }
 
+    /**
+     * Renders all nodes in the graph to the DOM.
+     */
     renderAllNodes() {
         this.nodesContainer.innerHTML = '';
         for (const node of this.nodes.values()) {
@@ -1574,6 +1626,12 @@ class GraphController {
         }
     }
 
+    /**
+     * Converts screen coordinates to graph coordinates.
+     * @param {number} clientX - Screen X position.
+     * @param {number} clientY - Screen Y position.
+     * @returns {{x: number, y: number}} Graph coordinates.
+     */
     getGraphCoords(clientX, clientY) {
         const rect = this.editor.getBoundingClientRect();
         const x = (clientX - rect.left - this.pan.x) / this.zoom;
