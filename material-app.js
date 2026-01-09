@@ -1391,6 +1391,9 @@ class DetailsController {
         this.app.graph.updateAllWires();
       });
     });
+
+    // Bind texture-specific events (file load, URL load, select)
+    this.bindTextureEvents(node);
   }
 
   renderProperty(key, value, node) {
@@ -1431,6 +1434,52 @@ class DetailsController {
       return "";
     }
 
+    // Special handling for TextureAsset properties
+    if (key === "TextureAsset") {
+      const textures = textureManager.getAll();
+      const currentTexId = value;
+      const currentTex = currentTexId ? textureManager.get(currentTexId) : null;
+      const previewUrl = currentTex ? currentTex.dataUrl : "";
+      const texName = currentTex ? currentTex.name : "None";
+
+      return `
+        <div class="property-row texture-property">
+          <label>${key}</label>
+          <div class="texture-picker" data-property="${key}" data-node-id="${
+        node.id
+      }">
+            <div class="texture-preview-container">
+              ${
+                previewUrl
+                  ? `<img src="${previewUrl}" class="texture-preview-img" alt="${texName}">`
+                  : `<div class="texture-preview-placeholder">No Texture</div>`
+              }
+            </div>
+            <div class="texture-controls">
+              <select class="texture-select" data-property="${key}">
+                <option value="">None</option>
+                ${textures
+                  .map(
+                    (t) => `
+                  <option value="${t.id}" ${
+                      t.id === currentTexId ? "selected" : ""
+                    }>${t.name}${t.isDefault ? " (Built-in)" : ""}</option>
+                `
+                  )
+                  .join("")}
+              </select>
+              <button class="texture-load-btn ue5-btn" data-property="${key}" title="Load Texture from File">
+                <i class="fas fa-folder-open"></i> Load
+              </button>
+              <button class="texture-url-btn ue5-btn" data-property="${key}" title="Load from URL">
+                <i class="fas fa-link"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return `
             <div class="property-row">
                 <label>${key}</label>
@@ -1439,6 +1488,99 @@ class DetailsController {
     }">
             </div>
         `;
+  }
+
+  /**
+   * Bind texture-specific event handlers after rendering
+   */
+  bindTextureEvents(node) {
+    // Texture select dropdowns
+    this.nodeProps.querySelectorAll(".texture-select").forEach((select) => {
+      select.addEventListener("change", (e) => {
+        const propKey = e.target.dataset.property;
+        node.properties[propKey] = e.target.value || null;
+        this.updateTexturePreview(node, propKey);
+        this.updateNodePreview(node);
+      });
+    });
+
+    // Load from file buttons
+    this.nodeProps.querySelectorAll(".texture-load-btn").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const propKey = e.target.closest("button").dataset.property;
+        try {
+          const result = await textureManager.loadFromFile();
+          node.properties[propKey] = result.id;
+          this.app.updateStatus(
+            `Loaded texture: ${result.name} (${result.width}x${result.height})`
+          );
+          this.showNodeProperties(node); // Re-render to update dropdown & preview
+        } catch (err) {
+          this.app.updateStatus("Texture load cancelled or failed");
+        }
+      });
+    });
+
+    // Load from URL buttons
+    this.nodeProps.querySelectorAll(".texture-url-btn").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const propKey = e.target.closest("button").dataset.property;
+        const url = prompt("Enter image URL:", "https://");
+        if (!url || url === "https://") return;
+
+        try {
+          this.app.updateStatus("Loading texture from URL...");
+          const result = await textureManager.loadFromUrl(url);
+          node.properties[propKey] = result.id;
+          this.app.updateStatus(`Loaded texture: ${result.name}`);
+          this.showNodeProperties(node); // Re-render
+        } catch (err) {
+          this.app.updateStatus("Failed to load texture from URL");
+        }
+      });
+    });
+  }
+
+  /**
+   * Update texture preview in the details panel
+   */
+  updateTexturePreview(node, propKey) {
+    const texId = node.properties[propKey];
+    const tex = texId ? textureManager.get(texId) : null;
+    const container = this.nodeProps.querySelector(
+      `.texture-picker[data-property="${propKey}"] .texture-preview-container`
+    );
+
+    if (container) {
+      if (tex) {
+        container.innerHTML = `<img src="${tex.dataUrl}" class="texture-preview-img" alt="${tex.name}">`;
+      } else {
+        container.innerHTML = `<div class="texture-preview-placeholder">No Texture</div>`;
+      }
+    }
+  }
+
+  /**
+   * Update node preview thumbnail
+   */
+  updateNodePreview(node) {
+    const previewEl = node.element?.querySelector(".node-preview");
+    if (previewEl) {
+      // For texture nodes, show the texture in the preview
+      if (node.properties.TextureAsset) {
+        const tex = textureManager.get(node.properties.TextureAsset);
+        if (tex) {
+          previewEl.style.backgroundImage = `url(${tex.dataUrl})`;
+          previewEl.style.backgroundSize = "cover";
+          previewEl.style.backgroundColor = "transparent";
+          return;
+        }
+      }
+      // Default preview
+      node.updatePreview(previewEl);
+    }
   }
 }
 
