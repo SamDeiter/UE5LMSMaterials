@@ -201,7 +201,6 @@ export class VariableController {
     }
 
     updateVariableProperty(variable, property, newValue) {
-        console.log('[updateVariableProperty] Called for:', variable.name, 'property:', property, 'newValue:', newValue);
         const oldValue = variable[property];
         let needsFullRender = false;
         let needsNodeLibraryUpdate = false;
