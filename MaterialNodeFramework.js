@@ -26,6 +26,7 @@ export const PinTypes = {
   FLOAT4: { name: "float4", components: 4, color: "#E91E63" }, // Pink (RGBA)
   TEXTURE: { name: "texture", components: 0, color: "#2196F3" }, // Blue
   BOOL: { name: "bool", components: 1, color: "#F44336" }, // Red
+  SUBSTRATE: { name: "substrate", components: 0, color: "#E6A800" }, // Gold/Amber (Substrate closures)
 };
 
 // Type compatibility matrix - which types can connect to which
@@ -37,6 +38,7 @@ export const TypeCompatibility = {
   float4: ["float4", "float3", "float"],
   texture: ["texture"],
   bool: ["bool"],
+  substrate: ["substrate"], // Substrate closures only connect to Substrate inputs
 };
 
 // ============================================================================

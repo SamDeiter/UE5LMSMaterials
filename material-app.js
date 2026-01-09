@@ -275,7 +275,9 @@ class MaterialGraphController {
     // Show details on click
     el.addEventListener("click", (e) => {
       if (!e.target.classList.contains("pin-dot")) {
-        this.app.details.showNodeProperties(node);
+        if (this.app && this.app.details) {
+          this.app.details.showNodeProperties(node);
+        }
       }
     });
   }
@@ -1289,9 +1291,12 @@ class MaterialEditorApp {
     const nodeCount = document.getElementById("node-count");
     const connCount = document.getElementById("connection-count");
 
-    if (nodeCount) nodeCount.textContent = `Nodes: ${this.graph.nodes.size}`;
-    if (connCount)
-      connCount.textContent = `Connections: ${this.graph.links.size}`;
+    // Safely access graph properties
+    const nodesSize = this.graph?.nodes?.size || 0;
+    const linksSize = this.graph?.links?.size || 0;
+
+    if (nodeCount) nodeCount.textContent = `Nodes: ${nodesSize}`;
+    if (connCount) connCount.textContent = `Connections: ${linksSize}`;
   }
 
   save() {
