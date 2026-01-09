@@ -393,17 +393,36 @@ export class MaterialPin {
 
   /**
    * Check if this pin type is compatible with another pin type
+   * Supports UE5-style scalar broadcasting (float -> float3)
    */
   canConnectTo(otherPin) {
     // Must be opposite directions
     if (this.dir === otherPin.dir) return false;
 
-    // Check type compatibility
-    const sourceType = this.dir === "out" ? this.type : otherPin.type;
-    const targetType = this.dir === "in" ? this.type : otherPin.type;
+    // Determine which is output and which is input
+    const outputPin = this.dir === "out" ? this : otherPin;
+    const inputPin = this.dir === "in" ? this : otherPin;
 
-    const allowed = TypeCompatibility[targetType];
-    return allowed && allowed.includes(sourceType);
+    const sourceType = outputPin.type.toLowerCase();
+    const targetType = inputPin.type.toLowerCase();
+
+    // Same type always connects
+    if (sourceType === targetType) return true;
+
+    // Check if target accepts source (e.g., float3 input accepts float output)
+    const allowedByTarget = TypeCompatibility[targetType];
+    if (allowedByTarget && allowedByTarget.includes(sourceType)) {
+      return true;
+    }
+
+    // Check reverse - if source can be accepted by target type
+    // This handles cases where input types are flexible
+    const allowedBySource = TypeCompatibility[sourceType];
+    if (allowedBySource && allowedBySource.includes(targetType)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

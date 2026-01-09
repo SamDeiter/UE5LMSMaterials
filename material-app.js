@@ -109,6 +109,23 @@ class MaterialGraphController {
       this.onContextMenu(e)
     );
 
+    // Drag and drop from palette
+    this.graphPanel.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    });
+
+    this.graphPanel.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const nodeKey = e.dataTransfer.getData("text/plain");
+      if (nodeKey && materialNodeRegistry.get(nodeKey)) {
+        const rect = this.graphPanel.getBoundingClientRect();
+        const x = (e.clientX - rect.left - this.panX) / this.zoom;
+        const y = (e.clientY - rect.top - this.panY) / this.zoom;
+        this.addNode(nodeKey, x, y);
+      }
+    });
+
     // Keyboard events
     document.addEventListener("keydown", (e) => this.onKeyDown(e));
     document.addEventListener("keyup", (e) => this.onKeyUp(e));
