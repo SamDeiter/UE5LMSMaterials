@@ -1208,6 +1208,244 @@ class ActionMenuController {
 }
 
 // ============================================================================
+// VIEWPORT CONTROLLER (3D Preview)
+// ============================================================================
+class ViewportController {
+  constructor(app) {
+    this.app = app;
+    this.container = document.getElementById("viewport-container");
+    this.canvas = document.getElementById("viewport-canvas");
+
+    this.THREE = null;
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.controls = null;
+    this.mesh = null;
+    this.material = null;
+    this.geometries = {};
+    this.initialized = false;
+    this.animationId = null;
+    this.isLit = true;
+    this.currentGeoType = "sphere";
+
+    // Lights
+    this.ambientLight = null;
+    this.directionalLight = null;
+
+    // Initialize Three.js
+    this.init();
+
+    // Bind UI controls
+    this.bindControls();
+  }
+
+  async init() {
+    try {
+      // Dynamic import of Three.js
+      const THREE = await import("three");
+      const { OrbitControls } = await import(
+        "three/addons/controls/OrbitControls.js"
+      );
+
+      this.THREE = THREE;
+
+      // Scene setup
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(0x0a0a0a);
+
+      // Grid helper
+      const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
+      this.scene.add(gridHelper);
+
+      // Camera
+      const aspect = this.canvas.clientWidth / this.canvas.clientHeight || 1;
+      this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
+      this.camera.position.set(2.5, 2, 4);
+
+      // Renderer
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        antialias: true,
+        alpha: true,
+      });
+      this.renderer.setSize(
+        this.canvas.clientWidth || 300,
+        this.canvas.clientHeight || 300
+      );
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+      // Controls
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.target.set(0, 1, 0);
+
+      // Lighting
+      this.directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+      this.directionalLight.position.set(3, 10, 5);
+      this.scene.add(this.directionalLight);
+
+      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      this.scene.add(this.ambientLight);
+
+      // Create geometries
+      this.geometries = {
+        sphere: new THREE.SphereGeometry(1, 64, 64),
+        cube: new THREE.BoxGeometry(1.5, 1.5, 1.5),
+        cylinder: new THREE.CylinderGeometry(1, 1, 2, 32),
+        plane: new THREE.PlaneGeometry(3, 3),
+      };
+
+      // Create material
+      this.material = new THREE.MeshPhysicalMaterial({
+        color: 0x808080,
+        metalness: 0,
+        roughness: 0.5,
+        side: THREE.DoubleSide,
+      });
+
+      // Create initial mesh
+      this.mesh = new THREE.Mesh(this.geometries.sphere, this.material);
+      this.mesh.position.y = 1;
+      this.scene.add(this.mesh);
+
+      this.initialized = true;
+
+      // Handle resize
+      window.addEventListener("resize", () => this.resize());
+      this.resize();
+
+      // Start render loop
+      this.startRenderLoop();
+
+      console.log("ViewportController: Three.js initialized");
+    } catch (error) {
+      console.error("Failed to initialize Three.js viewport:", error);
+    }
+  }
+
+  bindControls() {
+    // Lit/Unlit buttons
+    const litBtn = document.getElementById("viewport-lit-btn");
+    const unlitBtn = document.getElementById("viewport-unlit-btn");
+
+    litBtn?.addEventListener("click", () => {
+      this.isLit = true;
+      litBtn.classList.add("active");
+      unlitBtn?.classList.remove("active");
+      this.updateLighting();
+    });
+
+    unlitBtn?.addEventListener("click", () => {
+      this.isLit = false;
+      unlitBtn.classList.add("active");
+      litBtn?.classList.remove("active");
+      this.updateLighting();
+    });
+
+    // Mesh select
+    const meshSelect = document.getElementById("viewport-mesh-select");
+    meshSelect?.addEventListener("change", (e) => {
+      this.setGeometry(e.target.value);
+    });
+  }
+
+  updateLighting() {
+    if (!this.initialized) return;
+
+    if (this.isLit) {
+      this.directionalLight.intensity = 3;
+      this.ambientLight.intensity = 0.5;
+    } else {
+      // Unlit mode - flat lighting
+      this.directionalLight.intensity = 0;
+      this.ambientLight.intensity = 2;
+    }
+  }
+
+  setGeometry(type) {
+    if (!this.initialized || !this.geometries[type]) return;
+
+    this.currentGeoType = type;
+    this.scene.remove(this.mesh);
+    this.mesh = new this.THREE.Mesh(this.geometries[type], this.material);
+    this.mesh.position.y = type === "plane" ? 1.5 : 1;
+    if (type === "plane") {
+      this.mesh.rotation.x = -Math.PI / 2;
+    } else {
+      this.mesh.rotation.x = 0;
+    }
+    this.scene.add(this.mesh);
+  }
+
+  startRenderLoop() {
+    const animate = () => {
+      this.animationId = requestAnimationFrame(animate);
+      this.controls.update();
+      this.renderer.render(this.scene, this.camera);
+    };
+    animate();
+  }
+
+  resize() {
+    if (!this.initialized || !this.container) return;
+
+    const width = this.container.clientWidth || 300;
+    const height = this.container.clientHeight || 300;
+
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(width, height);
+  }
+
+  /**
+   * Update material from graph evaluation result
+   */
+  updateMaterial(result) {
+    if (!this.initialized || !result) return;
+
+    const THREE = this.THREE;
+
+    if (result.baseColor) {
+      if (Array.isArray(result.baseColor)) {
+        this.material.color.setRGB(
+          result.baseColor[0],
+          result.baseColor[1],
+          result.baseColor[2]
+        );
+      } else if (typeof result.baseColor === "object") {
+        this.material.color.setRGB(
+          result.baseColor.r || 0,
+          result.baseColor.g || 0,
+          result.baseColor.b || 0
+        );
+      }
+    } else {
+      this.material.color.setRGB(0.5, 0.5, 0.5);
+    }
+
+    this.material.metalness = result.metallic ?? 0;
+    this.material.roughness = result.roughness ?? 0.5;
+
+    if (result.emissive) {
+      if (Array.isArray(result.emissive)) {
+        this.material.emissive.setRGB(
+          result.emissive[0],
+          result.emissive[1],
+          result.emissive[2]
+        );
+      } else {
+        this.material.emissive.setHex(0x000000);
+      }
+    } else {
+      this.material.emissive.setHex(0x000000);
+    }
+
+    this.material.needsUpdate = true;
+  }
+}
+
+// ============================================================================
 // MAIN APPLICATION
 // ============================================================================
 class MaterialEditorApp {
@@ -1224,6 +1462,7 @@ class MaterialEditorApp {
     this.graph = new MaterialGraphController(this);
     this.palette = new PaletteController(this);
     this.details = new DetailsController(this);
+    this.viewport = new ViewportController(this);
     this.actionMenu = new ActionMenuController(this);
 
     // Bind toolbar buttons
@@ -1308,7 +1547,78 @@ class MaterialEditorApp {
   apply() {
     this.updateStatus("Applied");
     console.log("Material applied");
-    // TODO: Trigger viewport update
+
+    // Evaluate graph and update viewport
+    this.evaluateGraphAndUpdatePreview();
+  }
+
+  /**
+   * Evaluate the material graph and update the 3D preview
+   */
+  evaluateGraphAndUpdatePreview() {
+    // Simple evaluation - get values from main node connections
+    const mainNode = [...this.graph.nodes.values()].find(
+      (n) => n.type === "main-output"
+    );
+    if (!mainNode) return;
+
+    const result = {
+      baseColor: [0.5, 0.5, 0.5],
+      metallic: 0,
+      roughness: 0.5,
+      emissive: null,
+    };
+
+    // Check each input pin of the main node for connections
+    mainNode.inputs.forEach((pin) => {
+      if (pin.connectedTo) {
+        const link = this.graph.links.get(pin.connectedTo);
+        if (link && link.outputPin) {
+          const sourceNode = [...this.graph.nodes.values()].find(
+            (n) =>
+              n.outputs.includes(link.outputPin) ||
+              n.inputs.includes(link.outputPin)
+          );
+
+          if (sourceNode && sourceNode.properties) {
+            const pinName = pin.name.toLowerCase();
+
+            // Map pin values to material properties
+            if (
+              pinName.includes("base color") ||
+              pinName.includes("basecolor")
+            ) {
+              if (sourceNode.properties.Color) {
+                const c = sourceNode.properties.Color;
+                result.baseColor = [c.r || 0.5, c.g || 0.5, c.b || 0.5];
+              } else if (sourceNode.properties.R !== undefined) {
+                result.baseColor = [
+                  sourceNode.properties.R || 0,
+                  sourceNode.properties.G || 0,
+                  sourceNode.properties.B || 0,
+                ];
+              }
+            } else if (pinName.includes("metallic")) {
+              result.metallic =
+                sourceNode.properties.Value ?? sourceNode.properties.R ?? 0;
+            } else if (pinName.includes("roughness")) {
+              result.roughness =
+                sourceNode.properties.Value ?? sourceNode.properties.R ?? 0.5;
+            } else if (pinName.includes("emissive")) {
+              if (sourceNode.properties.Color) {
+                const c = sourceNode.properties.Color;
+                result.emissive = [c.r || 0, c.g || 0, c.b || 0];
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Update the viewport with the result
+    if (this.viewport) {
+      this.viewport.updateMaterial(result);
+    }
   }
 
   undo() {
