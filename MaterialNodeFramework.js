@@ -268,6 +268,24 @@ export class MaterialNode {
    * Render the node to a DOM element
    */
   render() {
+    // Special rendering for reroute nodes
+    if (this.type === "reroute-node") {
+      return this.renderRerouteNode();
+    }
+
+    // Special rendering for comment nodes
+    if (this.type === "comment-node") {
+      return this.renderCommentNode();
+    }
+
+    // Standard node rendering
+    return this.renderStandardNode();
+  }
+
+  /**
+   * Render a standard material expression node
+   */
+  renderStandardNode() {
     const el = document.createElement("div");
     el.className = `node ${this.type}`;
     el.id = `node-${this.id}`;
@@ -332,6 +350,144 @@ export class MaterialNode {
 
     this.element = el;
     return el;
+  }
+
+  /**
+   * Render a reroute node (compact connection point)
+   */
+  renderRerouteNode() {
+    const el = document.createElement("div");
+    el.className = "node reroute-node";
+    el.id = `node-${this.id}`;
+    el.dataset.nodeId = this.id;
+    el.style.left = `${this.x}px`;
+    el.style.top = `${this.y}px`;
+
+    // Single diamond-shaped connector
+    const connector = document.createElement("div");
+    connector.className = "reroute-connector";
+
+    // Create both input and output pins on the same element
+    const inputPin = this.inputs[0];
+    const outputPin = this.outputs[0];
+
+    if (inputPin) {
+      const inDot = document.createElement("div");
+      inDot.className = "pin-dot reroute-in";
+      inDot.style.backgroundColor = inputPin.color;
+      inDot.style.borderColor = inputPin.color;
+      inDot.dataset.pinId = inputPin.id;
+      if (!inputPin.isConnected()) inDot.classList.add("hollow");
+      connector.appendChild(inDot);
+      inputPin.element = inDot.parentElement || connector;
+    }
+
+    if (outputPin) {
+      const outDot = document.createElement("div");
+      outDot.className = "pin-dot reroute-out";
+      outDot.style.backgroundColor = outputPin.color;
+      outDot.style.borderColor = outputPin.color;
+      outDot.dataset.pinId = outputPin.id;
+      if (!outputPin.isConnected()) outDot.classList.add("hollow");
+      connector.appendChild(outDot);
+      outputPin.element = outDot.parentElement || connector;
+    }
+
+    el.appendChild(connector);
+    this.element = el;
+    return el;
+  }
+
+  /**
+   * Render a comment node (expandable text box)
+   */
+  renderCommentNode() {
+    const el = document.createElement("div");
+    el.className = "node comment-node";
+    el.id = `node-${this.id}`;
+    el.dataset.nodeId = this.id;
+    el.style.left = `${this.x}px`;
+    el.style.top = `${this.y}px`;
+    el.style.width = `${this.properties.Width || 200}px`;
+    el.style.height = `${this.properties.Height || 100}px`;
+
+    // Apply comment color
+    if (this.properties.CommentColor) {
+      const c = this.properties.CommentColor;
+      el.style.borderColor = `rgb(${Math.round(c.R * 255)}, ${Math.round(
+        c.G * 255
+      )}, ${Math.round(c.B * 255)})`;
+    }
+
+    // Header with editable title
+    const header = document.createElement("div");
+    header.className = "node-header comment-header";
+    if (this.headerColor) {
+      header.style.background = this.headerColor;
+    } else if (this.properties.CommentColor) {
+      const c = this.properties.CommentColor;
+      header.style.background = `rgb(${Math.round(c.R * 255)}, ${Math.round(
+        c.G * 255
+      )}, ${Math.round(c.B * 255)})`;
+    }
+
+    const titleInput = document.createElement("input");
+    titleInput.className = "comment-title-input";
+    titleInput.type = "text";
+    titleInput.value = this.properties.CommentText || "Comment";
+    titleInput.placeholder = "Comment";
+    titleInput.addEventListener("change", (e) => {
+      this.properties.CommentText = e.target.value;
+    });
+    titleInput.addEventListener("click", (e) => e.stopPropagation());
+    header.appendChild(titleInput);
+
+    el.appendChild(header);
+
+    // Content area (for grouping other nodes visually)
+    const content = document.createElement("div");
+    content.className = "node-content comment-body";
+    el.appendChild(content);
+
+    // Resize handle
+    const resizeHandle = document.createElement("div");
+    resizeHandle.className = "comment-resize-handle";
+    resizeHandle.innerHTML = "⋱";
+    resizeHandle.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      this.startResize(e);
+    });
+    el.appendChild(resizeHandle);
+
+    this.element = el;
+    return el;
+  }
+
+  /**
+   * Start resizing comment node
+   */
+  startResize(e) {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = this.properties.Width || 200;
+    const startHeight = this.properties.Height || 100;
+
+    const onMouseMove = (e) => {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      this.properties.Width = Math.max(100, startWidth + dx);
+      this.properties.Height = Math.max(50, startHeight + dy);
+      this.element.style.width = `${this.properties.Width}px`;
+      this.element.style.height = `${this.properties.Height}px`;
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
   }
 
   /**

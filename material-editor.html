@@ -330,8 +330,10 @@
                         <option value="Surface">Surface</option>
                         <option value="DeferredDecal">Deferred Decal</option>
                         <option value="LightFunction">Light Function</option>
+                        <option value="Volume">Volume</option>
                         <option value="PostProcess">Post Process</option>
                         <option value="UI">User Interface</option>
+                        <option value="VirtualTexture">Virtual Texture</option>
                       </select>
                     </div>
                     <div class="property-row">
@@ -342,7 +344,13 @@
                         <option value="Translucent">Translucent</option>
                         <option value="Additive">Additive</option>
                         <option value="Modulate">Modulate</option>
+                        <option value="AlphaComposite">Alpha Composite (Premultiplied)</option>
+                        <option value="AlphaHoldout">Alpha Holdout</option>
                       </select>
+                    </div>
+                    <div class="property-row" id="opacity-clip-row" style="display: none;">
+                      <label>Opacity Mask Clip Value</label>
+                      <input type="number" id="opacity-mask-clip" value="0.5" min="0" max="1" step="0.01" />
                     </div>
                     <div class="property-row">
                       <label>Shading Model</label>
@@ -350,22 +358,43 @@
                         <option value="DefaultLit">Default Lit</option>
                         <option value="Unlit">Unlit</option>
                         <option value="Subsurface">Subsurface</option>
-                        <option value="PreintegratedSkin">
-                          Preintegrated Skin
-                        </option>
+                        <option value="PreintegratedSkin">Preintegrated Skin</option>
                         <option value="ClearCoat">Clear Coat</option>
-                        <option value="SubsurfaceProfile">
-                          Subsurface Profile
-                        </option>
+                        <option value="SubsurfaceProfile">Subsurface Profile</option>
+                        <option value="TwoSidedFoliage">Two Sided Foliage</option>
+                        <option value="Hair">Hair</option>
+                        <option value="Cloth">Cloth</option>
+                        <option value="Eye">Eye</option>
+                        <option value="SingleLayerWater">Single Layer Water</option>
+                        <option value="ThinTranslucent">Thin Translucent</option>
                       </select>
                     </div>
                     <div class="property-row">
                       <label>Two Sided</label>
-                      <input
-                        type="checkbox"
-                        id="two-sided"
-                        class="ue5-checkbox"
-                      />
+                      <input type="checkbox" id="two-sided" class="ue5-checkbox" />
+                    </div>
+                    <div class="property-row">
+                      <label>Dithered LOD Transition</label>
+                      <input type="checkbox" id="dithered-lod" class="ue5-checkbox" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="property-category collapsed">
+                  <div class="category-header">
+                    <i class="fas fa-chevron-right"></i>
+                    <span>Translucency</span>
+                  </div>
+                  <div class="category-content">
+                    <div class="property-row">
+                      <label>Lighting Mode</label>
+                      <select id="translucency-lighting">
+                        <option value="VolumetricNonDirectional">Volumetric NonDirectional</option>
+                        <option value="VolumetricDirectional">Volumetric Directional</option>
+                        <option value="VolumetricPerVertexNonDirectional">Volumetric PerVertex NonDirectional</option>
+                        <option value="VolumetricPerVertexDirectional">Volumetric PerVertex Directional</option>
+                        <option value="SurfaceForwardShading">Surface Forward Shading</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -376,17 +405,45 @@
                     <span>Physical Material</span>
                   </div>
                   <div class="category-content">
-                    <!-- Physical material properties -->
+                    <div class="property-row">
+                      <label>Phys Material Override</label>
+                      <select id="phys-material">
+                        <option value="None">None</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 <div class="property-category collapsed">
                   <div class="category-header">
                     <i class="fas fa-chevron-right"></i>
-                    <span>Translucency</span>
+                    <span>Usage</span>
                   </div>
                   <div class="category-content">
-                    <!-- Translucency properties -->
+                    <div class="property-row">
+                      <label>Used with Skeletal Mesh</label>
+                      <input type="checkbox" id="usage-skeletal" class="ue5-checkbox" />
+                    </div>
+                    <div class="property-row">
+                      <label>Used with Particle Sprites</label>
+                      <input type="checkbox" id="usage-particles" class="ue5-checkbox" />
+                    </div>
+                    <div class="property-row">
+                      <label>Used with Niagara Sprites</label>
+                      <input type="checkbox" id="usage-niagara" class="ue5-checkbox" />
+                    </div>
+                    <div class="property-row">
+                      <label>Used with Spline Mesh</label>
+                      <input type="checkbox" id="usage-spline" class="ue5-checkbox" />
+                    </div>
+                    <div class="property-row">
+                      <label>Used with Instanced Static Mesh</label>
+                      <input type="checkbox" id="usage-instanced" class="ue5-checkbox" />
+                    </div>
+                    <div class="property-row">
+                      <label>Used with Geometry Cache</label>
+                      <input type="checkbox" id="usage-geocache" class="ue5-checkbox" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -437,6 +494,74 @@
     <!-- ============================================= -->
     <div id="context-menu" class="context-menu" style="display: none">
       <!-- Dynamic content generated by JS -->
+    </div>
+
+    <!-- ============================================= -->
+    <!-- HLSL CODE VIEWER MODAL -->
+    <!-- ============================================= -->
+    <div id="hlsl-modal" class="modal" style="display: none">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h2>Generated HLSL Code</h2>
+          <div class="modal-tabs">
+            <button class="modal-tab active" data-target="hlsl-vertex">Vertex Shader</button>
+            <button class="modal-tab" data-target="hlsl-pixel">Pixel Shader</button>
+          </div>
+        </div>
+        <div id="hlsl-vertex" class="code-viewer">
+          <pre><code class="language-hlsl">// Vertex Shader Code
+// Click "Apply" to generate shader from current graph
+
+void MainVS(
+    in float4 Position : ATTRIBUTE0,
+    in float3 Normal : ATTRIBUTE1,
+    in float2 TexCoord : ATTRIBUTE2,
+    out float4 OutPosition : SV_POSITION,
+    out float3 OutWorldNormal : TEXCOORD0,
+    out float2 OutUV : TEXCOORD1
+)
+{
+    OutPosition = mul(Position, WorldViewProjection);
+    OutWorldNormal = mul(Normal, (float3x3)WorldMatrix);
+    OutUV = TexCoord;
+}</code></pre>
+        </div>
+        <div id="hlsl-pixel" class="code-viewer" style="display: none">
+          <pre><code class="language-hlsl">// Pixel Shader Code
+// Generated from Material Graph
+
+struct MaterialOutput {
+    float3 BaseColor;
+    float Metallic;
+    float Specular;
+    float Roughness;
+    float3 EmissiveColor;
+    float3 Normal;
+    float Opacity;
+};
+
+MaterialOutput EvaluateMaterial(float2 UV, float3 WorldNormal)
+{
+    MaterialOutput Output;
+    
+    // Connect nodes to populate these values
+    Output.BaseColor = float3(1.0, 1.0, 1.0);
+    Output.Metallic = 0.0;
+    Output.Specular = 0.5;
+    Output.Roughness = 0.5;
+    Output.EmissiveColor = float3(0.0, 0.0, 0.0);
+    Output.Normal = WorldNormal;
+    Output.Opacity = 1.0;
+    
+    return Output;
+}</code></pre>
+        </div>
+        <div class="modal-footer">
+          <span class="code-stats">Instructions: <span id="hlsl-instruction-count">0</span> | Samplers: <span id="hlsl-sampler-count">0</span></span>
+          <button id="hlsl-copy-btn" class="btn-action">Copy to Clipboard</button>
+          <button id="hlsl-modal-close" class="btn-close">Close</button>
+        </div>
+      </div>
     </div>
 
     <!-- ============================================= -->
