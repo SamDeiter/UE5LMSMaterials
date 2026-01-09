@@ -1271,7 +1271,7 @@ class GraphController {
         // Find the node ID part, which could be 'node-XXXX' or similar
         // We try to reconstruct the Node ID by iterating from the end
         let nodeId = parts[0];
-        let pinName = parts.slice(1).join('-');
+        const pinName = parts.slice(1).join('-');
 
         // Assuming node IDs are 'node-UUID' where UUID is 8 characters (or just UUID if the 'node-' prefix is removed)
         // More robust: search for a node ID that is a prefix of pinId

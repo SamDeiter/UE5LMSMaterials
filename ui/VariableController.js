@@ -563,7 +563,7 @@ export class VariableController {
                 if (v.replication === undefined) v.replication = 'None';
                 if (v.replicationCondition === undefined) v.replicationCondition = 'None';
 
-                this.variables.set(v.name, v)
+                this.variables.set(v.name, v);
             });
         }
         this.renderPanel();

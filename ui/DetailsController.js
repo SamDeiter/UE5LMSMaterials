@@ -544,7 +544,7 @@ export class DetailsController {
             const key = node.nodeKey;
             const underscoreIndex = key.indexOf('_');
             if (underscoreIndex !== -1) {
-                let varName = key.substring(underscoreIndex + 1);
+                const varName = key.substring(underscoreIndex + 1);
                 // Attempt exact match first
                 let variable = this.app.variables.variables.get(varName);
 

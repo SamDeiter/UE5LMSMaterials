@@ -58,7 +58,7 @@ export class ScormClient {
    */
   findAPI(apiName, win = window) {
     let attempts = 0;
-    while (win[apiName] == null && win.parent != null && win.parent != win) {
+    while (win[apiName] === null && win.parent !== null && win.parent !== win) {
       attempts++;
       if (attempts > 10) return null;
       win = win.parent;
