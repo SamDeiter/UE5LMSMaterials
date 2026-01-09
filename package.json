@@ -1,0 +1,29 @@
+{
+  "name": "ue5lmsmaterials",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "UE5 Material Editor Simulator for LMS",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamDeiter/UE5LMSMaterials.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SamDeiter/UE5LMSMaterials/issues"
+  },
+  "homepage": "https://github.com/SamDeiter/UE5LMSMaterials#readme",
+  "devDependencies": {
+    "vitest": "^4.0.16"
+  }
+}
