@@ -79,8 +79,8 @@ class MaterialGraphController {
     this.initEvents();
     this.resize();
 
-    // Create main material node
-    this.createMainNode();
+    // Defer main node creation until after app is fully initialized
+    // This will be called by MaterialEditorApp.init()
   }
 
   /**
@@ -212,9 +212,13 @@ class MaterialGraphController {
     // Update position with transform
     this.updateNodePosition(node);
 
-    // Update status
-    this.app.updateStatus(`Added ${node.title}`);
-    this.app.updateCounts();
+    // Update status (safely - may not be initialized yet)
+    if (this.app && this.app.updateStatus) {
+      this.app.updateStatus(`Added ${node.title}`);
+    }
+    if (this.app && this.app.updateCounts) {
+      this.app.updateCounts();
+    }
 
     return node;
   }
@@ -318,7 +322,9 @@ class MaterialGraphController {
     });
     this.selectedLinks.clear();
 
-    this.app.details.showMaterialProperties();
+    if (this.app && this.app.details) {
+      this.app.details.showMaterialProperties();
+    }
   }
 
   /**
@@ -1220,6 +1226,9 @@ class MaterialEditorApp {
 
     // Bind toolbar buttons
     this.bindToolbar();
+
+    // Create main material node (after all controllers are ready)
+    this.graph.createMainNode();
 
     // Initial state
     this.updateStatus("Ready");
