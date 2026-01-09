@@ -807,6 +807,41 @@ export const MaterialExpressionDefinitions = {
         `,
   },
 
+  BumpOffset: {
+    title: "BumpOffset",
+    type: "material-expression",
+    category: "Utility",
+    icon: "B",
+    hotkey: "B",
+    pins: [
+      { id: "coordinate", name: "Coordinate", type: "float2", dir: "in" },
+      { id: "height", name: "Height", type: "float", dir: "in" },
+      { id: "height_ratio", name: "HeightRatio", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float2", dir: "out" },
+    ],
+    properties: {
+      HeightRatioInput: 0.05,
+      ReferencePlane: 0.5,
+    },
+    shaderCode: `
+            float2 uv_in = {coordinate};
+            float h = {height} - {ReferencePlane};
+            float ratio = {height_ratio} != 0.0 ? {height_ratio} : {HeightRatioInput};
+            float3 viewDir = normalize(CameraVectorWS);
+            float2 {OUTPUT} = uv_in + (viewDir.xy / viewDir.z) * h * ratio;
+        `,
+  },
+
+  ReflectionVector: {
+    title: "ReflectionVector",
+    type: "material-expression",
+    category: "Vectors",
+    icon: "R",
+    hotkey: "R",
+    pins: [{ id: "out", name: "", type: "float3", dir: "out" }],
+    shaderCode: `float3 {OUTPUT} = reflect(-CameraVectorWS, PixelNormalWS);`,
+  },
+
   Time: {
     title: "Time",
     type: "material-expression",

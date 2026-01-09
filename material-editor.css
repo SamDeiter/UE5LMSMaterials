@@ -635,6 +635,7 @@ body {
   box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.5);
   cursor: move;
   z-index: 10;
+  contain: layout; /* Performance: isolate repaints to this element */
 }
 
 .node.selected {
@@ -780,6 +781,18 @@ body {
 .pin.inactive {
   opacity: 0.3;
   pointer-events: none;
+}
+
+/* Marked pin for Shift+Click long-distance wiring */
+.pin-dot.marked {
+  box-shadow: 0 0 8px 2px #00ff88;
+  animation: pulse-mark 1s infinite;
+  transform: scale(1.3);
+}
+
+@keyframes pulse-mark {
+  0%, 100% { box-shadow: 0 0 8px 2px #00ff88; }
+  50% { box-shadow: 0 0 16px 4px #00ff88; }
 }
 
 /* ============================================================================

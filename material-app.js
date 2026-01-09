@@ -15,6 +15,7 @@ import {
   TypeCompatibility,
 } from "./MaterialNodeFramework.js";
 import { MaterialExpressionDefinitions } from "./data/MaterialExpressionDefinitions.js";
+import { HotkeyManager } from "./ui/HotkeyManager.js";
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -76,6 +77,12 @@ class MaterialGraphController {
     this.gridColor = "#1a1a1a";
     this.gridLineColor = "#222222";
 
+    // Hotkey manager for "Hold key + Click" node spawning
+    this.hotkeyManager = new HotkeyManager(this, materialNodeRegistry);
+
+    // Pin marking for Shift+Click long-distance connections
+    this.markedPin = null;
+
     this.initEvents();
     this.resize();
 
@@ -106,9 +113,22 @@ class MaterialGraphController {
     document.addEventListener("keydown", (e) => this.onKeyDown(e));
     document.addEventListener("keyup", (e) => this.onKeyUp(e));
 
-    // Click outside to deselect
+    // Click outside to deselect AND handle hotkey spawning
     this.graphPanel.addEventListener("click", (e) => {
       if (e.target === this.graphPanel || e.target === this.canvas) {
+        // Check if hotkey spawning should happen
+        const graphRect = this.graphPanel.getBoundingClientRect();
+        const clickX = (e.clientX - graphRect.left - this.panX) / this.zoom;
+        const clickY = (e.clientY - graphRect.top - this.panY) / this.zoom;
+
+        if (
+          this.hotkeyManager &&
+          this.hotkeyManager.handleGraphClick(clickX, clickY)
+        ) {
+          // Node was spawned, don't deselect
+          return;
+        }
+
         this.deselectAll();
       }
     });
@@ -260,15 +280,44 @@ class MaterialGraphController {
       });
     });
 
-    // Pin wiring events
+    // Pin wiring events with Alt+Click break and Shift+Click marking
     el.querySelectorAll(".pin-dot").forEach((dot) => {
       dot.addEventListener("mousedown", (e) => {
         e.stopPropagation();
         const pinId = dot.parentElement.dataset.pinId;
         const pin = node.findPin(pinId);
-        if (pin) {
-          this.startWiring(pin, e);
+        if (!pin) return;
+
+        // Alt+Click: Break all connections to this pin
+        if (e.altKey) {
+          if (pin.connectedTo) {
+            this.breakLink(pin.connectedTo);
+            this.app.updateStatus("Connection broken (Alt+Click)");
+          }
+          return;
         }
+
+        // Shift+Click: Mark pin for long-distance connection
+        if (e.shiftKey) {
+          if (!this.markedPin) {
+            // First click - mark the source pin
+            this.markedPin = { pin, element: dot.parentElement, dot };
+            dot.classList.add("marked");
+            this.app.updateStatus("Pin marked - Shift+Click target to connect");
+          } else {
+            // Second click - create connection
+            if (this.markedPin.pin !== pin) {
+              this.createConnection(this.markedPin.pin, pin);
+            }
+            // Clear marking
+            this.markedPin.dot.classList.remove("marked");
+            this.markedPin = null;
+          }
+          return;
+        }
+
+        // Normal click - start wiring
+        this.startWiring(pin, e);
       });
     });
 
@@ -734,44 +783,48 @@ class MaterialGraphController {
         e.preventDefault();
         this.app.save();
       }
-      if (e.key === "w" || e.key === "W") {
+      if (e.key === "d" || e.key === "D") {
         e.preventDefault();
         this.duplicateSelected();
       }
     }
 
-    // Spawn hotkeys
-    this.handleSpawnHotkey(e);
-  }
-
-  /**
-   * Handle spawn hotkeys
-   */
-  handleSpawnHotkey(e) {
-    const graphRect = this.graphPanel.getBoundingClientRect();
-    const centerX = (graphRect.width / 2 - this.panX) / this.zoom;
-    const centerY = (graphRect.height / 2 - this.panY) / this.zoom;
-
-    const hotkeyMap = {
-      1: "Constant",
-      2: "Constant2Vector",
-      3: "Constant3Vector",
-      t: "TextureSample",
-      m: "Multiply",
-      a: "Add",
-      l: "Lerp",
-      s: "ScalarParameter",
-      v: "VectorParameter",
-      c: "Comment",
-      o: "OneMinus",
-      f: "Fresnel",
-    };
-
-    const nodeKey = hotkeyMap[e.key.toLowerCase()];
-    if (nodeKey && !e.ctrlKey && !e.altKey) {
-      e.preventDefault();
-      this.addNode(nodeKey, centerX, centerY);
+    // Shift+WASD - Node alignment shortcuts
+    if (e.shiftKey && !e.ctrlKey && !e.altKey) {
+      switch (e.key.toLowerCase()) {
+        case "w":
+          e.preventDefault();
+          this.alignSelected("top");
+          break;
+        case "a":
+          e.preventDefault();
+          this.alignSelected("left");
+          break;
+        case "s":
+          e.preventDefault();
+          this.alignSelected("bottom");
+          break;
+        case "d":
+          e.preventDefault();
+          this.alignSelected("right");
+          break;
+      }
     }
+
+    // F - Focus on selected nodes
+    if (e.key === "f" && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      this.focusSelected();
+    }
+
+    // Home - Focus on main material node
+    if (e.key === "Home") {
+      e.preventDefault();
+      this.focusMainNode();
+    }
+
+    // Hotkey spawning is now handled by HotkeyManager via "Hold key + Click"
+    // The HotkeyManager is wired up in the constructor and graph click handler
   }
 
   /**
@@ -807,6 +860,103 @@ class MaterialGraphController {
     // Select the new nodes
     this.deselectAll();
     newNodes.forEach((node) => this.selectNode(node, true));
+  }
+
+  /**
+   * Align selected nodes to a specific edge
+   * @param {string} edge - 'top', 'bottom', 'left', 'right'
+   */
+  alignSelected(edge) {
+    if (this.selectedNodes.size < 2) {
+      this.app.updateStatus("Select 2+ nodes to align");
+      return;
+    }
+
+    const nodes = [...this.selectedNodes]
+      .map((id) => this.nodes.get(id))
+      .filter(Boolean);
+
+    switch (edge) {
+      case "top": {
+        const minY = Math.min(...nodes.map((n) => n.y));
+        nodes.forEach((n) => {
+          n.y = minY;
+          this.updateNodePosition(n);
+        });
+        this.app.updateStatus(`Aligned ${nodes.length} nodes to top`);
+        break;
+      }
+      case "bottom": {
+        const maxY = Math.max(
+          ...nodes.map((n) => n.y + (n.element?.offsetHeight || 100))
+        );
+        nodes.forEach((n) => {
+          n.y = maxY - (n.element?.offsetHeight || 100);
+          this.updateNodePosition(n);
+        });
+        this.app.updateStatus(`Aligned ${nodes.length} nodes to bottom`);
+        break;
+      }
+      case "left": {
+        const minX = Math.min(...nodes.map((n) => n.x));
+        nodes.forEach((n) => {
+          n.x = minX;
+          this.updateNodePosition(n);
+        });
+        this.app.updateStatus(`Aligned ${nodes.length} nodes to left`);
+        break;
+      }
+      case "right": {
+        const maxX = Math.max(
+          ...nodes.map((n) => n.x + (n.element?.offsetWidth || 150))
+        );
+        nodes.forEach((n) => {
+          n.x = maxX - (n.element?.offsetWidth || 150);
+          this.updateNodePosition(n);
+        });
+        this.app.updateStatus(`Aligned ${nodes.length} nodes to right`);
+        break;
+      }
+    }
+
+    this.updateAllWires();
+  }
+
+  /**
+   * Focus view on selected nodes
+   */
+  focusSelected() {
+    if (this.selectedNodes.size === 0) {
+      this.focusMainNode();
+      return;
+    }
+
+    const nodes = [...this.selectedNodes]
+      .map((id) => this.nodes.get(id))
+      .filter(Boolean);
+
+    // Calculate bounding box of selected nodes
+    const minX = Math.min(...nodes.map((n) => n.x));
+    const maxX = Math.max(
+      ...nodes.map((n) => n.x + (n.element?.offsetWidth || 150))
+    );
+    const minY = Math.min(...nodes.map((n) => n.y));
+    const maxY = Math.max(
+      ...nodes.map((n) => n.y + (n.element?.offsetHeight || 100))
+    );
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    const rect = this.graphPanel.getBoundingClientRect();
+    this.panX = rect.width / 2 - centerX * this.zoom;
+    this.panY = rect.height / 2 - centerY * this.zoom;
+
+    this.drawGrid();
+    this.nodes.forEach((node) => this.updateNodePosition(node));
+    this.updateAllWires();
+
+    this.app.updateStatus(`Focused on ${nodes.length} selected node(s)`);
   }
 
   /**
