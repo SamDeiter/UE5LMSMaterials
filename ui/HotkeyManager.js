@@ -12,7 +12,7 @@
 
 // Core hotkey-to-node mappings (matches UE5 defaults)
 export const MATERIAL_HOTKEYS = {
-  // Numeric keys - Constants
+  // Numeric keys - Constants (must be quoted strings for e.key lookup)
   1: "Constant",
   2: "Constant2Vector",
   3: "Constant3Vector",
