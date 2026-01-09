@@ -428,11 +428,11 @@ export const MaterialExpressionDefinitions = {
     icon: "+",
     hotkey: "A",
     pins: [
-      { id: "a", name: "A", type: "float", dir: "in", defaultValue: 0.0 },
-      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 0.0 },
-      { id: "out", name: "", type: "float", dir: "out" },
+      { id: "a", name: "A", type: "wildcard", dir: "in", defaultValue: 0.0 },
+      { id: "b", name: "B", type: "wildcard", dir: "in", defaultValue: 0.0 },
+      { id: "out", name: "", type: "wildcard", dir: "out" },
     ],
-    shaderCode: `float {OUTPUT} = {a} + {b};`,
+    shaderCode: `auto {OUTPUT} = {a} + {b};`,
   },
 
   Subtract: {
@@ -441,11 +441,11 @@ export const MaterialExpressionDefinitions = {
     category: "Math",
     icon: "-",
     pins: [
-      { id: "a", name: "A", type: "float", dir: "in", defaultValue: 0.0 },
-      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 0.0 },
-      { id: "out", name: "", type: "float", dir: "out" },
+      { id: "a", name: "A", type: "wildcard", dir: "in", defaultValue: 0.0 },
+      { id: "b", name: "B", type: "wildcard", dir: "in", defaultValue: 0.0 },
+      { id: "out", name: "", type: "wildcard", dir: "out" },
     ],
-    shaderCode: `float {OUTPUT} = {a} - {b};`,
+    shaderCode: `auto {OUTPUT} = {a} - {b};`,
   },
 
   Multiply: {
@@ -455,11 +455,11 @@ export const MaterialExpressionDefinitions = {
     icon: "×",
     hotkey: "M",
     pins: [
-      { id: "a", name: "A", type: "float", dir: "in", defaultValue: 1.0 },
-      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 1.0 },
-      { id: "out", name: "", type: "float", dir: "out" },
+      { id: "a", name: "A", type: "wildcard", dir: "in", defaultValue: 1.0 },
+      { id: "b", name: "B", type: "wildcard", dir: "in", defaultValue: 1.0 },
+      { id: "out", name: "", type: "wildcard", dir: "out" },
     ],
-    shaderCode: `float {OUTPUT} = {a} * {b};`,
+    shaderCode: `auto {OUTPUT} = {a} * {b};`,
   },
 
   Divide: {
@@ -468,11 +468,11 @@ export const MaterialExpressionDefinitions = {
     category: "Math",
     icon: "÷",
     pins: [
-      { id: "a", name: "A", type: "float", dir: "in", defaultValue: 1.0 },
-      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 1.0 },
-      { id: "out", name: "", type: "float", dir: "out" },
+      { id: "a", name: "A", type: "wildcard", dir: "in", defaultValue: 1.0 },
+      { id: "b", name: "B", type: "wildcard", dir: "in", defaultValue: 1.0 },
+      { id: "out", name: "", type: "wildcard", dir: "out" },
     ],
-    shaderCode: `float {OUTPUT} = {a} / max({b}, 0.0001);`,
+    shaderCode: `auto {OUTPUT} = {a} / max({b}, 0.0001);`,
   },
 
   Lerp: {
@@ -482,8 +482,8 @@ export const MaterialExpressionDefinitions = {
     icon: "L",
     hotkey: "L",
     pins: [
-      { id: "a", name: "A", type: "float", dir: "in", defaultValue: 0.0 },
-      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 1.0 },
+      { id: "a", name: "A", type: "wildcard", dir: "in", defaultValue: 0.0 },
+      { id: "b", name: "B", type: "wildcard", dir: "in", defaultValue: 1.0 },
       {
         id: "alpha",
         name: "Alpha",
@@ -491,9 +491,9 @@ export const MaterialExpressionDefinitions = {
         dir: "in",
         defaultValue: 0.5,
       },
-      { id: "out", name: "", type: "float", dir: "out" },
+      { id: "out", name: "", type: "wildcard", dir: "out" },
     ],
-    shaderCode: `float {OUTPUT} = lerp({a}, {b}, {alpha});`,
+    shaderCode: `auto {OUTPUT} = lerp({a}, {b}, {alpha});`,
   },
 
   Clamp: {

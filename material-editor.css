@@ -1698,3 +1698,94 @@ body {
   font-size: 11px;
 }
 
+/* ============================================================================
+   PIN TOOLTIPS (Educational)
+   ============================================================================ */
+.pin-tooltip {
+  position: fixed;
+  z-index: 10001;
+  max-width: 320px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  padding: 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.tooltip-title {
+  font-weight: 600;
+  color: var(--text-bright);
+  font-size: 12px;
+}
+
+.tooltip-type {
+  font-size: 10px;
+  color: var(--text-muted);
+  background-color: var(--bg-lighter);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.tooltip-physics {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.tooltip-range {
+  color: var(--accent-green);
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.tooltip-rules {
+  margin-bottom: 6px;
+}
+
+.tooltip-rules strong,
+.tooltip-mistakes strong {
+  color: var(--text-primary);
+  font-size: 10px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tooltip-rules ul,
+.tooltip-mistakes ul {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--text-secondary);
+}
+
+.tooltip-rules li,
+.tooltip-mistakes li {
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+
+.tooltip-mistakes {
+  background-color: rgba(244, 67, 54, 0.1);
+  border-radius: 4px;
+  padding: 6px;
+  margin-top: 8px;
+}
+
+.tooltip-mistakes strong {
+  color: var(--accent-red);
+}
+
+.tooltip-basic {
+  color: var(--text-secondary);
+}
+
