@@ -2240,7 +2240,6 @@ class MaterialEditorApp {
    * Evaluate the material graph and update the 3D preview
    */
   evaluateGraphAndUpdatePreview() {
-    // Simple evaluation - get values from main node connections
     const mainNode = [...this.graph.nodes.values()].find(
       (n) => n.type === "main-output"
     );
@@ -2253,48 +2252,166 @@ class MaterialEditorApp {
       emissive: null,
     };
 
-    // Check each input pin of the main node for connections
+    // Recursively evaluate a pin to get its value
+    const evaluatePin = (pin, visited = new Set()) => {
+      if (!pin || visited.has(pin.id)) return null;
+      visited.add(pin.id);
+
+      // If not connected, return default value from pin or node properties
+      if (!pin.connectedTo) {
+        if (pin.defaultValue !== undefined) {
+          return pin.defaultValue;
+        }
+        return null;
+      }
+
+      // Get the link and source node
+      const link = this.graph.links.get(pin.connectedTo);
+      if (!link || !link.outputPin) return null;
+
+      const sourceNode = [...this.graph.nodes.values()].find(
+        (n) => n.outputs.some((p) => p.id === link.outputPin.id)
+      );
+      if (!sourceNode) return null;
+
+      // Evaluate based on node type
+      return evaluateNode(sourceNode, link.outputPin, visited);
+    };
+
+    // Evaluate a node's output
+    const evaluateNode = (node, outputPin, visited) => {
+      const nodeKey = node.nodeKey || node.type;
+
+      // Constant nodes - return property value
+      if (
+        nodeKey === "Constant" ||
+        nodeKey === "ScalarParameter"
+      ) {
+        return node.properties.R ?? node.properties.DefaultValue ?? 0;
+      }
+
+      // Vector constants
+      if (nodeKey === "Constant3Vector" || nodeKey === "VectorParameter") {
+        return [
+          node.properties.R ?? 1,
+          node.properties.G ?? 1,
+          node.properties.B ?? 1,
+        ];
+      }
+
+      // Multiply node - multiply inputs
+      if (nodeKey === "Multiply") {
+        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
+        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
+        return multiplyValues(valA, valB);
+      }
+
+      // Add node - add inputs
+      if (nodeKey === "Add") {
+        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
+        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
+        return addValues(valA, valB);
+      }
+
+      // Lerp node
+      if (nodeKey === "Lerp") {
+        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
+        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const pinAlpha = node.inputs.find((p) => p.localId === "alpha" || p.name === "Alpha");
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
+        const alpha = evaluatePin(pinAlpha, new Set(visited)) ?? 0.5;
+        return lerpValues(valA, valB, alpha);
+      }
+
+      // Texture sample - return solid color for preview
+      if (nodeKey === "TextureSample" || nodeKey === "TextureParameter") {
+        // For preview purposes, return a mid-gray to indicate texture
+        if (outputPin && (outputPin.localId === "rgb" || outputPin.name === "RGB")) {
+          return [0.5, 0.5, 0.5];
+        }
+        return 0.5;
+      }
+
+      // Default: try to read properties
+      if (node.properties.R !== undefined) {
+        return [
+          node.properties.R ?? 0,
+          node.properties.G ?? 0,
+          node.properties.B ?? 0,
+        ];
+      }
+      if (node.properties.Value !== undefined) {
+        return node.properties.Value;
+      }
+
+      return null;
+    };
+
+    // Helper: multiply two values (scalar or vector)
+    const multiplyValues = (a, b) => {
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return a.map((v, i) => v * (b[i] ?? 1));
+      }
+      if (Array.isArray(a)) {
+        return a.map((v) => v * (typeof b === "number" ? b : 1));
+      }
+      if (Array.isArray(b)) {
+        return b.map((v) => v * (typeof a === "number" ? a : 1));
+      }
+      return (typeof a === "number" ? a : 1) * (typeof b === "number" ? b : 1);
+    };
+
+    // Helper: add two values
+    const addValues = (a, b) => {
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return a.map((v, i) => v + (b[i] ?? 0));
+      }
+      if (Array.isArray(a)) {
+        return a.map((v) => v + (typeof b === "number" ? b : 0));
+      }
+      if (Array.isArray(b)) {
+        return b.map((v) => v + (typeof a === "number" ? a : 0));
+      }
+      return (typeof a === "number" ? a : 0) + (typeof b === "number" ? b : 0);
+    };
+
+    // Helper: lerp two values
+    const lerpValues = (a, b, t) => {
+      const alpha = typeof t === "number" ? t : 0.5;
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return a.map((v, i) => v + (b[i] - v) * alpha);
+      }
+      if (typeof a === "number" && typeof b === "number") {
+        return a + (b - a) * alpha;
+      }
+      return a;
+    };
+
+    // Evaluate each main node input
     mainNode.inputs.forEach((pin) => {
-      if (pin.connectedTo) {
-        const link = this.graph.links.get(pin.connectedTo);
-        if (link && link.outputPin) {
-          const sourceNode = [...this.graph.nodes.values()].find(
-            (n) =>
-              n.outputs.includes(link.outputPin) ||
-              n.inputs.includes(link.outputPin)
-          );
+      const value = evaluatePin(pin);
+      if (value === null) return;
 
-          if (sourceNode && sourceNode.properties) {
-            const pinName = pin.name.toLowerCase();
+      const pinName = pin.name.toLowerCase();
 
-            // Map pin values to material properties
-            if (
-              pinName.includes("base color") ||
-              pinName.includes("basecolor")
-            ) {
-              if (sourceNode.properties.Color) {
-                const c = sourceNode.properties.Color;
-                result.baseColor = [c.r || 0.5, c.g || 0.5, c.b || 0.5];
-              } else if (sourceNode.properties.R !== undefined) {
-                result.baseColor = [
-                  sourceNode.properties.R || 0,
-                  sourceNode.properties.G || 0,
-                  sourceNode.properties.B || 0,
-                ];
-              }
-            } else if (pinName.includes("metallic")) {
-              result.metallic =
-                sourceNode.properties.Value ?? sourceNode.properties.R ?? 0;
-            } else if (pinName.includes("roughness")) {
-              result.roughness =
-                sourceNode.properties.Value ?? sourceNode.properties.R ?? 0.5;
-            } else if (pinName.includes("emissive")) {
-              if (sourceNode.properties.Color) {
-                const c = sourceNode.properties.Color;
-                result.emissive = [c.r || 0, c.g || 0, c.b || 0];
-              }
-            }
-          }
+      if (pinName.includes("base color") || pinName.includes("basecolor")) {
+        if (Array.isArray(value)) {
+          result.baseColor = value.slice(0, 3);
+        } else if (typeof value === "number") {
+          result.baseColor = [value, value, value];
+        }
+      } else if (pinName.includes("metallic")) {
+        result.metallic = typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 0);
+      } else if (pinName.includes("roughness")) {
+        result.roughness = typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 0.5);
+      } else if (pinName.includes("emissive")) {
+        if (Array.isArray(value)) {
+          result.emissive = value.slice(0, 3);
         }
       }
     });
