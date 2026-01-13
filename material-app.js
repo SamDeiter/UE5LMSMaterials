@@ -70,11 +70,37 @@ class TextureManager {
    * Initialize built-in default textures
    */
   initDefaultTextures() {
+    // Load generated textures
     this.defaultTextures.forEach(({ id, name, generator }) => {
       const dataUrl = generator(256, 256);
       const img = new Image();
       img.src = dataUrl;
       this.textures.set(id, { name, dataUrl, image: img, isDefault: true });
+    });
+
+    // Load file-based default textures
+    const fileTextures = [
+      {
+        id: "base_texture",
+        name: "Base Texture",
+        path: "assets/T_Base_Texture_00.png",
+      },
+    ];
+
+    fileTextures.forEach(({ id, name, path }) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        // Create canvas to get dataUrl
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        this.textures.set(id, { name, dataUrl, image: img, isDefault: true });
+      };
+      img.src = path;
     });
   }
 
@@ -2400,8 +2426,14 @@ class MaterialEditorApp {
       // Texture sample - return texture info for viewport
       if (nodeKey === "TextureSample" || nodeKey === "TextureParameter") {
         // Get texture data from textureManager or node properties
-        const textureId =
+        let textureId =
           node.properties?.TextureAsset || node.properties?.texture;
+
+        // Fall back to checkerboard if no texture assigned
+        if (!textureId && textureManager) {
+          textureId = "checkerboard";
+        }
+
         if (textureId && textureManager) {
           const texData = textureManager.get(textureId);
           if (texData && texData.dataUrl) {
@@ -2482,7 +2514,11 @@ class MaterialEditorApp {
       const pinName = pin.name.toLowerCase();
 
       if (pinName.includes("base color") || pinName.includes("basecolor")) {
-        if (Array.isArray(value)) {
+        // Check if value is a texture object
+        if (value && typeof value === "object" && value.type === "texture") {
+          result.baseColorTexture = value.url;
+          result.baseColor = [1, 1, 1]; // White to show texture properly
+        } else if (Array.isArray(value)) {
           result.baseColor = value.slice(0, 3);
         } else if (typeof value === "number") {
           result.baseColor = [value, value, value];
