@@ -738,6 +738,7 @@ class MaterialGraphController {
 
     this.app.updateStatus("Connected");
     this.app.updateCounts();
+    this.app.triggerLiveUpdate();
 
     return true;
   }
@@ -833,6 +834,7 @@ class MaterialGraphController {
     this.selectedLinks.delete(linkId);
 
     this.app.updateCounts();
+    this.app.triggerLiveUpdate();
   }
 
   /**
@@ -1972,7 +1974,53 @@ class ViewportController {
       this.material.emissive.setHex(0x000000);
     }
 
+    // Handle base color texture
+    if (result.baseColorTexture) {
+      this.loadTexture(result.baseColorTexture, (texture) => {
+        this.material.map = texture;
+        this.material.color.setRGB(1, 1, 1); // Reset color when using texture
+        this.material.needsUpdate = true;
+      });
+    } else {
+      // Clear texture if no texture connected
+      if (this.material.map) {
+        this.material.map = null;
+      }
+    }
+
     this.material.needsUpdate = true;
+  }
+
+  /**
+   * Load a texture from URL/data URL with caching
+   */
+  loadTexture(url, callback) {
+    if (!url || !this.initialized) return;
+
+    // Cache textures to avoid reloading
+    if (!this.textureCache) {
+      this.textureCache = new Map();
+    }
+
+    if (this.textureCache.has(url)) {
+      callback(this.textureCache.get(url));
+      return;
+    }
+
+    const loader = new this.THREE.TextureLoader();
+    loader.load(
+      url,
+      (texture) => {
+        texture.wrapS = this.THREE.RepeatWrapping;
+        texture.wrapT = this.THREE.RepeatWrapping;
+        this.textureCache.set(url, texture);
+        callback(texture);
+      },
+      undefined,
+      (error) => {
+        console.warn("Failed to load texture:", error);
+      }
+    );
   }
 }
 
@@ -2237,6 +2285,16 @@ class MaterialEditorApp {
   }
 
   /**
+   * Trigger live update if Live mode is enabled
+   */
+  triggerLiveUpdate() {
+    const liveBtn = document.getElementById("live-update-btn");
+    if (liveBtn && liveBtn.classList.contains("active")) {
+      this.apply();
+    }
+  }
+
+  /**
    * Evaluate the material graph and update the 3D preview
    */
   evaluateGraphAndUpdatePreview() {
@@ -2269,8 +2327,8 @@ class MaterialEditorApp {
       const link = this.graph.links.get(pin.connectedTo);
       if (!link || !link.outputPin) return null;
 
-      const sourceNode = [...this.graph.nodes.values()].find(
-        (n) => n.outputs.some((p) => p.id === link.outputPin.id)
+      const sourceNode = [...this.graph.nodes.values()].find((n) =>
+        n.outputs.some((p) => p.id === link.outputPin.id)
       );
       if (!sourceNode) return null;
 
@@ -2283,10 +2341,7 @@ class MaterialEditorApp {
       const nodeKey = node.nodeKey || node.type;
 
       // Constant nodes - return property value
-      if (
-        nodeKey === "Constant" ||
-        nodeKey === "ScalarParameter"
-      ) {
+      if (nodeKey === "Constant" || nodeKey === "ScalarParameter") {
         return node.properties.R ?? node.properties.DefaultValue ?? 0;
       }
 
@@ -2301,8 +2356,12 @@ class MaterialEditorApp {
 
       // Multiply node - multiply inputs
       if (nodeKey === "Multiply") {
-        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
-        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const pinA = node.inputs.find(
+          (p) => p.localId === "a" || p.name === "A"
+        );
+        const pinB = node.inputs.find(
+          (p) => p.localId === "b" || p.name === "B"
+        );
         const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
         const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
         return multiplyValues(valA, valB);
@@ -2310,8 +2369,12 @@ class MaterialEditorApp {
 
       // Add node - add inputs
       if (nodeKey === "Add") {
-        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
-        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const pinA = node.inputs.find(
+          (p) => p.localId === "a" || p.name === "A"
+        );
+        const pinB = node.inputs.find(
+          (p) => p.localId === "b" || p.name === "B"
+        );
         const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
         const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
         return addValues(valA, valB);
@@ -2319,19 +2382,38 @@ class MaterialEditorApp {
 
       // Lerp node
       if (nodeKey === "Lerp") {
-        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
-        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
-        const pinAlpha = node.inputs.find((p) => p.localId === "alpha" || p.name === "Alpha");
+        const pinA = node.inputs.find(
+          (p) => p.localId === "a" || p.name === "A"
+        );
+        const pinB = node.inputs.find(
+          (p) => p.localId === "b" || p.name === "B"
+        );
+        const pinAlpha = node.inputs.find(
+          (p) => p.localId === "alpha" || p.name === "Alpha"
+        );
         const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
         const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
         const alpha = evaluatePin(pinAlpha, new Set(visited)) ?? 0.5;
         return lerpValues(valA, valB, alpha);
       }
 
-      // Texture sample - return solid color for preview
+      // Texture sample - return texture info for viewport
       if (nodeKey === "TextureSample" || nodeKey === "TextureParameter") {
-        // For preview purposes, return a mid-gray to indicate texture
-        if (outputPin && (outputPin.localId === "rgb" || outputPin.name === "RGB")) {
+        // Get texture data from textureManager or node properties
+        const textureId =
+          node.properties?.TextureAsset || node.properties?.texture;
+        if (textureId && textureManager) {
+          const texData = textureManager.get(textureId);
+          if (texData && texData.dataUrl) {
+            // Return special texture object
+            return { type: "texture", url: texData.dataUrl };
+          }
+        }
+        // Fallback to mid-gray if no texture loaded
+        if (
+          outputPin &&
+          (outputPin.localId === "rgb" || outputPin.name === "RGB")
+        ) {
           return [0.5, 0.5, 0.5];
         }
         return 0.5;
@@ -2406,9 +2488,19 @@ class MaterialEditorApp {
           result.baseColor = [value, value, value];
         }
       } else if (pinName.includes("metallic")) {
-        result.metallic = typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 0);
+        result.metallic =
+          typeof value === "number"
+            ? value
+            : Array.isArray(value)
+            ? value[0]
+            : 0;
       } else if (pinName.includes("roughness")) {
-        result.roughness = typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 0.5);
+        result.roughness =
+          typeof value === "number"
+            ? value
+            : Array.isArray(value)
+            ? value[0]
+            : 0.5;
       } else if (pinName.includes("emissive")) {
         if (Array.isArray(value)) {
           result.emissive = value.slice(0, 3);
