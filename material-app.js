@@ -334,7 +334,11 @@ class MaterialGraphController {
 
     this.graphPanel.addEventListener("drop", (e) => {
       e.preventDefault();
-      const nodeKey = e.dataTransfer.getData("text/plain");
+      let nodeKey = e.dataTransfer.getData("text/plain");
+      // Handle palette prefix (PALETTE_NODE:NodeKey)
+      if (nodeKey.startsWith("PALETTE_NODE:")) {
+        nodeKey = nodeKey.replace("PALETTE_NODE:", "");
+      }
       if (nodeKey && materialNodeRegistry.get(nodeKey)) {
         const rect = this.graphPanel.getBoundingClientRect();
         const x = (e.clientX - rect.left - this.panX) / this.zoom;

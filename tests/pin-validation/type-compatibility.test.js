@@ -55,8 +55,9 @@ describe("Pin Type Compatibility", () => {
   // TEXTURE TYPE ISOLATION
   // =========================================================================
   describe("Texture Type Isolation", () => {
-    it("texture can only connect to texture", () => {
-      expect(TypeCompatibility.texture).toEqual(["texture"]);
+    it("texture can connect to texture and texture2d", () => {
+      // texture and texture2d are both 2D textures and can connect
+      expect(TypeCompatibility.texture).toEqual(["texture", "texture2d"]);
     });
 
     it("texture cannot connect to float3 (color) directly", () => {
@@ -141,7 +142,8 @@ describe("Pin Type Compatibility", () => {
     });
 
     it("texture should have blue color", () => {
-      expect(DataTypes.TEXTURE.color).toMatch(/#2196F3/i);
+      // UE5-accurate color from GraphEditorSettings.cpp:50
+      expect(DataTypes.TEXTURE.color).toBe("#0066E8");
     });
 
     it("bool should have a color defined", () => {

@@ -35,22 +35,22 @@ describe("Arithmetic Nodes", () => {
     it("should have correct pin configuration", () => {
       const def = getDefinition("Add");
 
-      // Verify input pins
+      // Verify input pins - wildcard allows flexible type connections
       const pinA = def.pins.find((p) => p.id === "a");
       const pinB = def.pins.find((p) => p.id === "b");
       const pinOut = def.pins.find((p) => p.id === "out");
 
       expect(pinA).toBeDefined();
       expect(pinA.dir).toBe("in");
-      expect(pinA.type).toBe("float");
+      expect(pinA.type).toBe("wildcard");
 
       expect(pinB).toBeDefined();
       expect(pinB.dir).toBe("in");
-      expect(pinB.type).toBe("float");
+      expect(pinB.type).toBe("wildcard");
 
       expect(pinOut).toBeDefined();
       expect(pinOut.dir).toBe("out");
-      expect(pinOut.type).toBe("float");
+      expect(pinOut.type).toBe("wildcard");
     });
 
     it("should have default values of 0.0", () => {
@@ -86,9 +86,10 @@ describe("Arithmetic Nodes", () => {
       const pinA = def.pins.find((p) => p.id === "a");
       const pinB = def.pins.find((p) => p.id === "b");
 
-      expect(pinA.type).toBe("float");
+      // Wildcard type for flexible broadcasting
+      expect(pinA.type).toBe("wildcard");
       expect(pinA.dir).toBe("in");
-      expect(pinB.type).toBe("float");
+      expect(pinB.type).toBe("wildcard");
       expect(pinB.dir).toBe("in");
     });
   });
