@@ -2380,7 +2380,7 @@ class MaterialEditorApp {
         ];
       }
 
-      // Multiply node - multiply inputs
+      // Multiply node - multiply inputs (or pass through texture)
       if (nodeKey === "Multiply") {
         const pinA = node.inputs.find(
           (p) => p.localId === "a" || p.name === "A"
@@ -2390,6 +2390,15 @@ class MaterialEditorApp {
         );
         const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
         const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
+
+        // If one input is a texture, pass it through (can't multiply textures in preview)
+        if (valA && typeof valA === "object" && valA.type === "texture") {
+          return valA;
+        }
+        if (valB && typeof valB === "object" && valB.type === "texture") {
+          return valB;
+        }
+
         return multiplyValues(valA, valB);
       }
 
