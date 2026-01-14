@@ -1,13 +1,13 @@
 /**
  * MaterialGraphController.js
- * 
+ *
  * Manages the graph canvas, node rendering, wire connections, and user interactions.
  * Extracted from material-app.js for modularity.
  */
 
-import { HotkeyManager } from './ui/HotkeyManager.js';
-import { materialNodeRegistry, MaterialNode } from './MaterialNodeFramework.js';
-import { debounce } from './utils.js';
+import { HotkeyManager } from "./ui/HotkeyManager.js";
+import { materialNodeRegistry, MaterialNode } from "./MaterialNodeFramework.js";
+import { debounce, generateId } from "./utils.js";
 
 export class MaterialGraphController {
   constructor(app) {
@@ -968,4 +968,3 @@ export class MaterialGraphController {
     this.updateAllWires();
   }
 }
-

@@ -1,11 +1,12 @@
 /**
  * PaletteController.js
- * 
+ *
  * Manages the node palette/library panel with search and filtering.
  * Extracted from material-app.js for modularity.
  */
 
-import { materialNodeRegistry } from './MaterialNodeFramework.js';
+import { materialNodeRegistry } from "./MaterialNodeFramework.js";
+import { debounce } from "./utils.js";
 
 export class PaletteController {
   constructor(app) {
@@ -93,4 +94,3 @@ export class PaletteController {
 
 // ============================================================================
 // DETAILS CONTROLLER
-
