@@ -1,11 +1,11 @@
 /**
  * MaterialDetailsController.js
- * 
+ *
  * Manages the details panel for node and material property editing.
  * Extracted from material-app.js for modularity.
  */
 
-import { textureManager } from './TextureManager.js';
+import { textureManager } from "./TextureManager.js";
 
 export class DetailsController {
   constructor(app) {
@@ -267,4 +267,14 @@ export class DetailsController {
         container.innerHTML = `<div class="texture-preview-placeholder">No Texture</div>`;
       }
     }
+  }
 
+  /**
+   * Update node preview thumbnail after property change
+   */
+  updateNodePreview(node) {
+    if (node && node.element) {
+      node.updatePreview(node.element.querySelector(".node-preview"));
+    }
+  }
+}
