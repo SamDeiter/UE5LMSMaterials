@@ -1474,6 +1474,9 @@ class DetailsController {
         node.properties[propKey] = newValue;
         node.updatePreview(node.element.querySelector(".node-preview"));
         this.app.graph.updateAllWires();
+
+        // Trigger live update if enabled
+        MaterialEditorApp.triggerLiveUpdate();
       });
     });
 
