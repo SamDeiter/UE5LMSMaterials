@@ -16,6 +16,7 @@ import {
 } from "./MaterialNodeFramework.js";
 import { MaterialExpressionDefinitions } from "./data/MaterialExpressionDefinitions.js";
 import { HotkeyManager } from "./ui/HotkeyManager.js";
+import { shaderEvaluator } from "./ShaderEvaluator.js";
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -37,6 +38,58 @@ function debounce(fn, ms) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn.apply(this, args), ms);
   };
+}
+
+/**
+ * Multiply a texture by a color using canvas pixel manipulation
+ * Returns a new texture object with the tinted result
+ */
+function multiplyTextureByColor(textureObj, color) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Normalize color to 0-1 range
+      const r = Array.isArray(color)
+        ? color[0]
+        : typeof color === "number"
+        ? color
+        : 1;
+      const g = Array.isArray(color)
+        ? color[1]
+        : typeof color === "number"
+        ? color
+        : 1;
+      const b = Array.isArray(color)
+        ? color[2]
+        : typeof color === "number"
+        ? color
+        : 1;
+
+      // Multiply each pixel by the color
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.min(255, data[i] * r); // R
+        data[i + 1] = Math.min(255, data[i + 1] * g); // G
+        data[i + 2] = Math.min(255, data[i + 2] * b); // B
+        // Alpha stays the same
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      const dataUrl = canvas.toDataURL("image/png");
+      resolve({ type: "texture", url: dataUrl });
+    };
+    img.onerror = () => resolve(textureObj); // Fallback to original on error
+    img.src = textureObj.url;
+  });
 }
 
 // ============================================================================
@@ -2380,7 +2433,7 @@ class MaterialEditorApp {
         ];
       }
 
-      // Multiply node - multiply inputs (or pass through texture)
+      // Multiply node - multiply inputs (use ShaderEvaluator for texture×color)
       if (nodeKey === "Multiply") {
         const pinA = node.inputs.find(
           (p) => p.localId === "a" || p.name === "A"
@@ -2391,12 +2444,32 @@ class MaterialEditorApp {
         const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
         const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
 
-        // If one input is a texture, pass it through (can't multiply textures in preview)
-        if (valA && typeof valA === "object" && valA.type === "texture") {
-          return valA;
+        const isTexA =
+          valA && typeof valA === "object" && valA.type === "texture";
+        const isTexB =
+          valB && typeof valB === "object" && valB.type === "texture";
+
+        // If one input is a texture, multiply with ShaderEvaluator
+        if (isTexA && !isTexB) {
+          // Return a pending operation marker - will be resolved in result processing
+          return {
+            type: "pending",
+            operation: "multiply",
+            texture: valA,
+            color: valB,
+          };
         }
-        if (valB && typeof valB === "object" && valB.type === "texture") {
-          return valB;
+        if (isTexB && !isTexA) {
+          return {
+            type: "pending",
+            operation: "multiply",
+            texture: valB,
+            color: valA,
+          };
+        }
+        if (isTexA && isTexB) {
+          // Both textures - just return first for now
+          return valA;
         }
 
         return multiplyValues(valA, valB);
@@ -2523,8 +2596,21 @@ class MaterialEditorApp {
       const pinName = pin.name.toLowerCase();
 
       if (pinName.includes("base color") || pinName.includes("basecolor")) {
-        // Check if value is a texture object
-        if (value && typeof value === "object" && value.type === "texture") {
+        // Check if value is a pending async operation
+        if (value && typeof value === "object" && value.type === "pending") {
+          if (value.operation === "multiply") {
+            // Schedule async multiply operation
+            result.pendingBaseColor = shaderEvaluator.multiplyTextureByColor(
+              value.texture,
+              value.color
+            );
+          }
+          // Check if value is a texture object
+        } else if (
+          value &&
+          typeof value === "object" &&
+          value.type === "texture"
+        ) {
           result.baseColorTexture = value.url;
           result.baseColor = [1, 1, 1]; // White to show texture properly
         } else if (Array.isArray(value)) {
@@ -2553,10 +2639,28 @@ class MaterialEditorApp {
       }
     });
 
-    // Update the viewport with the result
-    if (this.viewport) {
-      this.viewport.updateMaterial(result);
-    }
+    // Handle pending async operations before updating viewport
+    const finishUpdate = async () => {
+      if (result.pendingBaseColor) {
+        try {
+          const texture = await result.pendingBaseColor;
+          if (texture && texture.url) {
+            result.baseColorTexture = texture.url;
+            result.baseColor = [1, 1, 1]; // White to show texture properly
+          }
+        } catch (e) {
+          console.warn("Failed to process texture operation:", e);
+        }
+        delete result.pendingBaseColor;
+      }
+
+      // Update the viewport with the result
+      if (this.viewport) {
+        this.viewport.updateMaterial(result);
+      }
+    };
+
+    finishUpdate();
   }
 
   undo() {
