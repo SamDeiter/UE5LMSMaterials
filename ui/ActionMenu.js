@@ -233,9 +233,9 @@ export class ActionMenu {
             this.showVariableDropOptions(this.droppedVarName);
             return;
         }
-        let needsSeparatorBeforeNodes = hasVariableAccess || contextHeader;
+        const needsSeparatorBeforeNodes = hasVariableAccess || contextHeader;
         const nodeNames = Object.keys(nodeRegistry.getAll());
-        let filtered = nodeNames.filter(name => {
+        const filtered = nodeNames.filter(name => {
             const isVariableNode = name.startsWith('Get_');
             const nodeData = nodeRegistry.get(name);
             const title = nodeData.title || name;

@@ -6,14 +6,13 @@
 
 // Import all controllers
 import { Pin, Node, WiringController, GraphController } from './graph.js';
-import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController, TaskController } from './ui.js';
+import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController } from './ui.js';
 import { Compiler, Persistence, GridController, HistoryManager, SimulationEngine } from './services.js';
-import { TestRunner, registerTests } from './tests.js';
+// Cache bust the tests module to ensure latest export is found
+import { TestRunner, registerTests } from './tests.js?v=2';
 import { BlueprintValidator, SAMPLE_TASK } from './validator.js';
-import { TaskManager } from './TaskManager.js';
 import { nodeRegistry } from './registries/NodeRegistry.js';
 import { NodeDefinitions } from './data/NodeDefinitions.js';
-
 
 
 /**
@@ -26,31 +25,61 @@ class BlueprintApp {
     static init() {
         // Expose for inline events (onclick)
         window.app = BlueprintApp;
-        // Register Node Definitions
-        nodeRegistry.registerBatch(NodeDefinitions);
 
-        BlueprintApp.wiring = new WiringController(document.getElementById('graph-svg'), BlueprintApp);
+        console.log("Initializing BlueprintApp...");
+        // Register static node definitions into the runtime registry
+        // Ensures `graph.addNode(nodeKey, ...)` can find node definitions
+        try {
+            nodeRegistry.registerBatch(NodeDefinitions);
+        } catch (err) {
+            console.error('Failed to register NodeDefinitions:', err);
+        }
+        // DOM Elements - Fail early if missing
+        const graphEditorEl = document.getElementById('graph-editor');
+        const nodesContainerEl = document.getElementById('nodes-container');
+        const graphSvgEl = document.getElementById('graph-svg');
+        const graphCanvasEl = document.getElementById('graph-canvas');
+
+        if (!graphEditorEl || !nodesContainerEl || !graphSvgEl || !graphCanvasEl) {
+            console.error("Critical DOM elements missing. Initialization aborted.");
+            return;
+        }
+
+        // --- Controller Initialization (Order is Crucial) ---
+
+        // 0. Layout Controller (Resizers) - Needs to be early to bind to DOM
+        BlueprintApp.layout = new LayoutController(BlueprintApp);
+
+        // 1. Core Graph/Canvas Handlers 
+        // Use local variable to ensure stability throughout init()
+        const graphController = new GraphController(
+            graphEditorEl,
+            graphSvgEl,
+            nodesContainerEl,
+            BlueprintApp
+        );
+        BlueprintApp.graph = graphController;
+
+        const gridController = new GridController(
+            graphCanvasEl,
+            BlueprintApp
+        );
+        BlueprintApp.grid = gridController;
+
+        // 2. Data Model/UI Controllers
+        BlueprintApp.wiring = new WiringController(graphSvgEl, BlueprintApp);
         BlueprintApp.variables = new VariableController(BlueprintApp);
         BlueprintApp.palette = new PaletteController(BlueprintApp);
         BlueprintApp.details = new DetailsController(BlueprintApp);
 
         // 3. Service Controllers
+        // Pass BlueprintApp class, but controllers internally rely on the static props assigned above
         BlueprintApp.history = new HistoryManager(BlueprintApp);
         BlueprintApp.persistence = new Persistence(BlueprintApp);
         BlueprintApp.actionMenu = new ActionMenu(BlueprintApp);
         BlueprintApp.contextMenu = new ContextMenu(BlueprintApp);
         BlueprintApp.compiler = new Compiler(BlueprintApp);
-        BlueprintApp.sim = new SimulationEngine(BlueprintApp); // Initialize Simulation Engine
-
-
-        // 6. Task Manager
-        BlueprintApp.taskManager = new TaskManager(BlueprintApp);
-        window.setTask = (taskId) => BlueprintApp.taskManager.setCurrentTask(taskId);
-        window.validateTask = () => BlueprintApp.taskManager.validateCurrentTask();
-        window.clearTask = () => BlueprintApp.taskManager.clearTask();
-
-        // 7. Task UI Controller
-        BlueprintApp.taskUI = new TaskController(BlueprintApp);
+        BlueprintApp.sim = new SimulationEngine(BlueprintApp);
 
         // 4. Test Runner
         BlueprintApp.testRunner = new TestRunner(BlueprintApp);
@@ -58,17 +87,54 @@ class BlueprintApp {
         window.runTests = () => BlueprintApp.testRunner.run();
 
         // 5. Blueprint Validator
+        BlueprintApp.validator = new BlueprintValidator(BlueprintApp);
+        window.validateSampleTask = () => BlueprintApp.validator.validateTask(SAMPLE_TASK);
+
+        // --- Bind Events ---
+        // Use the local variable 'graphController' to guarantee it exists
+        if (graphController) {
+            graphController.initEvents();
+        } else {
+            console.error("GraphController failed to initialize.");
+        }
+
+        // Trigger full compilation logic instead of just validation
+        const compileBtn = document.getElementById('compile-btn');
+        if (compileBtn) compileBtn.addEventListener('click', () => BlueprintApp.compiler.compile());
+
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) saveBtn.addEventListener('click', () => BlueprintApp.persistence.save());
+
+        // Bind Undo/Redo Buttons
+        const undoBtn = document.getElementById('undo-btn');
+        if (undoBtn) undoBtn.addEventListener('click', () => BlueprintApp.history.undo());
+
+        const redoBtn = document.getElementById('redo-btn');
+        if (redoBtn) redoBtn.addEventListener('click', () => BlueprintApp.history.redo());
+
         // Bind Play/Stop Buttons
-        document.getElementById('play-btn').addEventListener('click', () => BlueprintApp.sim.run());
-        document.getElementById('stop-btn').addEventListener('click', () => BlueprintApp.sim.stop());
+        const playBtn = document.getElementById('play-btn');
+        if (playBtn) playBtn.addEventListener('click', () => BlueprintApp.sim.run());
+
+        const stopBtn = document.getElementById('stop-btn');
+        if (stopBtn) stopBtn.addEventListener('click', () => BlueprintApp.sim.stop());
 
         // Help Modal Events
-        document.getElementById('help-btn').addEventListener('click', () => {
-            document.getElementById('help-modal').style.display = 'flex';
-        });
-        document.getElementById('help-modal-close').addEventListener('click', () => {
-            document.getElementById('help-modal').style.display = 'none';
-        });
+        const helpBtn = document.getElementById('help-btn');
+        if (helpBtn) {
+            helpBtn.addEventListener('click', () => {
+                const modal = document.getElementById('help-modal');
+                if (modal) modal.style.display = 'flex';
+            });
+        }
+
+        const helpCloseBtn = document.getElementById('help-modal-close');
+        if (helpCloseBtn) {
+            helpCloseBtn.addEventListener('click', () => {
+                const modal = document.getElementById('help-modal');
+                if (modal) modal.style.display = 'none';
+            });
+        }
 
         // --- Global Hotkeys ---
         document.addEventListener('keydown', (e) => {
@@ -77,14 +143,10 @@ class BlueprintApp {
             const tagName = target.tagName ? target.tagName.toUpperCase() : '';
 
             // Allow typing in inputs/textareas/contentEditable unless explicitly handled
-            // We check isContentEditable (the property) which handles inherited editability correctly.
             const isTextEditor = tagName === 'INPUT' ||
                 tagName === 'TEXTAREA' ||
                 target.isContentEditable;
 
-            // If we are in a text editor, RETURN IMMEDIATELY.
-            // This prevents the code below (Delete/Backspace) from running e.preventDefault(),
-            // which allows the browser to perform the default action (deleting text).
             if (isTextEditor) {
                 return;
             }
@@ -113,7 +175,6 @@ class BlueprintApp {
             }
 
             if (e.key === 'Delete' || e.key === 'Backspace') {
-                // We only reach here if isTextEditor is FALSE.
                 e.preventDefault();
 
                 let wasDeleted = false;
@@ -123,7 +184,6 @@ class BlueprintApp {
                 varToDelete = BlueprintApp.details.currentVariable;
 
                 if (!varToDelete) {
-                    // Fallback: try to find variable selection in the DOM list if not in Details controller
                     const activeEl = document.activeElement;
                     if (activeEl) {
                         const focusedVarEl = activeEl.closest('.tree-item[data-var-id]');
@@ -138,7 +198,6 @@ class BlueprintApp {
                     BlueprintApp.variables.deleteVariable(varToDelete); // Triggers confirmation modal
                     wasDeleted = true;
                 }
-
                 // 2. Check for selected nodes/links
                 else if (BlueprintApp.graph.selectedNodes.size > 0 || BlueprintApp.wiring.selectedLinks.size > 0) {
                     BlueprintApp.graph.deleteSelectedNodes();
@@ -148,25 +207,31 @@ class BlueprintApp {
 
             if (e.key === 'F7') {
                 e.preventDefault();
-                // CHANGED: Trigger full compilation logic
                 BlueprintApp.compiler.compile();
             }
         });
 
-        // Removed keyup listener for Space bar panning
-
         // --- Load & Render Sequence ---
+        console.log("Loading state...");
         BlueprintApp.persistence.load();
 
-        BlueprintApp.graph.renderAllNodes();
+        console.log("Rendering initial state...");
+
+        // Use the local variable again to be safe
+        if (graphController) {
+            graphController.renderAllNodes();
+
+            // Draw wires in the next frame.
+            requestAnimationFrame(() => {
+                graphController.drawAllWires();
+            });
+        }
+
         BlueprintApp.palette.populateList();
         BlueprintApp.compiler.validate();
         BlueprintApp.grid.draw();
 
-        // 3. Draw wires in the next frame.
-        requestAnimationFrame(() => {
-            BlueprintApp.graph.drawAllWires();
-        });
+        console.log("App Initialization Complete.");
     }
 }
 

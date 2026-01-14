@@ -312,7 +312,6 @@ export class DetailsController {
                 e.stopPropagation();
                 const rect = containerTrigger.getBoundingClientRect();
                 this.showContainerTypeMenu(rect.left, rect.bottom + 5, variable.type, (newContainerType) => {
-                    console.log('[Container Type Menu] Callback triggered with newContainerType:', newContainerType);
                     this.app.variables.updateVariableProperty(variable, 'containerType', newContainerType);
                 });
             });
@@ -440,7 +439,6 @@ export class DetailsController {
     }
 
     addArrayElement(varId) {
-        console.log('[addArrayElement] Called with varId:', varId);
         // Try currentVariable first, then search by ID
         let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
 
@@ -449,7 +447,6 @@ export class DetailsController {
             variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
         }
 
-        console.log('[addArrayElement] Variable found:', variable ? variable.name : 'null');
         if (!variable) return;
 
         if (!Array.isArray(variable.defaultValue)) {
@@ -466,7 +463,6 @@ export class DetailsController {
         else if (type === 'transform') newVal = '(0,0,0|0,0,0|1,1,1)';
 
         const newArray = [...variable.defaultValue, newVal];
-        console.log('[addArrayElement] Adding element. Old length:', variable.defaultValue.length, 'New length:', newArray.length);
         this.app.variables.updateVariableProperty(variable, 'defaultValue', newArray);
     }
 
@@ -491,10 +487,8 @@ export class DetailsController {
     }
 
     addMapElement(varId) {
-        console.log('[addMapElement] Called with varId:', varId);
         let variable = this.currentVariable && this.currentVariable.id === varId ? this.currentVariable : null;
         if (!variable) variable = [...this.app.variables.variables.values()].find(v => v.id === varId);
-        console.log('[addMapElement] Variable found:', variable ? variable.name : 'null');
         if (!variable) return;
 
         if (!Array.isArray(variable.defaultValue)) {
@@ -512,7 +506,6 @@ export class DetailsController {
 
         const newEntry = { key: '', value: newVal };
         const newMap = [...variable.defaultValue, newEntry];
-        console.log('[addMapElement] Adding map entry. Old length:', variable.defaultValue.length, 'New length:', newMap.length);
         this.app.variables.updateVariableProperty(variable, 'defaultValue', newMap);
     }
 
@@ -544,7 +537,7 @@ export class DetailsController {
             const key = node.nodeKey;
             const underscoreIndex = key.indexOf('_');
             if (underscoreIndex !== -1) {
-                let varName = key.substring(underscoreIndex + 1);
+                const varName = key.substring(underscoreIndex + 1);
                 // Attempt exact match first
                 let variable = this.app.variables.variables.get(varName);
 

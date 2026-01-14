@@ -76,7 +76,8 @@ export class VariableController {
             isInstanceEditable: isPublic,
             blueprintReadOnly: false,
             exposeOnSpawn: false,
-            private: !isPublic,
+            // Default to NOT private so variables are visible/editable in blueprint
+            private: false,
             exposeToCinematics: false,
             category: 'Default',
             replication: 'None',
@@ -102,8 +103,8 @@ export class VariableController {
     createVariableFromPin(pin) {
         const name = this.generateUniqueVarName(pin.name.replace(/\s+/g, '').replace(/\(.+\)/, ''));
         const id = Utils.uniqueId('var');
-        // Default promoted variables to Public (Instance Editable)
-        const variable = this.createVariableObject(id, name, pin.type, pin.containerType, true);
+        // Default promoted variables to NOT instance-editable
+        const variable = this.createVariableObject(id, name, pin.type, pin.containerType, false);
         variable.description = `Promoted from pin ${pin.name}`;
 
         this.variables.set(name, variable);
@@ -132,7 +133,8 @@ export class VariableController {
         const name = this.generateUniqueVarName('NewVar');
         const id = Utils.uniqueId('var');
         // Default to boolean, single, public (private unchecked)
-        const variable = this.createVariableObject(id, name, 'bool', 'single', true);
+        // Default to boolean, single, NOT instance-editable
+        const variable = this.createVariableObject(id, name, 'bool', 'single', false);
 
         this.variables.set(name, variable);
 
@@ -199,7 +201,6 @@ export class VariableController {
     }
 
     updateVariableProperty(variable, property, newValue) {
-        console.log('[updateVariableProperty] Called for:', variable.name, 'property:', property, 'newValue:', newValue);
         const oldValue = variable[property];
         let needsFullRender = false;
         let needsNodeLibraryUpdate = false;
@@ -561,7 +562,7 @@ export class VariableController {
                 if (v.replication === undefined) v.replication = 'None';
                 if (v.replicationCondition === undefined) v.replicationCondition = 'None';
 
-                this.variables.set(v.name, v)
+                this.variables.set(v.name, v);
             });
         }
         this.renderPanel();
