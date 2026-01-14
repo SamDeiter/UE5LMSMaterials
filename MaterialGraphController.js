@@ -6,7 +6,11 @@
  */
 
 import { HotkeyManager } from "./ui/HotkeyManager.js";
-import { materialNodeRegistry, MaterialNode } from "./MaterialNodeFramework.js";
+import {
+  materialNodeRegistry,
+  MaterialNode,
+  PinTypes,
+} from "./MaterialNodeFramework.js";
 import { debounce, generateId } from "./utils.js";
 
 export class MaterialGraphController {

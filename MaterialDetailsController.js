@@ -95,7 +95,9 @@ export class DetailsController {
         this.app.graph.updateAllWires();
 
         // Trigger live update if enabled
-        MaterialEditorApp.triggerLiveUpdate();
+        if (this.app && this.app.triggerLiveUpdate) {
+          this.app.triggerLiveUpdate();
+        }
       });
     });
 
