@@ -19,13 +19,19 @@ import { HotkeyManager } from "./ui/HotkeyManager.js";
 import { shaderEvaluator } from "./ShaderEvaluator.js";
 
 // Extracted modules
-import { TextureManager, textureManager } from './TextureManager.js';
-import { MaterialGraphController } from './MaterialGraphController.js';
-import { PaletteController } from './PaletteController.js';
-import { DetailsController } from './MaterialDetailsController.js';
-import { debounce, generateId } from './utils.js';
+import { TextureManager, textureManager } from "./TextureManager.js";
+import { MaterialGraphController } from "./MaterialGraphController.js";
+import { PaletteController } from "./PaletteController.js";
+import { DetailsController } from "./MaterialDetailsController.js";
+import { debounce, generateId } from "./utils.js";
 
-\n// Classes extracted to separate modules:\n// - TextureManager.js\n// - MaterialGraphController.js\n// - PaletteController.js\n// - MaterialDetailsController.js (DetailsController)\n\nclass ActionMenuController {
+// Classes extracted to separate modules:
+// - TextureManager.js
+// - MaterialGraphController.js
+// - PaletteController.js
+// - MaterialDetailsController.js (DetailsController)
+
+class ActionMenuController {
   constructor(app) {
     this.app = app;
     this.menu = document.getElementById("action-menu");
