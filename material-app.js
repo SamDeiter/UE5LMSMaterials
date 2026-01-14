@@ -23,6 +23,7 @@ import { TextureManager, textureManager } from "./TextureManager.js";
 import { MaterialGraphController } from "./MaterialGraphController.js";
 import { PaletteController } from "./PaletteController.js";
 import { DetailsController } from "./MaterialDetailsController.js";
+import { MaterialTranslator } from "./MaterialTranslator.js";
 import { debounce, generateId } from "./utils.js";
 
 // Classes extracted to separate modules:
@@ -31,9 +32,8 @@ import { debounce, generateId } from "./utils.js";
 // - PaletteController.js
 // - MaterialDetailsController.js (DetailsController)
 
-import { ActionMenuController } from './ActionMenuController.js';
-import { ViewportController } from './ViewportController.js';
-
+import { ActionMenuController } from "./ActionMenuController.js";
+import { ViewportController } from "./ViewportController.js";
 
 // ============================================================================
 // MAIN APPLICATION
@@ -54,6 +54,7 @@ class MaterialEditorApp {
     this.details = new DetailsController(this);
     this.viewport = new ViewportController(this);
     this.actionMenu = new ActionMenuController(this);
+    this.translator = new MaterialTranslator();
 
     // Bind toolbar buttons
     this.bindToolbar();
@@ -314,262 +315,8 @@ class MaterialEditorApp {
     );
     if (!mainNode) return;
 
-    const result = {
-      baseColor: [0.5, 0.5, 0.5],
-      metallic: 0,
-      roughness: 0.5,
-      emissive: null,
-    };
-
-    // Recursively evaluate a pin to get its value
-    const evaluatePin = (pin, visited = new Set()) => {
-      if (!pin || visited.has(pin.id)) return null;
-      visited.add(pin.id);
-
-      // If not connected, return default value from pin or node properties
-      if (!pin.connectedTo) {
-        if (pin.defaultValue !== undefined) {
-          return pin.defaultValue;
-        }
-        return null;
-      }
-
-      // Get the link and source node
-      const link = this.graph.links.get(pin.connectedTo);
-      if (!link || !link.outputPin) return null;
-
-      const sourceNode = [...this.graph.nodes.values()].find((n) =>
-        n.outputs.some((p) => p.id === link.outputPin.id)
-      );
-      if (!sourceNode) return null;
-
-      // Evaluate based on node type
-      return evaluateNode(sourceNode, link.outputPin, visited);
-    };
-
-    // Evaluate a node's output
-    const evaluateNode = (node, outputPin, visited) => {
-      const nodeKey = node.nodeKey || node.type;
-
-      // Constant nodes - return property value
-      if (nodeKey === "Constant" || nodeKey === "ScalarParameter") {
-        return node.properties.R ?? node.properties.DefaultValue ?? 0;
-      }
-
-      // Vector constants
-      if (nodeKey === "Constant3Vector" || nodeKey === "VectorParameter") {
-        return [
-          node.properties.R ?? 1,
-          node.properties.G ?? 1,
-          node.properties.B ?? 1,
-        ];
-      }
-
-      // Multiply node - multiply inputs (use ShaderEvaluator for texture×color)
-      if (nodeKey === "Multiply") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
-
-        const isTexA =
-          valA && typeof valA === "object" && valA.type === "texture";
-        const isTexB =
-          valB && typeof valB === "object" && valB.type === "texture";
-
-        // If one input is a texture, multiply with ShaderEvaluator
-        if (isTexA && !isTexB) {
-          // Return a pending operation marker - will be resolved in result processing
-          return {
-            type: "pending",
-            operation: "multiply",
-            texture: valA,
-            color: valB,
-          };
-        }
-        if (isTexB && !isTexA) {
-          return {
-            type: "pending",
-            operation: "multiply",
-            texture: valB,
-            color: valA,
-          };
-        }
-        if (isTexA && isTexB) {
-          // Both textures - just return first for now
-          return valA;
-        }
-
-        return multiplyValues(valA, valB);
-      }
-
-      // Add node - add inputs
-      if (nodeKey === "Add") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
-        return addValues(valA, valB);
-      }
-
-      // Lerp node
-      if (nodeKey === "Lerp") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const pinAlpha = node.inputs.find(
-          (p) => p.localId === "alpha" || p.name === "Alpha"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
-        const alpha = evaluatePin(pinAlpha, new Set(visited)) ?? 0.5;
-        return lerpValues(valA, valB, alpha);
-      }
-
-      // Texture sample - return texture info for viewport
-      if (nodeKey === "TextureSample" || nodeKey === "TextureParameter") {
-        // Get texture data from textureManager or node properties
-        let textureId =
-          node.properties?.TextureAsset || node.properties?.texture;
-
-        // Fall back to checkerboard if no texture assigned
-        if (!textureId && textureManager) {
-          textureId = "checkerboard";
-        }
-
-        if (textureId && textureManager) {
-          const texData = textureManager.get(textureId);
-          if (texData && texData.dataUrl) {
-            // Return special texture object
-            return { type: "texture", url: texData.dataUrl };
-          }
-        }
-        // Fallback to mid-gray if no texture loaded
-        if (
-          outputPin &&
-          (outputPin.localId === "rgb" || outputPin.name === "RGB")
-        ) {
-          return [0.5, 0.5, 0.5];
-        }
-        return 0.5;
-      }
-
-      // Default: try to read properties
-      if (node.properties.R !== undefined) {
-        return [
-          node.properties.R ?? 0,
-          node.properties.G ?? 0,
-          node.properties.B ?? 0,
-        ];
-      }
-      if (node.properties.Value !== undefined) {
-        return node.properties.Value;
-      }
-
-      return null;
-    };
-
-    // Helper: multiply two values (scalar or vector)
-    const multiplyValues = (a, b) => {
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v * (b[i] ?? 1));
-      }
-      if (Array.isArray(a)) {
-        return a.map((v) => v * (typeof b === "number" ? b : 1));
-      }
-      if (Array.isArray(b)) {
-        return b.map((v) => v * (typeof a === "number" ? a : 1));
-      }
-      return (typeof a === "number" ? a : 1) * (typeof b === "number" ? b : 1);
-    };
-
-    // Helper: add two values
-    const addValues = (a, b) => {
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v + (b[i] ?? 0));
-      }
-      if (Array.isArray(a)) {
-        return a.map((v) => v + (typeof b === "number" ? b : 0));
-      }
-      if (Array.isArray(b)) {
-        return b.map((v) => v + (typeof a === "number" ? a : 0));
-      }
-      return (typeof a === "number" ? a : 0) + (typeof b === "number" ? b : 0);
-    };
-
-    // Helper: lerp two values
-    const lerpValues = (a, b, t) => {
-      const alpha = typeof t === "number" ? t : 0.5;
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v + (b[i] - v) * alpha);
-      }
-      if (typeof a === "number" && typeof b === "number") {
-        return a + (b - a) * alpha;
-      }
-      return a;
-    };
-
-    // Evaluate each main node input
-    mainNode.inputs.forEach((pin) => {
-      const value = evaluatePin(pin);
-      if (value === null) return;
-
-      const pinName = pin.name.toLowerCase();
-
-      if (pinName.includes("base color") || pinName.includes("basecolor")) {
-        // Check if value is a pending async operation
-        if (value && typeof value === "object" && value.type === "pending") {
-          if (value.operation === "multiply") {
-            // Schedule async multiply operation
-            result.pendingBaseColor = shaderEvaluator.multiplyTextureByColor(
-              value.texture,
-              value.color
-            );
-          }
-          // Check if value is a texture object
-        } else if (
-          value &&
-          typeof value === "object" &&
-          value.type === "texture"
-        ) {
-          result.baseColorTexture = value.url;
-          result.baseColor = [1, 1, 1]; // White to show texture properly
-        } else if (Array.isArray(value)) {
-          result.baseColor = value.slice(0, 3);
-        } else if (typeof value === "number") {
-          result.baseColor = [value, value, value];
-        }
-      } else if (pinName.includes("metallic")) {
-        result.metallic =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 0;
-      } else if (pinName.includes("roughness")) {
-        result.roughness =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 0.5;
-      } else if (pinName.includes("emissive")) {
-        if (Array.isArray(value)) {
-          result.emissive = value.slice(0, 3);
-        }
-      }
-    });
+    // Use the translator to get PBR inputs
+    const result = this.translator.translate(this.graph, mainNode);
 
     // Handle pending async operations before updating viewport
     const finishUpdate = async () => {
