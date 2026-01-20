@@ -22,7 +22,7 @@
   "bugs": {
     "url": "https://github.com/SamDeiter/UE5LMSMaterials/issues"
   },
-  "homepage": "https://github.com/SamDeiter/UE5LMSMaterials#readme",
+  "homepage": "https://samdeiter.github.io/UE5LMSMaterials/",
   "devDependencies": {
     "vitest": "^4.0.16"
   }
