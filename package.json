@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "deploy": "gh-pages -d ."
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   },
   "homepage": "https://samdeiter.github.io/UE5LMSMaterials/",
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "vitest": "^4.0.16"
   }
 }
