@@ -934,6 +934,153 @@ export const MaterialExpressionDefinitions = {
   },
 
   // ========================================================================
+  // WORLD POSITION OFFSET NODES
+  // ========================================================================
+  RotateAboutAxis: {
+    title: "RotateAboutAxis",
+    type: "material-expression",
+    category: "Utility",
+    icon: "↻",
+    description:
+      "Rotates a position around an axis using Rodrigues' rotation formula. Returns the OFFSET (delta) to add to World Position Offset.",
+    pins: [
+      {
+        id: "rotation_axis",
+        name: "NormalizedRotationAxis",
+        type: "float3",
+        dir: "in",
+        defaultValue: [0, 0, 1],
+        tooltip: "The axis to rotate around (should be normalized)",
+      },
+      {
+        id: "rotation_angle",
+        name: "RotationAngle",
+        type: "float",
+        dir: "in",
+        defaultValue: 0.0,
+        tooltip: "Angle in radians (use Time node for animation)",
+      },
+      {
+        id: "pivot_point",
+        name: "PivotPoint",
+        type: "float3",
+        dir: "in",
+        defaultValue: [0, 0, 0],
+        tooltip: "The center point of rotation (usually ObjectPosition)",
+      },
+      {
+        id: "position",
+        name: "Position",
+        type: "float3",
+        dir: "in",
+        tooltip: "The position to rotate (usually WorldPosition)",
+      },
+      { id: "out", name: "", type: "float3", dir: "out" },
+    ],
+    shaderCode: `
+            // Rodrigues' rotation formula - returns OFFSET (delta)
+            float3 _axis = normalize({rotation_axis});
+            float _angle = {rotation_angle};
+            float3 _point = {position} - {pivot_point};
+            
+            float _sin, _cos;
+            sincos(_angle, _sin, _cos);
+            
+            // Rotated point = point*cos + (axis x point)*sin + axis*(axis·point)*(1-cos)
+            float3 _rotated = _point * _cos 
+                            + cross(_axis, _point) * _sin 
+                            + _axis * dot(_axis, _point) * (1.0 - _cos);
+            
+            float3 {OUTPUT} = _rotated + {pivot_point} - {position};
+        `,
+  },
+
+  // ========================================================================
+  // NORMAL MAP UTILITY NODES
+  // ========================================================================
+  DeriveNormalZ: {
+    title: "DeriveNormalZ",
+    type: "material-expression",
+    category: "Utility",
+    icon: "Z",
+    description:
+      "Reconstructs the Z component of a normal vector from X and Y. Essential for BC5 (2-channel) compressed normal maps.",
+    pins: [
+      {
+        id: "in_xy",
+        name: "InXY",
+        type: "float2",
+        dir: "in",
+        tooltip: "The XY components of the normal (from RG channels of BC5 texture)",
+      },
+      { id: "out", name: "", type: "float3", dir: "out" },
+    ],
+    shaderCode: `
+            // Reconstruct Z from unit vector: x² + y² + z² = 1
+            // saturate prevents NaN from compression artifacts
+            float3 {OUTPUT};
+            {OUTPUT}.xy = {in_xy};
+            {OUTPUT}.z = sqrt(saturate(1.0 - dot({in_xy}, {in_xy})));
+        `,
+  },
+
+  // ========================================================================
+  // MASKING UTILITY NODES
+  // ========================================================================
+  SphereMask: {
+    title: "SphereMask",
+    type: "material-expression",
+    category: "Utility",
+    icon: "◯",
+    description:
+      "Creates a spherical falloff mask. Useful for local effects, interaction highlights, and atmospheric effects.",
+    pins: [
+      {
+        id: "a",
+        name: "A",
+        type: "float3",
+        dir: "in",
+        tooltip: "First position (e.g., WorldPosition)",
+      },
+      {
+        id: "b",
+        name: "B",
+        type: "float3",
+        dir: "in",
+        tooltip: "Second position (e.g., effect center)",
+      },
+      {
+        id: "radius",
+        name: "Radius",
+        type: "float",
+        dir: "in",
+        defaultValue: 100.0,
+        tooltip: "Inner radius where mask is 1",
+      },
+      {
+        id: "hardness",
+        name: "Hardness",
+        type: "float",
+        dir: "in",
+        defaultValue: 0.5,
+        tooltip: "Falloff sharpness (0=soft, 1=hard edge)",
+      },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    properties: {
+      AttenuationRadius: 100.0,
+      HardnessPercent: 0.5,
+    },
+    shaderCode: `
+            float _dist = distance({a}, {b});
+            float _rad = {radius} != 0.0 ? {radius} : {AttenuationRadius};
+            float _hard = {hardness} != 0.0 ? {hardness} : {HardnessPercent};
+            float _falloff = _rad * (1.0 - _hard);
+            float {OUTPUT} = 1.0 - saturate((_dist - _rad + _falloff) / max(_falloff, 0.0001));
+        `,
+  },
+
+  // ========================================================================
   // CONTROL FLOW
   // ========================================================================
   StaticSwitch: {
