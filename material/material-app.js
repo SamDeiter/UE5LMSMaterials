@@ -16,24 +16,19 @@ import {
 } from "./core/MaterialNodeFramework.js";
 import { MaterialExpressionDefinitions } from "../data/MaterialExpressionDefinitions.js";
 import { HotkeyManager } from "../blueprint/ui/HotkeyManager.js";
-import { shaderEvaluator } from "./engine/ShaderEvaluator.js";
 
-// Extracted modules
+// Engine modules
+import { MaterialEvaluator } from "./engine/MaterialEvaluator.js";
 import { TextureManager, textureManager } from "./engine/TextureManager.js";
+
+// UI Controllers
 import { MaterialGraphController } from "./core/MaterialGraphController.js";
 import { PaletteController } from "./ui/PaletteController.js";
 import { DetailsController } from "./ui/MaterialDetailsController.js";
+import { ViewportController } from "./ui/ViewportController.js";
+import { ActionMenuController } from "../blueprint/core/ActionMenuController.js";
+
 import { debounce, generateId } from "../shared/utils.js";
-
-// Classes extracted to separate modules:
-// - TextureManager.js
-// - MaterialGraphController.js
-// - PaletteController.js
-// - MaterialDetailsController.js (DetailsController)
-
-import { ActionMenuController } from '../blueprint/core/ActionMenuController.js';
-import { ViewportController } from './ui/ViewportController.js';
-
 
 // ============================================================================
 // MAIN APPLICATION
@@ -55,6 +50,9 @@ class MaterialEditorApp {
     this.viewport = new ViewportController(this);
     this.actionMenu = new ActionMenuController(this);
 
+    // Initialize evaluator (uses graph for node access)
+    this.evaluator = new MaterialEvaluator(this.graph);
+
     // Bind toolbar buttons
     this.bindToolbar();
 
@@ -67,6 +65,10 @@ class MaterialEditorApp {
 
     console.log("Material Editor initialized");
   }
+
+  // ==========================================================================
+  // TOOLBAR BINDINGS
+  // ==========================================================================
 
   bindToolbar() {
     // Save
@@ -120,9 +122,10 @@ class MaterialEditorApp {
     this.bindBlendModeHandler();
   }
 
-  /**
-   * Bind HLSL Code Modal events
-   */
+  // ==========================================================================
+  // MODAL & MENU BINDINGS
+  // ==========================================================================
+
   bindHLSLModal() {
     const hlslModal = document.getElementById("hlsl-modal");
     const hlslClose = document.getElementById("hlsl-modal-close");
@@ -173,9 +176,6 @@ class MaterialEditorApp {
     });
   }
 
-  /**
-   * Bind Window menu dropdown functionality
-   */
   bindMenuDropdowns() {
     const windowMenuItem = document.querySelector('[data-menu="window"]');
     if (!windowMenuItem) return;
@@ -246,9 +246,6 @@ class MaterialEditorApp {
     });
   }
 
-  /**
-   * Bind blend mode change handler to show/hide Opacity Mask Clip Value
-   */
   bindBlendModeHandler() {
     const blendModeSelect = document.getElementById("blend-mode");
     const opacityClipRow = document.getElementById("opacity-clip-row");
@@ -264,6 +261,10 @@ class MaterialEditorApp {
     updateVisibility(); // Initial state
   }
 
+  // ==========================================================================
+  // STATUS & COUNTS
+  // ==========================================================================
+
   updateStatus(message) {
     const el = document.getElementById("status-message");
     if (el) el.textContent = message;
@@ -273,13 +274,16 @@ class MaterialEditorApp {
     const nodeCount = document.getElementById("node-count");
     const connCount = document.getElementById("connection-count");
 
-    // Safely access graph properties
     const nodesSize = this.graph?.nodes?.size || 0;
     const linksSize = this.graph?.links?.size || 0;
 
     if (nodeCount) nodeCount.textContent = `Nodes: ${nodesSize}`;
     if (connCount) connCount.textContent = `Connections: ${linksSize}`;
   }
+
+  // ==========================================================================
+  // ACTIONS
+  // ==========================================================================
 
   save() {
     this.updateStatus("Saved");
@@ -295,9 +299,6 @@ class MaterialEditorApp {
     this.evaluateGraphAndUpdatePreview();
   }
 
-  /**
-   * Trigger live update if Live mode is enabled
-   */
   triggerLiveUpdate() {
     const liveBtn = document.getElementById("live-update-btn");
     if (liveBtn && liveBtn.classList.contains("active")) {
@@ -309,529 +310,10 @@ class MaterialEditorApp {
    * Evaluate the material graph and update the 3D preview
    */
   evaluateGraphAndUpdatePreview() {
-    const mainNode = [...this.graph.nodes.values()].find(
-      (n) => n.type === "main-output"
-    );
-    if (!mainNode) return;
-
-    const result = {
-      baseColor: [0.5, 0.5, 0.5],
-      metallic: 0,
-      roughness: 0.5,
-      emissive: null,
-      opacity: 1.0,
-    };
-
-    // Recursively evaluate a pin to get its value
-    const evaluatePin = (pin, visited = new Set()) => {
-      if (!pin || visited.has(pin.id)) return null;
-      visited.add(pin.id);
-
-      // If not connected, return default value from pin or node properties
-      if (!pin.connectedTo) {
-        if (pin.defaultValue !== undefined) {
-          return pin.defaultValue;
-        }
-        return null;
-      }
-
-      // Get the link and source node
-      const link = this.graph.links.get(pin.connectedTo);
-      if (!link || !link.outputPin) return null;
-
-      const sourceNode = [...this.graph.nodes.values()].find((n) =>
-        n.outputs.some((p) => p.id === link.outputPin.id)
-      );
-      if (!sourceNode) return null;
-
-      // Evaluate based on node type
-      return evaluateNode(sourceNode, link.outputPin, visited);
-    };
-
-    // Evaluate a node's output
-    const evaluateNode = (node, outputPin, visited) => {
-      const nodeKey = node.nodeKey || node.type;
-
-      // Constant nodes - return property value
-      if (nodeKey === "Constant" || nodeKey === "ScalarParameter") {
-        return node.properties.R ?? node.properties.DefaultValue ?? 0;
-      }
-
-      // Vector constants
-      if (nodeKey === "Constant3Vector" || nodeKey === "VectorParameter") {
-        return [
-          node.properties.R ?? 1,
-          node.properties.G ?? 1,
-          node.properties.B ?? 1,
-        ];
-      }
-
-      // Constant2Vector - returns float2
-      if (nodeKey === "Constant2Vector") {
-        return [
-          node.properties.R ?? 0,
-          node.properties.G ?? 0,
-        ];
-      }
-
-      // Constant4Vector - returns float4
-      if (nodeKey === "Constant4Vector") {
-        return [
-          node.properties.R ?? 1,
-          node.properties.G ?? 1,
-          node.properties.B ?? 1,
-          node.properties.A ?? 1,
-        ];
-      }
-
-
-      // Multiply node - multiply inputs (use ShaderEvaluator for texture×color)
-      if (nodeKey === "Multiply") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
-
-        const isTexA =
-          valA && typeof valA === "object" && valA.type === "texture";
-        const isTexB =
-          valB && typeof valB === "object" && valB.type === "texture";
-
-        // If one input is a texture, multiply with ShaderEvaluator
-        if (isTexA && !isTexB) {
-          // Return a pending operation marker - will be resolved in result processing
-          return {
-            type: "pending",
-            operation: "multiply",
-            texture: valA,
-            color: valB,
-          };
-        }
-        if (isTexB && !isTexA) {
-          return {
-            type: "pending",
-            operation: "multiply",
-            texture: valB,
-            color: valA,
-          };
-        }
-        if (isTexA && isTexB) {
-          // Both textures - just return first for now
-          return valA;
-        }
-
-        return multiplyValues(valA, valB);
-      }
-
-
-      // Add node - add inputs
-      if (nodeKey === "Add") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
-        return addValues(valA, valB);
-      }
-
-      // Subtract node - subtract inputs
-      if (nodeKey === "Subtract") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
-        return subtractValues(valA, valB);
-      }
-
-      // Divide node - divide inputs
-      if (nodeKey === "Divide") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
-        return divideValues(valA, valB);
-      }
-
-
-      // Lerp node
-      if (nodeKey === "Lerp") {
-        const pinA = node.inputs.find(
-          (p) => p.localId === "a" || p.name === "A"
-        );
-        const pinB = node.inputs.find(
-          (p) => p.localId === "b" || p.name === "B"
-        );
-        const pinAlpha = node.inputs.find(
-          (p) => p.localId === "alpha" || p.name === "Alpha"
-        );
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
-        const alpha = evaluatePin(pinAlpha, new Set(visited)) ?? 0.5;
-        return lerpValues(valA, valB, alpha);
-      }
-
-      // Texture sample - return texture info for viewport
-      if (nodeKey === "TextureSample" || nodeKey === "TextureParameter") {
-        // Get texture data from textureManager or node properties
-        let textureId =
-          node.properties?.TextureAsset || node.properties?.texture;
-
-        // Fall back to checkerboard if no texture assigned
-        if (!textureId && textureManager) {
-          textureId = "checkerboard";
-        }
-
-        if (textureId && textureManager) {
-          const texData = textureManager.get(textureId);
-          if (texData && texData.dataUrl) {
-            // Return special texture object
-            return { type: "texture", url: texData.dataUrl };
-          }
-        }
-        // Fallback to mid-gray if no texture loaded
-        if (
-          outputPin &&
-          (outputPin.localId === "rgb" || outputPin.name === "RGB")
-        ) {
-          return [0.5, 0.5, 0.5];
-        }
-        return 0.5;
-      }
-
-      // Fresnel - approximate as gradient value for preview (view-dependent)
-      if (nodeKey === "Fresnel") {
-        // Use exponent property, approximate as 0.3-0.7 range for preview
-        const exp = node.properties?.Exponent ?? 5.0;
-        // Higher exponent = sharper falloff, use middle value for preview
-        return 0.5;
-      }
-
-      // OneMinus
-      if (nodeKey === "OneMinus") {
-        const inputPin = node.inputs.find(
-          (p) => p.localId === "in" || p.localId === "input" || p.name === "Input" || p.localId === "x"
-        );
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return 1 - val;
-        if (Array.isArray(val)) return val.map((v) => 1 - v);
-        return 1;
-      }
-
-      // Clamp
-      if (nodeKey === "Clamp") {
-        const inputPin = node.inputs.find((p) => p.localId === "value" || p.localId === "input" || p.name === "Input" || p.name === "Value");
-        const minPin = node.inputs.find((p) => p.localId === "min" || p.name === "Min");
-        const maxPin = node.inputs.find((p) => p.localId === "max" || p.name === "Max");
-        let val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        const minVal = evaluatePin(minPin, new Set(visited)) ?? 0;
-        const maxVal = evaluatePin(maxPin, new Set(visited)) ?? 1;
-        if (typeof val === "number") {
-          return Math.max(minVal, Math.min(maxVal, val));
-        }
-        return val;
-      }
-
-      // Power
-      if (nodeKey === "Power") {
-        const basePin = node.inputs.find((p) => p.localId === "base" || p.name === "Base");
-        const expPin = node.inputs.find((p) => p.localId === "exponent" || p.name === "Exp");
-        const base = evaluatePin(basePin, new Set(visited)) ?? 1;
-        const exp = evaluatePin(expPin, new Set(visited)) ?? node.properties?.Exponent ?? 2;
-        if (typeof base === "number") return Math.pow(base, exp);
-        if (Array.isArray(base)) return base.map((v) => Math.pow(v, exp));
-        return base;
-      }
-
-      // Max - return the larger of two values
-      if (nodeKey === "Max") {
-        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
-        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
-        if (typeof valA === "number" && typeof valB === "number") return Math.max(valA, valB);
-        if (Array.isArray(valA) && Array.isArray(valB)) return valA.map((v, i) => Math.max(v, valB[i] ?? 0));
-        return valA;
-      }
-
-      // Min - return the smaller of two values
-      if (nodeKey === "Min") {
-        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
-        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
-        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
-        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
-        if (typeof valA === "number" && typeof valB === "number") return Math.min(valA, valB);
-        if (Array.isArray(valA) && Array.isArray(valB)) return valA.map((v, i) => Math.min(v, valB[i] ?? 0));
-        return valA;
-      }
-
-      // Abs - absolute value
-      if (nodeKey === "Abs") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.abs(val);
-        if (Array.isArray(val)) return val.map((v) => Math.abs(v));
-        return val;
-      }
-
-      // Saturate - clamp between 0 and 1
-      if (nodeKey === "Saturate") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.max(0, Math.min(1, val));
-        if (Array.isArray(val)) return val.map((v) => Math.max(0, Math.min(1, v)));
-        return val;
-      }
-
-      // Sin - sine function
-      if (nodeKey === "Sin") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.sin(val);
-        if (Array.isArray(val)) return val.map((v) => Math.sin(v));
-        return val;
-      }
-
-      // Cos - cosine function
-      if (nodeKey === "Cos") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.cos(val);
-        if (Array.isArray(val)) return val.map((v) => Math.cos(v));
-        return val;
-      }
-
-      // Floor - round down
-      if (nodeKey === "Floor") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.floor(val);
-        if (Array.isArray(val)) return val.map((v) => Math.floor(v));
-        return val;
-      }
-
-      // Ceil - round up
-      if (nodeKey === "Ceil") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.ceil(val);
-        if (Array.isArray(val)) return val.map((v) => Math.ceil(v));
-        return val;
-      }
-
-      // Frac - fractional part
-      if (nodeKey === "Frac") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return val - Math.floor(val);
-        if (Array.isArray(val)) return val.map((v) => v - Math.floor(v));
-        return val;
-      }
-
-      // SquareRoot - square root
-      if (nodeKey === "SquareRoot") {
-        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
-        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
-        if (typeof val === "number") return Math.sqrt(Math.max(0, val));
-        if (Array.isArray(val)) return val.map((v) => Math.sqrt(Math.max(0, v)));
-        return val;
-      }
-
-
-      // Default: try to read properties
-      if (node.properties.R !== undefined) {
-        return [
-          node.properties.R ?? 0,
-          node.properties.G ?? 0,
-          node.properties.B ?? 0,
-        ];
-      }
-      if (node.properties.Value !== undefined) {
-        return node.properties.Value;
-      }
-
-      // Fallback for unknown nodes: return a visible value instead of null
-      console.warn(`Node type "${nodeKey}" not evaluated, using fallback.`);
-      return 0.5;
-    };
-
-    // Helper: multiply two values (scalar or vector)
-    const multiplyValues = (a, b) => {
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v * (b[i] ?? 1));
-      }
-      if (Array.isArray(a)) {
-        return a.map((v) => v * (typeof b === "number" ? b : 1));
-      }
-      if (Array.isArray(b)) {
-        return b.map((v) => v * (typeof a === "number" ? a : 1));
-      }
-      return (typeof a === "number" ? a : 1) * (typeof b === "number" ? b : 1);
-    };
-
-    // Helper: add two values
-    const addValues = (a, b) => {
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v + (b[i] ?? 0));
-      }
-      if (Array.isArray(a)) {
-        return a.map((v) => v + (typeof b === "number" ? b : 0));
-      }
-      if (Array.isArray(b)) {
-        return b.map((v) => v + (typeof a === "number" ? a : 0));
-      }
-      return (typeof a === "number" ? a : 0) + (typeof b === "number" ? b : 0);
-    };
-
-    // Helper: lerp two values
-    const lerpValues = (a, b, t) => {
-      const alpha = typeof t === "number" ? t : 0.5;
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v + (b[i] - v) * alpha);
-      }
-      if (typeof a === "number" && typeof b === "number") {
-        return a + (b - a) * alpha;
-      }
-      return a;
-    };
-
-    // Helper: subtract two values
-    const subtractValues = (a, b) => {
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => v - (b[i] ?? 0));
-      }
-      if (Array.isArray(a)) {
-        return a.map((v) => v - (typeof b === "number" ? b : 0));
-      }
-      if (Array.isArray(b)) {
-        return b.map((v) => (typeof a === "number" ? a : 0) - v);
-      }
-      return (typeof a === "number" ? a : 0) - (typeof b === "number" ? b : 0);
-    };
-
-    // Helper: divide two values
-    const divideValues = (a, b) => {
-      const safeDivide = (x, y) => x / Math.max(y, 0.0001); // Prevent divide by zero
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.map((v, i) => safeDivide(v, b[i] ?? 1));
-      }
-      if (Array.isArray(a)) {
-        return a.map((v) => safeDivide(v, typeof b === "number" ? b : 1));
-      }
-      if (Array.isArray(b)) {
-        return b.map((v) => safeDivide(typeof a === "number" ? a : 1, v));
-      }
-      return safeDivide(typeof a === "number" ? a : 1, typeof b === "number" ? b : 1);
-    };
-
-
-    // Evaluate each main node input
-    mainNode.inputs.forEach((pin) => {
-      const value = evaluatePin(pin);
-      if (value === null) return;
-
-      // Use exact pin name matching to avoid collisions (e.g., "Roughness" vs "Clear Coat Roughness")
-      const pinName = pin.name.toLowerCase().trim();
-
-      // Base Color
-      if (pinName === "base color") {
-        // Check if value is a pending async operation
-        if (value && typeof value === "object" && value.type === "pending") {
-          if (value.operation === "multiply") {
-            // Schedule async multiply operation
-            result.pendingBaseColor = shaderEvaluator.multiplyTextureByColor(
-              value.texture,
-              value.color
-            );
-          }
-          // Check if value is a texture object
-        } else if (
-          value &&
-          typeof value === "object" &&
-          value.type === "texture"
-        ) {
-          result.baseColorTexture = value.url;
-          result.baseColor = [1, 1, 1]; // White to show texture properly
-        } else if (Array.isArray(value)) {
-          result.baseColor = value.slice(0, 3);
-        } else if (typeof value === "number") {
-          result.baseColor = [value, value, value];
-        }
-      } 
-      // Metallic - exact match
-      else if (pinName === "metallic") {
-        result.metallic =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 0;
-      } 
-      // Roughness - exact match only (not "Clear Coat Roughness")
-      else if (pinName === "roughness") {
-        result.roughness =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 0.5;
-      } 
-      // Emissive Color
-      else if (pinName === "emissive color") {
-        if (Array.isArray(value)) {
-          result.emissive = value.slice(0, 3);
-        } else if (typeof value === "number") {
-          // Convert scalar to grayscale RGB (e.g., from Fresnel)
-          result.emissive = [value, value, value];
-        }
-      }
-      // Opacity
-      else if (pinName === "opacity") {
-        result.opacity =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 1.0;
-      }
-    });
-
-    // Handle pending async operations before updating viewport
-    const finishUpdate = async () => {
-      if (result.pendingBaseColor) {
-        try {
-          const texture = await result.pendingBaseColor;
-          if (texture && texture.url) {
-            result.baseColorTexture = texture.url;
-            result.baseColor = [1, 1, 1]; // White to show texture properly
-          }
-        } catch (e) {
-          console.warn("Failed to process texture operation:", e);
-        }
-        delete result.pendingBaseColor;
-      }
-
-      // Update the viewport with the result
-      if (this.viewport) {
-        this.viewport.updateMaterial(result);
-      }
-    };
-
-    finishUpdate();
+    const result = this.evaluator.evaluate();
+    if (result) {
+      this.evaluator.finalize(result, this.viewport);
+    }
   }
 
   undo() {
