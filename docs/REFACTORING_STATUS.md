@@ -52,18 +52,22 @@
 
 ## Phase 5: Code Complexity Reduction ✅ COMPLETE
 
-### Extracted Modules
+### Extracted Modules from `graph.js`
 
-| Module | Lines | Source |
-|--------|-------|--------|
-| `graph/WiringController.js` | 240 | graph.js |
-| `services/Compiler.js` | 190 | services.js |
-| `services/HistoryManager.js` | 145 | services.js |
-| `services/Persistence.js` | 90 | services.js |
-| `services/GridController.js` | 43 | services.js |
-| `services/SimulationEngine.js` | 195 | services.js |
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `graph/Node.js` | 530 | Pin + Node classes |
+| `graph/WiringController.js` | 240 | Wire connections |
 
-**Total:** ~900 lines moved to 6 modular files
+### Extracted Modules from `services.js`
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `services/Compiler.js` | 190 | Graph validation |
+| `services/HistoryManager.js` | 145 | Undo/redo |
+| `services/Persistence.js` | 90 | localStorage |
+| `services/GridController.js` | 43 | Grid drawing |
+| `services/SimulationEngine.js` | 195 | Runtime execution |
 
 ### Shared Modules (Code Reuse)
 
@@ -72,13 +76,11 @@
 | `shared/WireRenderer.js` | 90 | Blueprint + Material |
 | `shared/GridRenderer.js` | 90 | Blueprint + Material |
 
-**Duplication removed:** ~80 lines
-
 ### File Size Reductions
 
 | File | Original | Current | Reduction |
 |------|----------|---------|-----------|
-| `graph.js` | 1726 | 1504 | **-13%** |
+| `graph.js` | 1726 | 974 | **-44%** |
 | `services.js` | 751 | 15 | **-98%** |
 | `MaterialGraphController.js` | 975 | 929 | **-5%** |
 | `services/GridController.js` | 69 | 43 | **-38%** |
@@ -86,9 +88,10 @@
 ### Success Criteria
 
 - [x] WiringController extracted and tested
+- [x] Node class extracted (530 lines)
 - [x] All services.js classes extracted
-- [x] All 297 tests passing
 - [x] Shared modules created for code reuse
-- [x] services.js now a lean re-export file
+- [x] All 297 tests passing
+
 
 
