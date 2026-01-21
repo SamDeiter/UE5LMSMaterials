@@ -319,6 +319,7 @@ class MaterialEditorApp {
       metallic: 0,
       roughness: 0.5,
       emissive: null,
+      opacity: 1.0,
     };
 
     // Recursively evaluate a pin to get its value
@@ -365,6 +366,25 @@ class MaterialEditorApp {
         ];
       }
 
+      // Constant2Vector - returns float2
+      if (nodeKey === "Constant2Vector") {
+        return [
+          node.properties.R ?? 0,
+          node.properties.G ?? 0,
+        ];
+      }
+
+      // Constant4Vector - returns float4
+      if (nodeKey === "Constant4Vector") {
+        return [
+          node.properties.R ?? 1,
+          node.properties.G ?? 1,
+          node.properties.B ?? 1,
+          node.properties.A ?? 1,
+        ];
+      }
+
+
       // Multiply node - multiply inputs (use ShaderEvaluator for texture×color)
       if (nodeKey === "Multiply") {
         const pinA = node.inputs.find(
@@ -407,6 +427,7 @@ class MaterialEditorApp {
         return multiplyValues(valA, valB);
       }
 
+
       // Add node - add inputs
       if (nodeKey === "Add") {
         const pinA = node.inputs.find(
@@ -419,6 +440,33 @@ class MaterialEditorApp {
         const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
         return addValues(valA, valB);
       }
+
+      // Subtract node - subtract inputs
+      if (nodeKey === "Subtract") {
+        const pinA = node.inputs.find(
+          (p) => p.localId === "a" || p.name === "A"
+        );
+        const pinB = node.inputs.find(
+          (p) => p.localId === "b" || p.name === "B"
+        );
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
+        return subtractValues(valA, valB);
+      }
+
+      // Divide node - divide inputs
+      if (nodeKey === "Divide") {
+        const pinA = node.inputs.find(
+          (p) => p.localId === "a" || p.name === "A"
+        );
+        const pinB = node.inputs.find(
+          (p) => p.localId === "b" || p.name === "B"
+        );
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 1;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 1;
+        return divideValues(valA, valB);
+      }
+
 
       // Lerp node
       if (nodeKey === "Lerp") {
@@ -465,6 +513,145 @@ class MaterialEditorApp {
         return 0.5;
       }
 
+      // Fresnel - approximate as gradient value for preview (view-dependent)
+      if (nodeKey === "Fresnel") {
+        // Use exponent property, approximate as 0.3-0.7 range for preview
+        const exp = node.properties?.Exponent ?? 5.0;
+        // Higher exponent = sharper falloff, use middle value for preview
+        return 0.5;
+      }
+
+      // OneMinus
+      if (nodeKey === "OneMinus") {
+        const inputPin = node.inputs.find(
+          (p) => p.localId === "in" || p.localId === "input" || p.name === "Input" || p.localId === "x"
+        );
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return 1 - val;
+        if (Array.isArray(val)) return val.map((v) => 1 - v);
+        return 1;
+      }
+
+      // Clamp
+      if (nodeKey === "Clamp") {
+        const inputPin = node.inputs.find((p) => p.localId === "value" || p.localId === "input" || p.name === "Input" || p.name === "Value");
+        const minPin = node.inputs.find((p) => p.localId === "min" || p.name === "Min");
+        const maxPin = node.inputs.find((p) => p.localId === "max" || p.name === "Max");
+        let val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        const minVal = evaluatePin(minPin, new Set(visited)) ?? 0;
+        const maxVal = evaluatePin(maxPin, new Set(visited)) ?? 1;
+        if (typeof val === "number") {
+          return Math.max(minVal, Math.min(maxVal, val));
+        }
+        return val;
+      }
+
+      // Power
+      if (nodeKey === "Power") {
+        const basePin = node.inputs.find((p) => p.localId === "base" || p.name === "Base");
+        const expPin = node.inputs.find((p) => p.localId === "exponent" || p.name === "Exp");
+        const base = evaluatePin(basePin, new Set(visited)) ?? 1;
+        const exp = evaluatePin(expPin, new Set(visited)) ?? node.properties?.Exponent ?? 2;
+        if (typeof base === "number") return Math.pow(base, exp);
+        if (Array.isArray(base)) return base.map((v) => Math.pow(v, exp));
+        return base;
+      }
+
+      // Max - return the larger of two values
+      if (nodeKey === "Max") {
+        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
+        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
+        if (typeof valA === "number" && typeof valB === "number") return Math.max(valA, valB);
+        if (Array.isArray(valA) && Array.isArray(valB)) return valA.map((v, i) => Math.max(v, valB[i] ?? 0));
+        return valA;
+      }
+
+      // Min - return the smaller of two values
+      if (nodeKey === "Min") {
+        const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
+        const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
+        const valA = evaluatePin(pinA, new Set(visited)) ?? 0;
+        const valB = evaluatePin(pinB, new Set(visited)) ?? 0;
+        if (typeof valA === "number" && typeof valB === "number") return Math.min(valA, valB);
+        if (Array.isArray(valA) && Array.isArray(valB)) return valA.map((v, i) => Math.min(v, valB[i] ?? 0));
+        return valA;
+      }
+
+      // Abs - absolute value
+      if (nodeKey === "Abs") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.abs(val);
+        if (Array.isArray(val)) return val.map((v) => Math.abs(v));
+        return val;
+      }
+
+      // Saturate - clamp between 0 and 1
+      if (nodeKey === "Saturate") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.max(0, Math.min(1, val));
+        if (Array.isArray(val)) return val.map((v) => Math.max(0, Math.min(1, v)));
+        return val;
+      }
+
+      // Sin - sine function
+      if (nodeKey === "Sin") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.sin(val);
+        if (Array.isArray(val)) return val.map((v) => Math.sin(v));
+        return val;
+      }
+
+      // Cos - cosine function
+      if (nodeKey === "Cos") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.cos(val);
+        if (Array.isArray(val)) return val.map((v) => Math.cos(v));
+        return val;
+      }
+
+      // Floor - round down
+      if (nodeKey === "Floor") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.floor(val);
+        if (Array.isArray(val)) return val.map((v) => Math.floor(v));
+        return val;
+      }
+
+      // Ceil - round up
+      if (nodeKey === "Ceil") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.ceil(val);
+        if (Array.isArray(val)) return val.map((v) => Math.ceil(v));
+        return val;
+      }
+
+      // Frac - fractional part
+      if (nodeKey === "Frac") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return val - Math.floor(val);
+        if (Array.isArray(val)) return val.map((v) => v - Math.floor(v));
+        return val;
+      }
+
+      // SquareRoot - square root
+      if (nodeKey === "SquareRoot") {
+        const inputPin = node.inputs.find((p) => p.localId === "in" || p.name === "");
+        const val = evaluatePin(inputPin, new Set(visited)) ?? 0;
+        if (typeof val === "number") return Math.sqrt(Math.max(0, val));
+        if (Array.isArray(val)) return val.map((v) => Math.sqrt(Math.max(0, v)));
+        return val;
+      }
+
+
       // Default: try to read properties
       if (node.properties.R !== undefined) {
         return [
@@ -477,7 +664,9 @@ class MaterialEditorApp {
         return node.properties.Value;
       }
 
-      return null;
+      // Fallback for unknown nodes: return a visible value instead of null
+      console.warn(`Node type "${nodeKey}" not evaluated, using fallback.`);
+      return 0.5;
     };
 
     // Helper: multiply two values (scalar or vector)
@@ -519,6 +708,36 @@ class MaterialEditorApp {
       }
       return a;
     };
+
+    // Helper: subtract two values
+    const subtractValues = (a, b) => {
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return a.map((v, i) => v - (b[i] ?? 0));
+      }
+      if (Array.isArray(a)) {
+        return a.map((v) => v - (typeof b === "number" ? b : 0));
+      }
+      if (Array.isArray(b)) {
+        return b.map((v) => (typeof a === "number" ? a : 0) - v);
+      }
+      return (typeof a === "number" ? a : 0) - (typeof b === "number" ? b : 0);
+    };
+
+    // Helper: divide two values
+    const divideValues = (a, b) => {
+      const safeDivide = (x, y) => x / Math.max(y, 0.0001); // Prevent divide by zero
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return a.map((v, i) => safeDivide(v, b[i] ?? 1));
+      }
+      if (Array.isArray(a)) {
+        return a.map((v) => safeDivide(v, typeof b === "number" ? b : 1));
+      }
+      if (Array.isArray(b)) {
+        return b.map((v) => safeDivide(typeof a === "number" ? a : 1, v));
+      }
+      return safeDivide(typeof a === "number" ? a : 1, typeof b === "number" ? b : 1);
+    };
+
 
     // Evaluate each main node input
     mainNode.inputs.forEach((pin) => {
@@ -575,7 +794,19 @@ class MaterialEditorApp {
       else if (pinName === "emissive color") {
         if (Array.isArray(value)) {
           result.emissive = value.slice(0, 3);
+        } else if (typeof value === "number") {
+          // Convert scalar to grayscale RGB (e.g., from Fresnel)
+          result.emissive = [value, value, value];
         }
+      }
+      // Opacity
+      else if (pinName === "opacity") {
+        result.opacity =
+          typeof value === "number"
+            ? value
+            : Array.isArray(value)
+            ? value[0]
+            : 1.0;
       }
     });
 

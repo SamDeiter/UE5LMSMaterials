@@ -238,6 +238,15 @@ export class ViewportController {
       this.material.emissive.setHex(0x000000);
     }
 
+    // Handle opacity/transparency
+    if (result.opacity !== undefined && result.opacity < 1.0) {
+      this.material.transparent = true;
+      this.material.opacity = result.opacity;
+    } else {
+      this.material.transparent = false;
+      this.material.opacity = 1.0;
+    }
+
     // Handle base color texture
     if (result.baseColorTexture) {
       this.loadTexture(result.baseColorTexture, (texture) => {
