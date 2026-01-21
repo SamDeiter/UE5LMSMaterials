@@ -1173,6 +1173,179 @@ export const MaterialExpressionDefinitions = {
   },
 
   // ========================================================================
+  // SUBSURFACE SCATTERING (SSS) NODES
+  // ========================================================================
+  SubsurfaceColor: {
+    title: "Subsurface Color",
+    type: "material-expression",
+    category: "Shading",
+    icon: "🔴",
+    headerColor: "#8B0000",
+    description:
+      "Defines the color of light scattering beneath the surface. Used with Subsurface shading models for skin, wax, leaves.",
+    pins: [
+      {
+        id: "color",
+        name: "Color",
+        type: "float3",
+        dir: "in",
+        defaultValue: [1.0, 0.2, 0.1],
+        tooltip: "The color light becomes as it scatters through the material",
+      },
+      { id: "out", name: "", type: "float3", dir: "out" },
+    ],
+    properties: {
+      R: 1.0,
+      G: 0.2,
+      B: 0.1,
+    },
+    shaderCode: `float3 {OUTPUT} = {color} != float3(0,0,0) ? {color} : float3({R}, {G}, {B});`,
+  },
+
+  SubsurfaceProfile: {
+    title: "Subsurface Profile",
+    type: "material-expression",
+    category: "Shading",
+    icon: "👤",
+    headerColor: "#8B0000",
+    description:
+      "References a Subsurface Profile asset that defines the diffusion kernel for realistic skin/SSS rendering.",
+    pins: [{ id: "out", name: "", type: "float", dir: "out" }],
+    properties: {
+      ProfileAsset: "DefaultSkinProfile",
+    },
+    shaderCode: `// SubsurfaceProfile: {ProfileAsset}
+            float {OUTPUT} = 1.0;`,
+  },
+
+  // ========================================================================
+  // TRANSLUCENCY NODES
+  // ========================================================================
+  Refraction: {
+    title: "Refraction",
+    type: "material-expression",
+    category: "Shading",
+    icon: "💎",
+    headerColor: "#00CED1",
+    description:
+      "Controls how light bends through translucent materials. IOR of 1.0 = no refraction, 1.33 = water, 1.5 = glass.",
+    pins: [
+      {
+        id: "ior",
+        name: "IOR",
+        type: "float",
+        dir: "in",
+        defaultValue: 1.5,
+        tooltip: "Index of Refraction (1.33 water, 1.5 glass, 2.4 diamond)",
+      },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    properties: {
+      RefractionDepthBias: 0.0,
+    },
+    shaderCode: `float {OUTPUT} = {ior};`,
+  },
+
+  ThinTranslucent: {
+    title: "Thin Translucent",
+    type: "material-expression",
+    category: "Shading",
+    icon: "🍃",
+    headerColor: "#228B22",
+    description:
+      "For thin, two-sided translucent materials like leaves, paper, or cloth. Light passes through colored by the transmittance.",
+    pins: [
+      {
+        id: "transmittance",
+        name: "Transmittance Color",
+        type: "float3",
+        dir: "in",
+        defaultValue: [0.1, 0.5, 0.1],
+        tooltip: "Color of light passing through the material",
+      },
+      { id: "out", name: "", type: "float3", dir: "out" },
+    ],
+    shaderCode: `float3 {OUTPUT} = {transmittance};`,
+  },
+
+  TransmittanceColor: {
+    title: "Transmittance Color",
+    type: "material-expression",
+    category: "Shading",
+    icon: "🌈",
+    headerColor: "#00CED1",
+    description:
+      "Defines the color filtering of light passing through a translucent volume (Beer-Lambert absorption).",
+    pins: [
+      {
+        id: "color",
+        name: "Color",
+        type: "float3",
+        dir: "in",
+        defaultValue: [1.0, 1.0, 1.0],
+      },
+      { id: "out", name: "", type: "float3", dir: "out" },
+    ],
+    shaderCode: `float3 {OUTPUT} = {color};`,
+  },
+
+  // ========================================================================
+  // SCENE SAMPLING NODES
+  // ========================================================================
+  SceneColor: {
+    title: "SceneColor",
+    type: "material-expression",
+    category: "Shading",
+    icon: "🖼",
+    description:
+      "Samples the scene color buffer behind this pixel. Used for glass, water, and distortion effects.",
+    pins: [
+      {
+        id: "uv_offset",
+        name: "UV Offset",
+        type: "float2",
+        dir: "in",
+        defaultValue: [0, 0],
+        tooltip: "Offset for distortion effects",
+      },
+      { id: "out", name: "", type: "float3", dir: "out" },
+    ],
+    shaderCode: `float3 {OUTPUT} = SampleSceneColor(ScreenUV + {uv_offset});`,
+  },
+
+  CameraDepthFade: {
+    title: "CameraDepthFade",
+    type: "material-expression",
+    category: "Depth",
+    icon: "📏",
+    description:
+      "Fades based on camera distance. Useful for LOD blending, fog, and distance-based effects.",
+    pins: [
+      {
+        id: "fade_length",
+        name: "Fade Length",
+        type: "float",
+        dir: "in",
+        defaultValue: 100.0,
+        tooltip: "Distance over which the fade occurs",
+      },
+      {
+        id: "fade_offset",
+        name: "Fade Offset",
+        type: "float",
+        dir: "in",
+        defaultValue: 0.0,
+        tooltip: "Start distance of the fade",
+      },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `
+            float _cam_dist = length(CameraPositionWS - WorldPositionWS);
+            float {OUTPUT} = saturate((_cam_dist - {fade_offset}) / max({fade_length}, 0.001));
+        `,
+  },
+
+  // ========================================================================
   // WORLD POSITION OFFSET NODES
   // ========================================================================
   RotateAboutAxis: {
