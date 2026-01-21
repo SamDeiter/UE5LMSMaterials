@@ -914,6 +914,245 @@ export const MaterialExpressionDefinitions = {
     shaderCode: `float2 {OUTPUT} = ScreenUV;`,
   },
 
+  // ========================================================================
+  // DISTANCE & BOUNDS NODES
+  // ========================================================================
+  Distance: {
+    title: "Distance",
+    type: "material-expression",
+    category: "Math",
+    icon: "↔",
+    pins: [
+      { id: "a", name: "A", type: "float3", dir: "in" },
+      { id: "b", name: "B", type: "float3", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = distance({a}, {b});`,
+  },
+
+  ObjectScale: {
+    title: "ObjectScale",
+    type: "material-expression",
+    category: "Coordinates",
+    icon: "⇔",
+    description: "Returns the scale of the object in world units (X, Y, Z)",
+    pins: [{ id: "out", name: "", type: "float3", dir: "out" }],
+    shaderCode: `float3 {OUTPUT} = ObjectScaleWS;`,
+  },
+
+  ObjectBounds: {
+    title: "ObjectBounds",
+    type: "material-expression",
+    category: "Coordinates",
+    icon: "□",
+    description: "Returns the bounding box size of the object in local space",
+    pins: [{ id: "out", name: "", type: "float3", dir: "out" }],
+    shaderCode: `float3 {OUTPUT} = ObjectBoundsWS;`,
+  },
+
+  ObjectRadius: {
+    title: "ObjectRadius",
+    type: "material-expression",
+    category: "Coordinates",
+    icon: "◎",
+    description: "Returns the bounding sphere radius of the object",
+    pins: [{ id: "out", name: "", type: "float", dir: "out" }],
+    shaderCode: `float {OUTPUT} = ObjectRadiusWS;`,
+  },
+
+  ActorPositionWS: {
+    title: "ActorPositionWS",
+    type: "material-expression",
+    category: "Coordinates",
+    icon: "🎭",
+    description: "World position of the owning actor's pivot point",
+    pins: [{ id: "out", name: "", type: "float3", dir: "out" }],
+    shaderCode: `float3 {OUTPUT} = ActorPositionWS;`,
+  },
+
+  // ========================================================================
+  // VERTEX DATA NODES
+  // ========================================================================
+  VertexColor: {
+    title: "VertexColor",
+    type: "material-expression",
+    category: "Coordinates",
+    icon: "🎨",
+    description: "RGBA vertex color data painted on the mesh",
+    pins: [
+      { id: "rgba", name: "", type: "float4", dir: "out" },
+      { id: "r", name: "R", type: "float", dir: "out" },
+      { id: "g", name: "G", type: "float", dir: "out" },
+      { id: "b", name: "B", type: "float", dir: "out" },
+      { id: "a", name: "A", type: "float", dir: "out" },
+    ],
+    shaderCode: `
+            float4 {OUTPUT}_rgba = VertexColor;
+            float {OUTPUT}_r = VertexColor.r;
+            float {OUTPUT}_g = VertexColor.g;
+            float {OUTPUT}_b = VertexColor.b;
+            float {OUTPUT}_a = VertexColor.a;
+        `,
+  },
+
+  VertexTangentWS: {
+    title: "VertexTangentWS",
+    type: "material-expression",
+    category: "Coordinates",
+    icon: "→",
+    description: "The tangent vector in world space (for anisotropic effects)",
+    pins: [{ id: "out", name: "", type: "float3", dir: "out" }],
+    shaderCode: `float3 {OUTPUT} = VertexTangentWS;`,
+  },
+
+  TwoSidedSign: {
+    title: "TwoSidedSign",
+    type: "material-expression",
+    category: "Utility",
+    icon: "±",
+    description: "Returns +1 for front faces, -1 for back faces. Essential for two-sided foliage.",
+    pins: [{ id: "out", name: "", type: "float", dir: "out" }],
+    shaderCode: `float {OUTPUT} = TwoSidedSign;`,
+  },
+
+  // ========================================================================
+  // DERIVATIVE NODES (Pixel Shader Only)
+  // ========================================================================
+  DDX: {
+    title: "DDX",
+    type: "material-expression",
+    category: "Math",
+    icon: "∂x",
+    description: "Partial derivative with respect to screen X. Used for procedural texturing and mip selection.",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = ddx({in});`,
+  },
+
+  DDY: {
+    title: "DDY",
+    type: "material-expression",
+    category: "Math",
+    icon: "∂y",
+    description: "Partial derivative with respect to screen Y. Used for procedural texturing and mip selection.",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = ddy({in});`,
+  },
+
+  // ========================================================================
+  // ADDITIONAL MATH NODES
+  // ========================================================================
+  Frac: {
+    title: "Frac",
+    type: "material-expression",
+    category: "Math",
+    icon: ".",
+    description: "Returns the fractional part of a value (x - floor(x))",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = frac({in});`,
+  },
+
+  Fmod: {
+    title: "Fmod",
+    type: "material-expression",
+    category: "Math",
+    icon: "%",
+    description: "Floating-point modulo: returns the remainder of A/B",
+    pins: [
+      { id: "a", name: "A", type: "float", dir: "in" },
+      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 1.0 },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = fmod({a}, {b});`,
+  },
+
+  Ceil: {
+    title: "Ceil",
+    type: "material-expression",
+    category: "Math",
+    icon: "⌈",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = ceil({in});`,
+  },
+
+  Round: {
+    title: "Round",
+    type: "material-expression",
+    category: "Math",
+    icon: "≈",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = round({in});`,
+  },
+
+  Truncate: {
+    title: "Truncate",
+    type: "material-expression",
+    category: "Math",
+    icon: "⌊⌋",
+    description: "Removes the fractional part (truncates towards zero)",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = trunc({in});`,
+  },
+
+  Sign: {
+    title: "Sign",
+    type: "material-expression",
+    category: "Math",
+    icon: "±",
+    description: "Returns -1, 0, or 1 based on the sign of the input",
+    pins: [
+      { id: "in", name: "", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = sign({in});`,
+  },
+
+  Step: {
+    title: "Step",
+    type: "material-expression",
+    category: "Math",
+    icon: "⌐",
+    description: "Returns 0 if X < Y, otherwise 1. Like a threshold function.",
+    pins: [
+      { id: "y", name: "Y (Edge)", type: "float", dir: "in", defaultValue: 0.5 },
+      { id: "x", name: "X", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = step({y}, {x});`,
+  },
+
+  SmoothStep: {
+    title: "SmoothStep",
+    type: "material-expression",
+    category: "Math",
+    icon: "∫",
+    description: "Hermite interpolation between 0 and 1 when X is between Min and Max",
+    pins: [
+      { id: "min", name: "Min", type: "float", dir: "in", defaultValue: 0.0 },
+      { id: "max", name: "Max", type: "float", dir: "in", defaultValue: 1.0 },
+      { id: "x", name: "Value", type: "float", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `float {OUTPUT} = smoothstep({min}, {max}, {x});`,
+  },
+
   FlattenNormal: {
     title: "FlattenNormal",
     type: "material-expression",
