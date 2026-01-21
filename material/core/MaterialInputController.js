@@ -34,7 +34,7 @@ export class MaterialInputController {
             this.graph.panY = e.clientY - this.graph.dragStartY;
             this.graph.drawGrid();
             this.graph.nodes.forEach((node) => this.graph.updateNodePosition(node));
-            this.graph.updateAllWires();
+            this.graph.wiring.updateAllWires();
         }
 
         if (this.graph.isDragging && this.graph.dragOffsets) {
@@ -51,7 +51,7 @@ export class MaterialInputController {
                 }
             });
 
-            this.graph.updateAllWires();
+            this.graph.wiring.updateAllWires();
         }
 
         if (this.graph.isWiring) {
@@ -120,7 +120,7 @@ export class MaterialInputController {
 
         this.graph.drawGrid();
         this.graph.nodes.forEach((node) => this.graph.updateNodePosition(node));
-        this.graph.updateAllWires();
+        this.graph.wiring.updateAllWires();
     }
 
     /**

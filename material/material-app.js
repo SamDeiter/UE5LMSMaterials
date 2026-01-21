@@ -525,9 +525,11 @@ class MaterialEditorApp {
       const value = evaluatePin(pin);
       if (value === null) return;
 
-      const pinName = pin.name.toLowerCase();
+      // Use exact pin name matching to avoid collisions (e.g., "Roughness" vs "Clear Coat Roughness")
+      const pinName = pin.name.toLowerCase().trim();
 
-      if (pinName.includes("base color") || pinName.includes("basecolor")) {
+      // Base Color
+      if (pinName === "base color") {
         // Check if value is a pending async operation
         if (value && typeof value === "object" && value.type === "pending") {
           if (value.operation === "multiply") {
@@ -550,21 +552,27 @@ class MaterialEditorApp {
         } else if (typeof value === "number") {
           result.baseColor = [value, value, value];
         }
-      } else if (pinName.includes("metallic")) {
+      } 
+      // Metallic - exact match
+      else if (pinName === "metallic") {
         result.metallic =
           typeof value === "number"
             ? value
             : Array.isArray(value)
             ? value[0]
             : 0;
-      } else if (pinName.includes("roughness")) {
+      } 
+      // Roughness - exact match only (not "Clear Coat Roughness")
+      else if (pinName === "roughness") {
         result.roughness =
           typeof value === "number"
             ? value
             : Array.isArray(value)
             ? value[0]
             : 0.5;
-      } else if (pinName.includes("emissive")) {
+      } 
+      // Emissive Color
+      else if (pinName === "emissive color") {
         if (Array.isArray(value)) {
           result.emissive = value.slice(0, 3);
         }

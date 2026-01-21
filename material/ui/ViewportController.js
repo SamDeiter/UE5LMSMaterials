@@ -78,7 +78,7 @@ export class ViewportController {
       this.controls.target.set(0, 1, 0);
 
       // Lighting
-      this.directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+      this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
       this.directionalLight.position.set(3, 10, 5);
       this.scene.add(this.directionalLight);
 

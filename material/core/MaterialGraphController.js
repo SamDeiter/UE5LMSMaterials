@@ -173,7 +173,7 @@ export class MaterialGraphController {
    * Create the main material output node
    */
   createMainNode() {
-    const mainNode = this.addNode("MainMaterialNode", 600, 200);
+    const mainNode = this.addNode("MainMaterialNode", 400, 200);
     if (mainNode) {
       mainNode.element.classList.add("main-output");
     }
