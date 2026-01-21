@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeAll, vi } from "vitest";
 
 // Mock browser-only modules before importing MaterialTranslator
-vi.mock("../../TextureManager.js", () => ({
+// The paths must match the actual import paths in MaterialTranslator.js
+vi.mock("../../material/engine/TextureManager.js", () => ({
   textureManager: {
     get: vi.fn().mockReturnValue({ dataUrl: "mock-url" }),
   },
   TextureManager: class {},
 }));
 
-vi.mock("../../ShaderEvaluator.js", () => ({
+vi.mock("../../material/engine/ShaderEvaluator.js", () => ({
   shaderEvaluator: {
     multiplyTextureByColor: vi
       .fn()
