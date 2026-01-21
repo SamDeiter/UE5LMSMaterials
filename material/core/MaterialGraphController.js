@@ -1,8 +1,9 @@
 /**
  * MaterialGraphController.js
  *
- * Manages the graph canvas, node rendering, wire connections, and core operations.
+ * Manages the graph canvas, node rendering, and core operations.
  * InputController has been extracted to MaterialInputController.js
+ * WiringController has been extracted to MaterialWiringController.js
  * Extracted from material-app.js for modularity.
  */
 
@@ -16,6 +17,7 @@ import { debounce, generateId } from "../../shared/utils.js";
 import { WireRenderer } from "../../shared/WireRenderer.js";
 import { GridRenderer } from "../../shared/GridRenderer.js";
 import { MaterialInputController } from "./MaterialInputController.js";
+import { MaterialWiringController } from "./MaterialWiringController.js";
 
 
 export class MaterialGraphController {
@@ -58,6 +60,9 @@ export class MaterialGraphController {
 
     // Delegate input handling to InputController
     this.input = new MaterialInputController(this);
+
+    // Delegate wiring operations to WiringController
+    this.wiring = new MaterialWiringController(this);
 
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
@@ -142,7 +147,7 @@ export class MaterialGraphController {
     this.svg.setAttribute("width", rect.width);
     this.svg.setAttribute("height", rect.height);
     this.drawGrid();
-    this.updateAllWires();
+    this.wiring.updateAllWires();
   }
 
   /**
@@ -258,7 +263,7 @@ export class MaterialGraphController {
         // Alt+Click: Break all connections to this pin
         if (e.altKey) {
           if (pin.connectedTo) {
-            this.breakLink(pin.connectedTo);
+            this.wiring.breakLink(pin.connectedTo);
             this.app.updateStatus("Connection broken (Alt+Click)");
           }
           return;
@@ -284,7 +289,7 @@ export class MaterialGraphController {
         }
 
         // Normal click - start wiring
-        this.startWiring(pin, e);
+        this.wiring.startWiring(pin, e);
       });
     });
 
@@ -357,197 +362,7 @@ export class MaterialGraphController {
     node.element.style.transformOrigin = "top left";
   }
 
-  /**
-   * Start wiring from a pin
-   */
-  startWiring(pin, e) {
-    this.isWiring = true;
-    this.wiringStartPin = pin;
 
-    const ghostWire = document.getElementById("ghost-wire");
-    ghostWire.style.display = "block";
-    ghostWire.setAttribute("data-type", pin.type);
-    ghostWire.style.stroke = pin.color;
-
-    this.updateGhostWire(e);
-  }
-
-  /**
-   * Update ghost wire position
-   */
-  updateGhostWire(e) {
-    if (!this.isWiring || !this.wiringStartPin) return;
-
-    const pin = this.wiringStartPin;
-    const pinDot = pin.element.querySelector(".pin-dot");
-    const rect = pinDot.getBoundingClientRect();
-    const graphRect = this.graphPanel.getBoundingClientRect();
-
-    const startX = rect.left + rect.width / 2 - graphRect.left;
-    const startY = rect.top + rect.height / 2 - graphRect.top;
-    const endX = e.clientX - graphRect.left;
-    const endY = e.clientY - graphRect.top;
-
-    const path = WireRenderer.getWirePath(startX, startY, endX, endY, {
-      direction: pin.dir
-    });
-
-    const ghostWire = document.getElementById("ghost-wire");
-    ghostWire.setAttribute("d", path);
-  }
-
-  /**
-   * End wiring
-   */
-  endWiring(targetPin = null) {
-    if (!this.isWiring) return;
-
-    const ghostWire = document.getElementById("ghost-wire");
-    ghostWire.style.display = "none";
-
-    if (targetPin && this.wiringStartPin) {
-      this.createConnection(this.wiringStartPin, targetPin);
-    }
-
-    this.isWiring = false;
-    this.wiringStartPin = null;
-  }
-
-  /**
-   * Create a connection between two pins
-   */
-  createConnection(pinA, pinB) {
-    // Ensure correct direction (output -> input)
-    const outputPin = pinA.dir === "out" ? pinA : pinB;
-    const inputPin = pinA.dir === "in" ? pinA : pinB;
-
-    // Validate connection
-    if (!outputPin.canConnectTo(inputPin)) {
-      this.app.updateStatus("Cannot connect: incompatible types");
-      return false;
-    }
-
-    // Check if input already has a connection
-    if (inputPin.connectedTo) {
-      this.breakLink(inputPin.connectedTo);
-    }
-
-    // Create link
-    const linkId = generateId("link");
-    const link = {
-      id: linkId,
-      outputPin: outputPin,
-      inputPin: inputPin,
-      type: outputPin.type,
-      element: null,
-    };
-
-    // Update pin states
-    outputPin.connectedTo = linkId;
-    inputPin.connectedTo = linkId;
-
-    // Update pin visuals
-    outputPin.element.querySelector(".pin-dot").classList.remove("hollow");
-    inputPin.element.querySelector(".pin-dot").classList.remove("hollow");
-
-    this.links.set(linkId, link);
-    this.drawWire(link);
-
-    this.app.updateStatus("Connected");
-    this.app.updateCounts();
-    this.app.triggerLiveUpdate();
-
-    return true;
-  }
-
-  /**
-   * Draw a wire for a connection
-   */
-  drawWire(link) {
-    const outputDot = link.outputPin.element.querySelector(".pin-dot");
-    const inputDot = link.inputPin.element.querySelector(".pin-dot");
-
-    if (!outputDot || !inputDot) return;
-
-    const graphRect = this.graphPanel.getBoundingClientRect();
-    const outRect = outputDot.getBoundingClientRect();
-    const inRect = inputDot.getBoundingClientRect();
-
-    const startX = outRect.left + outRect.width / 2 - graphRect.left;
-    const startY = outRect.top + outRect.height / 2 - graphRect.top;
-    const endX = inRect.left + inRect.width / 2 - graphRect.left;
-    const endY = inRect.top + inRect.height / 2 - graphRect.top;
-
-    const path = WireRenderer.getWirePath(startX, startY, endX, endY);
-
-    if (!link.element) {
-      const wire = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-      wire.classList.add("wire");
-      wire.setAttribute("data-type", link.type);
-      wire.setAttribute("data-link-id", link.id);
-      wire.style.stroke = PinTypes[link.type.toUpperCase()]?.color || "#888";
-
-      wire.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.selectLink(link);
-      });
-
-      this.wireGroup.appendChild(wire);
-      link.element = wire;
-    }
-
-    link.element.setAttribute("d", path);
-  }
-
-  /**
-   * Update all wire positions
-   */
-  updateAllWires() {
-    this.links.forEach((link) => this.drawWire(link));
-  }
-
-  /**
-   * Select a link
-   */
-  selectLink(link) {
-    this.deselectAll();
-    this.selectedLinks.add(link.id);
-    link.element.classList.add("selected");
-  }
-
-  /**
-   * Break a link by ID
-   */
-  breakLink(linkId) {
-    const link = this.links.get(linkId);
-    if (!link) return;
-
-    // Reset pin states
-    link.outputPin.connectedTo = null;
-    link.inputPin.connectedTo = null;
-
-    // Update visuals
-    if (link.outputPin.element) {
-      link.outputPin.element.querySelector(".pin-dot").classList.add("hollow");
-    }
-    if (link.inputPin.element) {
-      link.inputPin.element.querySelector(".pin-dot").classList.add("hollow");
-    }
-
-    // Remove wire element
-    if (link.element) {
-      link.element.remove();
-    }
-
-    this.links.delete(linkId);
-    this.selectedLinks.delete(linkId);
-
-    this.app.updateCounts();
-    this.app.triggerLiveUpdate();
-  }
 
   /**
    * Delete selected nodes and links
@@ -555,7 +370,7 @@ export class MaterialGraphController {
   deleteSelected() {
     // Delete selected links first
     this.selectedLinks.forEach((linkId) => {
-      this.breakLink(linkId);
+      this.wiring.breakLink(linkId);
     });
 
     // Delete selected nodes
@@ -572,7 +387,7 @@ export class MaterialGraphController {
       // Break all connections to this node
       [...node.inputs, ...node.outputs].forEach((pin) => {
         if (pin.connectedTo) {
-          this.breakLink(pin.connectedTo);
+          this.wiring.breakLink(pin.connectedTo);
         }
       });
 
@@ -673,7 +488,7 @@ export class MaterialGraphController {
       }
     }
 
-    this.updateAllWires();
+    this.wiring.updateAllWires();
   }
 
   /**
@@ -708,7 +523,7 @@ export class MaterialGraphController {
 
     this.drawGrid();
     this.nodes.forEach((node) => this.updateNodePosition(node));
-    this.updateAllWires();
+    this.wiring.updateAllWires();
 
     this.app.updateStatus(`Focused on ${nodes.length} selected node(s)`);
   }
@@ -728,6 +543,6 @@ export class MaterialGraphController {
 
     this.drawGrid();
     this.nodes.forEach((node) => this.updateNodePosition(node));
-    this.updateAllWires();
+    this.wiring.updateAllWires();
   }
 }

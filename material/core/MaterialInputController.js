@@ -55,7 +55,7 @@ export class MaterialInputController {
         }
 
         if (this.graph.isWiring) {
-            this.graph.updateGhostWire(e);
+            this.graph.wiring.updateGhostWire(e);
         }
     }
 
@@ -83,13 +83,13 @@ export class MaterialInputController {
                 for (const [id, node] of this.graph.nodes) {
                     const pin = node.findPin(pinId);
                     if (pin && pin !== this.graph.wiringStartPin) {
-                        this.graph.endWiring(pin);
+                        this.graph.wiring.endWiring(pin);
                         return;
                     }
                 }
             }
 
-            this.graph.endWiring();
+            this.graph.wiring.endWiring();
         }
     }
 

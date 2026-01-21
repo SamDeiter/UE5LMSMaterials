@@ -6,6 +6,7 @@
 // Core graph modules
 export { MaterialGraphController } from './core/MaterialGraphController.js';
 export { MaterialInputController } from './core/MaterialInputController.js';
+export { MaterialWiringController } from './core/MaterialWiringController.js';
 export { 
     materialNodeRegistry, 
     MaterialNode, 
