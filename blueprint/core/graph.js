@@ -2,13 +2,15 @@
  * Core Graph Logic: GraphController.
  * Pin and Node have been extracted to graph/Node.js
  * WiringController has been extracted to graph/WiringController.js
+ * SelectionController has been extracted to graph/SelectionController.js
  * This file now manages the GraphController and all user interactions 
- * (pan, zoom, drag, selection, wiring).
+ * (pan, zoom, drag, wiring).
  */
-import { Utils } from './utils.js';
-import { nodeRegistry } from './registries/NodeRegistry.js';
-import { WiringController } from './graph/WiringController.js';
-import { Pin, Node } from './graph/Node.js';
+import { Utils } from '../../shared/utils.js';
+import { nodeRegistry } from '../registries/NodeRegistry.js';
+import { WiringController } from './WiringController.js';
+import { SelectionController } from './SelectionController.js';
+import { Pin, Node } from './Node.js';
 
 // Re-export for compatibility
 export { Pin, Node };
@@ -31,13 +33,20 @@ class GraphController {
         this.isEditingLiteral = false; // New flag to prevent graph interaction
         this.hasDragged = false;
         this.activePin = null;
-        this.selectedNodes = new Set();
+        // Selection is now delegated to SelectionController
+        this.selection = new SelectionController(this);
         this.dragStart = { x: 0, y: 0 };
         this.nodeDragOffsets = new Map();
         this.marqueeStart = { x: 0, y: 0 };
         this.marqueeEl = document.getElementById('selection-marquee');
         this.handleGlobalMouseMove = this.handleGlobalMouseMove.bind(this);
         this.handleGlobalMouseUp = this.handleGlobalMouseUp.bind(this);
+        
+        // Backwards compatibility: expose selectedNodes as a getter
+        Object.defineProperty(this, 'selectedNodes', {
+            get: () => this.selection.selectedNodes,
+            configurable: true
+        });
     }
 
 
@@ -58,18 +67,18 @@ class GraphController {
 
     handleKeyDown(e) {
         if (e.key === 'Delete' || e.key === 'Backspace') {
-            if (this.selectedNodes.size > 0) {
+            if (this.selection.size > 0) {
                 e.preventDefault();
-                this.deleteSelectedNodes();
+                this.selection.deleteSelectedNodes();
             } else if (this.app.wiring.selectedLinks.size > 0) {
                 e.preventDefault();
                 this.app.wiring.deleteSelectedLinks();
             }
         }
         if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
-            if (this.selectedNodes.size > 0) {
+            if (this.selection.size > 0) {
                 e.preventDefault();
-                this.duplicateSelectedNodes();
+                this.selection.duplicateSelectedNodes(null, nodeRegistry, Utils, Node);
             }
         }
     }

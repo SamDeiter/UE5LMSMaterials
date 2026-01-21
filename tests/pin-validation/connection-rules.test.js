@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { TypeCompatibility } from "../../MaterialNodeFramework.js";
+import { TypeCompatibility } from "../../material/core/MaterialNodeFramework.js";
 import { getRegistry, getDefinition } from "../setup.js";
 
 describe("Connection Rules", () => {

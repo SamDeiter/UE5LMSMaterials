@@ -2,7 +2,7 @@
  * GridController - Draws the background grid.
  * Uses shared GridRenderer for consistent rendering.
  */
-import { GridRenderer } from '../shared/GridRenderer.js';
+import { GridRenderer } from '../../shared/GridRenderer.js';
 
 /**
  * Draws the background grid on the canvas.

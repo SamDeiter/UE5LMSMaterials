@@ -5,8 +5,8 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { materialNodeRegistry } from "./MaterialNodeFramework.js";
-import { debounce } from "./utils.js";
+import { materialNodeRegistry } from "../core/MaterialNodeFramework.js";
+import { debounce } from "../../shared/utils.js";
 
 export class PaletteController {
   constructor(app) {

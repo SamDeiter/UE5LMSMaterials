@@ -5,15 +5,15 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { HotkeyManager } from "./ui/HotkeyManager.js";
+import { HotkeyManager } from "../../blueprint/ui/HotkeyManager.js";
 import {
   materialNodeRegistry,
   MaterialNode,
   PinTypes,
 } from "./MaterialNodeFramework.js";
-import { debounce, generateId } from "./utils.js";
-import { WireRenderer } from "./shared/WireRenderer.js";
-import { GridRenderer } from "./shared/GridRenderer.js";
+import { debounce, generateId } from "../../shared/utils.js";
+import { WireRenderer } from "../../shared/WireRenderer.js";
+import { GridRenderer } from "../../shared/GridRenderer.js";
 
 export class MaterialGraphController {
   constructor(app) {

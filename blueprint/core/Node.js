@@ -2,7 +2,7 @@
  * Node and Pin classes for Blueprint graph visual scripting.
  * Extracted from graph.js for modularity.
  */
-import { Utils } from '../utils.js';
+import { Utils } from '../../shared/utils.js';
 
 // --- CORE DATA MODEL CLASSES ---
 

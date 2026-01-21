@@ -13,17 +13,17 @@ import {
   materialNodeRegistry,
   PinTypes,
   TypeCompatibility,
-} from "./MaterialNodeFramework.js";
-import { MaterialExpressionDefinitions } from "./data/MaterialExpressionDefinitions.js";
-import { HotkeyManager } from "./ui/HotkeyManager.js";
-import { shaderEvaluator } from "./ShaderEvaluator.js";
+} from "./core/MaterialNodeFramework.js";
+import { MaterialExpressionDefinitions } from "../data/MaterialExpressionDefinitions.js";
+import { HotkeyManager } from "../blueprint/ui/HotkeyManager.js";
+import { shaderEvaluator } from "./engine/ShaderEvaluator.js";
 
 // Extracted modules
-import { TextureManager, textureManager } from "./TextureManager.js";
-import { MaterialGraphController } from "./MaterialGraphController.js";
-import { PaletteController } from "./PaletteController.js";
-import { DetailsController } from "./MaterialDetailsController.js";
-import { debounce, generateId } from "./utils.js";
+import { TextureManager, textureManager } from "./engine/TextureManager.js";
+import { MaterialGraphController } from "./core/MaterialGraphController.js";
+import { PaletteController } from "./ui/PaletteController.js";
+import { DetailsController } from "./ui/MaterialDetailsController.js";
+import { debounce, generateId } from "../shared/utils.js";
 
 // Classes extracted to separate modules:
 // - TextureManager.js
@@ -31,8 +31,8 @@ import { debounce, generateId } from "./utils.js";
 // - PaletteController.js
 // - MaterialDetailsController.js (DetailsController)
 
-import { ActionMenuController } from './ActionMenuController.js';
-import { ViewportController } from './ViewportController.js';
+import { ActionMenuController } from '../blueprint/core/ActionMenuController.js';
+import { ViewportController } from './ui/ViewportController.js';
 
 
 // ============================================================================

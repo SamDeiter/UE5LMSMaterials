@@ -2,7 +2,7 @@
  * WiringController - Manages wire connections between nodes.
  * Extracted from graph.js for code complexity reduction.
  */
-import { Utils } from '../utils.js';
+import { Utils } from '../../shared/utils.js';
 
 /**
  * Manages wire connections, link selection, and visual wire rendering.

@@ -4,7 +4,7 @@
  * Shared utilities for Material Editor test suite.
  */
 
-import { MaterialNodeRegistry } from "../MaterialNodeFramework.js";
+import { MaterialNodeRegistry } from "../material/core/MaterialNodeFramework.js";
 import { MaterialExpressionDefinitions } from "../data/MaterialExpressionDefinitions.js";
 
 // Global registry instance for tests

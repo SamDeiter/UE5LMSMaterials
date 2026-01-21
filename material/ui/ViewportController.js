@@ -5,7 +5,7 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { debounce } from './utils.js';
+import { debounce } from '../../shared/utils.js';
 
 export class ViewportController {
   constructor(app) {
