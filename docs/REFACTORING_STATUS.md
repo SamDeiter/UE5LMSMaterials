@@ -60,10 +60,19 @@
 | `services/Compiler.js` | 190 | services.js |
 | `services/HistoryManager.js` | 145 | services.js |
 | `services/Persistence.js` | 90 | services.js |
-| `services/GridController.js` | 70 | services.js |
+| `services/GridController.js` | 43 | services.js |
 | `services/SimulationEngine.js` | 195 | services.js |
 
-**Total:** ~930 lines moved to 6 modular files
+**Total:** ~900 lines moved to 6 modular files
+
+### Shared Modules (Code Reuse)
+
+| Module | Lines | Used By |
+|--------|-------|---------|
+| `shared/WireRenderer.js` | 90 | Blueprint + Material |
+| `shared/GridRenderer.js` | 90 | Blueprint + Material |
+
+**Duplication removed:** ~80 lines
 
 ### File Size Reductions
 
@@ -71,11 +80,15 @@
 |------|----------|---------|-----------|
 | `graph.js` | 1726 | 1504 | **-13%** |
 | `services.js` | 751 | 15 | **-98%** |
+| `MaterialGraphController.js` | 975 | 929 | **-5%** |
+| `services/GridController.js` | 69 | 43 | **-38%** |
 
 ### Success Criteria
 
 - [x] WiringController extracted and tested
 - [x] All services.js classes extracted
 - [x] All 297 tests passing
+- [x] Shared modules created for code reuse
 - [x] services.js now a lean re-export file
+
 
