@@ -29,22 +29,34 @@ export class DetailsController {
     if (shadingModel) {
       shadingModel.addEventListener("change", () => this.updateMainNodePins());
     }
+
+    const materialDomain = document.getElementById("material-domain");
+    if (materialDomain) {
+      materialDomain.addEventListener("change", () => this.updateMainNodePins());
+    }
   }
 
   updateMainNodePins() {
-    // TODO: Gray out pins based on blend mode
-    const blendMode = document.getElementById("blend-mode").value;
+    const blendModeEl = document.getElementById("blend-mode");
+    const shadingModelEl = document.getElementById("shading-model");
+    const blendMode = blendModeEl ? blendModeEl.value : "Opaque";
+    const shadingModel = shadingModelEl ? shadingModelEl.value : "Default Lit";
+    
     const mainNode = [...this.app.graph.nodes.values()].find(
       (n) => n.type === "main-output"
     );
 
     if (!mainNode) return;
 
-    // Update opacity/mask visibility based on blend mode
+    // Update pin visibility based on blend mode AND shading model
     mainNode.inputs.forEach((pin) => {
       if (pin.element) {
-        const isActive =
-          !pin.conditionalOn || pin.conditionalOn.includes(blendMode);
+        // Pin is active if:
+        // 1. No conditionalOn (always active), OR
+        // 2. conditionalOn includes either current blend mode OR shading model
+        const isActive = !pin.conditionalOn || 
+          pin.conditionalOn.includes(blendMode) || 
+          pin.conditionalOn.includes(shadingModel);
         pin.element.classList.toggle("inactive", !isActive);
       }
     });
@@ -80,19 +92,30 @@ export class DetailsController {
 
     // Bind property change events
     this.nodeProps.querySelectorAll("input, select").forEach((input) => {
-      input.addEventListener("change", (e) => {
+      // Use 'input' event for sliders for live updates
+      const eventType = input.type === "range" ? "input" : "change";
+      
+      input.addEventListener(eventType, (e) => {
         const propKey = e.target.dataset.property;
         let newValue =
           e.target.type === "checkbox" ? e.target.checked : e.target.value;
 
-        // Parse numbers
-        if (e.target.type === "number") {
+        // Parse numbers for range and number inputs
+        if (e.target.type === "number" || e.target.type === "range") {
           newValue = parseFloat(newValue);
         }
 
         node.properties[propKey] = newValue;
+        
+        // Sync slider and number inputs
+        const container = e.target.closest(".slider-input-group");
+        if (container) {
+          container.querySelectorAll(`input[data-property="${propKey}"]`).forEach(inp => {
+            if (inp !== e.target) inp.value = newValue;
+          });
+        }
+        
         node.updatePreview(node.element.querySelector(".node-preview"));
-        this.app.graph.updateAllWires();
 
         // Trigger live update if enabled
         if (this.app && this.app.triggerLiveUpdate) {
@@ -118,10 +141,26 @@ export class DetailsController {
     }
 
     if (typeof value === "number") {
+      // Determine sensible min/max/step based on property name
+      let min = 0, max = 1, step = 0.01;
+      const keyLower = key.toLowerCase();
+      if (keyLower.includes("speed") || keyLower.includes("scale")) {
+        min = -10; max = 10; step = 0.1;
+      } else if (keyLower.includes("angle") || keyLower.includes("rotation")) {
+        min = -360; max = 360; step = 1;
+      } else if (keyLower.includes("power") || keyLower.includes("exponent")) {
+        min = 0; max = 10; step = 0.1;
+      }
+      
       return `
-                <div class="property-row">
+                <div class="property-row slider-row">
                     <label>${key}</label>
-                    <input type="number" data-property="${key}" value="${value}" step="0.01">
+                    <div class="slider-input-group">
+                        <input type="range" class="ue5-slider" data-property="${key}" 
+                               value="${value}" min="${min}" max="${max}" step="${step}">
+                        <input type="number" class="slider-number" data-property="${key}" 
+                               value="${value}" step="${step}" min="${min}" max="${max}">
+                    </div>
                 </div>
             `;
     }
