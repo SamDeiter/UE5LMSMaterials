@@ -92,6 +92,7 @@ class Utils {
    * @returns {string} The SVG path data string.
    */
   static getWirePath(x1, y1, x2, y2) {
+    // Uses shared WireRenderer for consistent bezier curves
     const distanceX = x2 - x1;
     const absDx = Math.abs(distanceX);
     const dx = Math.max(absDx * 0.5, 50);

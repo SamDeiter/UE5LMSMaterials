@@ -12,6 +12,8 @@ import {
   PinTypes,
 } from "./MaterialNodeFramework.js";
 import { debounce, generateId } from "./utils.js";
+import { WireRenderer } from "./shared/WireRenderer.js";
+import { GridRenderer } from "./shared/GridRenderer.js";
 
 export class MaterialGraphController {
   constructor(app) {
@@ -143,51 +145,19 @@ export class MaterialGraphController {
    * Draw the background grid
    */
   drawGrid() {
-    const ctx = this.ctx;
     const { width, height } = this.canvas;
-
-    ctx.fillStyle = this.gridColor;
-    ctx.fillRect(0, 0, width, height);
-
-    const scaledGridSize = this.gridSize * this.zoom;
-    const offsetX = this.panX % scaledGridSize;
-    const offsetY = this.panY % scaledGridSize;
-
-    ctx.strokeStyle = this.gridLineColor;
-    ctx.lineWidth = 1;
-
-    // Vertical lines
-    ctx.beginPath();
-    for (let x = offsetX; x < width; x += scaledGridSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-    }
-
-    // Horizontal lines
-    for (let y = offsetY; y < height; y += scaledGridSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-    }
-    ctx.stroke();
-
-    // Major grid lines (every 5)
-    const majorGridSize = scaledGridSize * 5;
-    const majorOffsetX = this.panX % majorGridSize;
-    const majorOffsetY = this.panY % majorGridSize;
-
-    ctx.strokeStyle = "#2a2a2a";
-    ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    for (let x = majorOffsetX; x < width; x += majorGridSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-    }
-    for (let y = majorOffsetY; y < height; y += majorGridSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-    }
-    ctx.stroke();
+    
+    GridRenderer.draw(this.ctx, width, height, {
+      panX: this.panX,
+      panY: this.panY,
+      zoom: this.zoom
+    }, {
+      backgroundColor: this.gridColor,
+      minorGridColor: this.gridLineColor,
+      majorGridColor: '#2a2a2a',
+      minorGridSize: this.gridSize,
+      majorGridMultiplier: 5
+    });
   }
 
   /**
@@ -414,20 +384,9 @@ export class MaterialGraphController {
     const endX = e.clientX - graphRect.left;
     const endY = e.clientY - graphRect.top;
 
-    // Create bezier curve
-    const dx = Math.abs(endX - startX);
-    const tension = Math.min(dx * 0.5, 100);
-
-    let path;
-    if (pin.dir === "out") {
-      path = `M ${startX} ${startY} C ${startX + tension} ${startY}, ${
-        endX - tension
-      } ${endY}, ${endX} ${endY}`;
-    } else {
-      path = `M ${startX} ${startY} C ${startX - tension} ${startY}, ${
-        endX + tension
-      } ${endY}, ${endX} ${endY}`;
-    }
+    const path = WireRenderer.getWirePath(startX, startY, endX, endY, {
+      direction: pin.dir
+    });
 
     const ghostWire = document.getElementById("ghost-wire");
     ghostWire.setAttribute("d", path);
@@ -515,12 +474,7 @@ export class MaterialGraphController {
     const endX = inRect.left + inRect.width / 2 - graphRect.left;
     const endY = inRect.top + inRect.height / 2 - graphRect.top;
 
-    const dx = Math.abs(endX - startX);
-    const tension = Math.min(dx * 0.5, 100);
-
-    const path = `M ${startX} ${startY} C ${startX + tension} ${startY}, ${
-      endX - tension
-    } ${endY}, ${endX} ${endY}`;
+    const path = WireRenderer.getWirePath(startX, startY, endX, endY);
 
     if (!link.element) {
       const wire = document.createElementNS(
