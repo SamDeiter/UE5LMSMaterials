@@ -1,17 +1,24 @@
 /**
  * MaterialGraphController.js
  *
- * Manages the graph canvas, node rendering, wire connections, and user interactions.
+ * Manages the graph canvas, node rendering, and core operations.
+ * InputController has been extracted to MaterialInputController.js
+ * WiringController has been extracted to MaterialWiringController.js
  * Extracted from material-app.js for modularity.
  */
 
-import { HotkeyManager } from "./ui/HotkeyManager.js";
+import { HotkeyManager } from "../../blueprint/ui/HotkeyManager.js";
 import {
   materialNodeRegistry,
   MaterialNode,
   PinTypes,
 } from "./MaterialNodeFramework.js";
-import { debounce, generateId } from "./utils.js";
+import { debounce, generateId } from "../../shared/utils.js";
+import { WireRenderer } from "../../shared/WireRenderer.js";
+import { GridRenderer } from "../../shared/GridRenderer.js";
+import { MaterialInputController } from "./MaterialInputController.js";
+import { MaterialWiringController } from "./MaterialWiringController.js";
+
 
 export class MaterialGraphController {
   constructor(app) {
@@ -51,6 +58,12 @@ export class MaterialGraphController {
     // Hotkey manager for "Hold key + Click" node spawning
     this.hotkeyManager = new HotkeyManager(this, materialNodeRegistry);
 
+    // Delegate input handling to InputController
+    this.input = new MaterialInputController(this);
+
+    // Delegate wiring operations to WiringController
+    this.wiring = new MaterialWiringController(this);
+
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
 
@@ -71,14 +84,12 @@ export class MaterialGraphController {
       debounce(() => this.resize(), 100)
     );
 
-    // Mouse events
-    this.graphPanel.addEventListener("mousedown", (e) => this.onMouseDown(e));
-    this.graphPanel.addEventListener("mousemove", (e) => this.onMouseMove(e));
-    this.graphPanel.addEventListener("mouseup", (e) => this.onMouseUp(e));
-    this.graphPanel.addEventListener("wheel", (e) => this.onWheel(e));
-    this.graphPanel.addEventListener("contextmenu", (e) =>
-      this.onContextMenu(e)
-    );
+    // Mouse events - delegate to InputController
+    this.graphPanel.addEventListener("mousedown", (e) => this.input.onMouseDown(e));
+    this.graphPanel.addEventListener("mousemove", (e) => this.input.onMouseMove(e));
+    this.graphPanel.addEventListener("mouseup", (e) => this.input.onMouseUp(e));
+    this.graphPanel.addEventListener("wheel", (e) => this.input.onWheel(e));
+    this.graphPanel.addEventListener("contextmenu", (e) => this.input.onContextMenu(e));
 
     // Drag and drop from palette
     this.graphPanel.addEventListener("dragover", (e) => {
@@ -101,9 +112,9 @@ export class MaterialGraphController {
       }
     });
 
-    // Keyboard events
-    document.addEventListener("keydown", (e) => this.onKeyDown(e));
-    document.addEventListener("keyup", (e) => this.onKeyUp(e));
+    // Keyboard events - delegate to InputController
+    document.addEventListener("keydown", (e) => this.input.onKeyDown(e));
+    document.addEventListener("keyup", (e) => this.input.onKeyUp(e));
 
     // Click outside to deselect AND handle hotkey spawning
     this.graphPanel.addEventListener("click", (e) => {
@@ -136,58 +147,26 @@ export class MaterialGraphController {
     this.svg.setAttribute("width", rect.width);
     this.svg.setAttribute("height", rect.height);
     this.drawGrid();
-    this.updateAllWires();
+    this.wiring.updateAllWires();
   }
 
   /**
    * Draw the background grid
    */
   drawGrid() {
-    const ctx = this.ctx;
     const { width, height } = this.canvas;
-
-    ctx.fillStyle = this.gridColor;
-    ctx.fillRect(0, 0, width, height);
-
-    const scaledGridSize = this.gridSize * this.zoom;
-    const offsetX = this.panX % scaledGridSize;
-    const offsetY = this.panY % scaledGridSize;
-
-    ctx.strokeStyle = this.gridLineColor;
-    ctx.lineWidth = 1;
-
-    // Vertical lines
-    ctx.beginPath();
-    for (let x = offsetX; x < width; x += scaledGridSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-    }
-
-    // Horizontal lines
-    for (let y = offsetY; y < height; y += scaledGridSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-    }
-    ctx.stroke();
-
-    // Major grid lines (every 5)
-    const majorGridSize = scaledGridSize * 5;
-    const majorOffsetX = this.panX % majorGridSize;
-    const majorOffsetY = this.panY % majorGridSize;
-
-    ctx.strokeStyle = "#2a2a2a";
-    ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    for (let x = majorOffsetX; x < width; x += majorGridSize) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-    }
-    for (let y = majorOffsetY; y < height; y += majorGridSize) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-    }
-    ctx.stroke();
+    
+    GridRenderer.draw(this.ctx, width, height, {
+      panX: this.panX,
+      panY: this.panY,
+      zoom: this.zoom
+    }, {
+      backgroundColor: this.gridColor,
+      minorGridColor: this.gridLineColor,
+      majorGridColor: '#2a2a2a',
+      minorGridSize: this.gridSize,
+      majorGridMultiplier: 5
+    });
   }
 
   /**
@@ -284,7 +263,7 @@ export class MaterialGraphController {
         // Alt+Click: Break all connections to this pin
         if (e.altKey) {
           if (pin.connectedTo) {
-            this.breakLink(pin.connectedTo);
+            this.wiring.breakLink(pin.connectedTo);
             this.app.updateStatus("Connection broken (Alt+Click)");
           }
           return;
@@ -310,7 +289,7 @@ export class MaterialGraphController {
         }
 
         // Normal click - start wiring
-        this.startWiring(pin, e);
+        this.wiring.startWiring(pin, e);
       });
     });
 
@@ -383,213 +362,7 @@ export class MaterialGraphController {
     node.element.style.transformOrigin = "top left";
   }
 
-  /**
-   * Start wiring from a pin
-   */
-  startWiring(pin, e) {
-    this.isWiring = true;
-    this.wiringStartPin = pin;
 
-    const ghostWire = document.getElementById("ghost-wire");
-    ghostWire.style.display = "block";
-    ghostWire.setAttribute("data-type", pin.type);
-    ghostWire.style.stroke = pin.color;
-
-    this.updateGhostWire(e);
-  }
-
-  /**
-   * Update ghost wire position
-   */
-  updateGhostWire(e) {
-    if (!this.isWiring || !this.wiringStartPin) return;
-
-    const pin = this.wiringStartPin;
-    const pinDot = pin.element.querySelector(".pin-dot");
-    const rect = pinDot.getBoundingClientRect();
-    const graphRect = this.graphPanel.getBoundingClientRect();
-
-    const startX = rect.left + rect.width / 2 - graphRect.left;
-    const startY = rect.top + rect.height / 2 - graphRect.top;
-    const endX = e.clientX - graphRect.left;
-    const endY = e.clientY - graphRect.top;
-
-    // Create bezier curve
-    const dx = Math.abs(endX - startX);
-    const tension = Math.min(dx * 0.5, 100);
-
-    let path;
-    if (pin.dir === "out") {
-      path = `M ${startX} ${startY} C ${startX + tension} ${startY}, ${
-        endX - tension
-      } ${endY}, ${endX} ${endY}`;
-    } else {
-      path = `M ${startX} ${startY} C ${startX - tension} ${startY}, ${
-        endX + tension
-      } ${endY}, ${endX} ${endY}`;
-    }
-
-    const ghostWire = document.getElementById("ghost-wire");
-    ghostWire.setAttribute("d", path);
-  }
-
-  /**
-   * End wiring
-   */
-  endWiring(targetPin = null) {
-    if (!this.isWiring) return;
-
-    const ghostWire = document.getElementById("ghost-wire");
-    ghostWire.style.display = "none";
-
-    if (targetPin && this.wiringStartPin) {
-      this.createConnection(this.wiringStartPin, targetPin);
-    }
-
-    this.isWiring = false;
-    this.wiringStartPin = null;
-  }
-
-  /**
-   * Create a connection between two pins
-   */
-  createConnection(pinA, pinB) {
-    // Ensure correct direction (output -> input)
-    const outputPin = pinA.dir === "out" ? pinA : pinB;
-    const inputPin = pinA.dir === "in" ? pinA : pinB;
-
-    // Validate connection
-    if (!outputPin.canConnectTo(inputPin)) {
-      this.app.updateStatus("Cannot connect: incompatible types");
-      return false;
-    }
-
-    // Check if input already has a connection
-    if (inputPin.connectedTo) {
-      this.breakLink(inputPin.connectedTo);
-    }
-
-    // Create link
-    const linkId = generateId("link");
-    const link = {
-      id: linkId,
-      outputPin: outputPin,
-      inputPin: inputPin,
-      type: outputPin.type,
-      element: null,
-    };
-
-    // Update pin states
-    outputPin.connectedTo = linkId;
-    inputPin.connectedTo = linkId;
-
-    // Update pin visuals
-    outputPin.element.querySelector(".pin-dot").classList.remove("hollow");
-    inputPin.element.querySelector(".pin-dot").classList.remove("hollow");
-
-    this.links.set(linkId, link);
-    this.drawWire(link);
-
-    this.app.updateStatus("Connected");
-    this.app.updateCounts();
-    this.app.triggerLiveUpdate();
-
-    return true;
-  }
-
-  /**
-   * Draw a wire for a connection
-   */
-  drawWire(link) {
-    const outputDot = link.outputPin.element.querySelector(".pin-dot");
-    const inputDot = link.inputPin.element.querySelector(".pin-dot");
-
-    if (!outputDot || !inputDot) return;
-
-    const graphRect = this.graphPanel.getBoundingClientRect();
-    const outRect = outputDot.getBoundingClientRect();
-    const inRect = inputDot.getBoundingClientRect();
-
-    const startX = outRect.left + outRect.width / 2 - graphRect.left;
-    const startY = outRect.top + outRect.height / 2 - graphRect.top;
-    const endX = inRect.left + inRect.width / 2 - graphRect.left;
-    const endY = inRect.top + inRect.height / 2 - graphRect.top;
-
-    const dx = Math.abs(endX - startX);
-    const tension = Math.min(dx * 0.5, 100);
-
-    const path = `M ${startX} ${startY} C ${startX + tension} ${startY}, ${
-      endX - tension
-    } ${endY}, ${endX} ${endY}`;
-
-    if (!link.element) {
-      const wire = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-      wire.classList.add("wire");
-      wire.setAttribute("data-type", link.type);
-      wire.setAttribute("data-link-id", link.id);
-      wire.style.stroke = PinTypes[link.type.toUpperCase()]?.color || "#888";
-
-      wire.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.selectLink(link);
-      });
-
-      this.wireGroup.appendChild(wire);
-      link.element = wire;
-    }
-
-    link.element.setAttribute("d", path);
-  }
-
-  /**
-   * Update all wire positions
-   */
-  updateAllWires() {
-    this.links.forEach((link) => this.drawWire(link));
-  }
-
-  /**
-   * Select a link
-   */
-  selectLink(link) {
-    this.deselectAll();
-    this.selectedLinks.add(link.id);
-    link.element.classList.add("selected");
-  }
-
-  /**
-   * Break a link by ID
-   */
-  breakLink(linkId) {
-    const link = this.links.get(linkId);
-    if (!link) return;
-
-    // Reset pin states
-    link.outputPin.connectedTo = null;
-    link.inputPin.connectedTo = null;
-
-    // Update visuals
-    if (link.outputPin.element) {
-      link.outputPin.element.querySelector(".pin-dot").classList.add("hollow");
-    }
-    if (link.inputPin.element) {
-      link.inputPin.element.querySelector(".pin-dot").classList.add("hollow");
-    }
-
-    // Remove wire element
-    if (link.element) {
-      link.element.remove();
-    }
-
-    this.links.delete(linkId);
-    this.selectedLinks.delete(linkId);
-
-    this.app.updateCounts();
-    this.app.triggerLiveUpdate();
-  }
 
   /**
    * Delete selected nodes and links
@@ -597,7 +370,7 @@ export class MaterialGraphController {
   deleteSelected() {
     // Delete selected links first
     this.selectedLinks.forEach((linkId) => {
-      this.breakLink(linkId);
+      this.wiring.breakLink(linkId);
     });
 
     // Delete selected nodes
@@ -614,7 +387,7 @@ export class MaterialGraphController {
       // Break all connections to this node
       [...node.inputs, ...node.outputs].forEach((pin) => {
         if (pin.connectedTo) {
-          this.breakLink(pin.connectedTo);
+          this.wiring.breakLink(pin.connectedTo);
         }
       });
 
@@ -628,206 +401,7 @@ export class MaterialGraphController {
     this.app.details.showMaterialProperties();
   }
 
-  /**
-   * Handle mouse down
-   */
-  onMouseDown(e) {
-    // Middle mouse or right mouse for panning
-    if (e.button === 1 || (e.button === 2 && !e.target.closest(".node"))) {
-      this.isPanning = true;
-      this.dragStartX = e.clientX - this.panX;
-      this.dragStartY = e.clientY - this.panY;
-      e.preventDefault();
-    }
-  }
 
-  /**
-   * Handle mouse move
-   */
-  onMouseMove(e) {
-    if (this.isPanning) {
-      this.panX = e.clientX - this.dragStartX;
-      this.panY = e.clientY - this.dragStartY;
-      this.drawGrid();
-      this.nodes.forEach((node) => this.updateNodePosition(node));
-      this.updateAllWires();
-    }
-
-    if (this.isDragging && this.dragOffsets) {
-      const dx = (e.clientX - this.dragStartX) / this.zoom;
-      const dy = (e.clientY - this.dragStartY) / this.zoom;
-
-      this.selectedNodes.forEach((nodeId) => {
-        const node = this.nodes.get(nodeId);
-        const offset = this.dragOffsets.get(nodeId);
-        if (node && offset) {
-          node.x = offset.x + dx;
-          node.y = offset.y + dy;
-          this.updateNodePosition(node);
-        }
-      });
-
-      this.updateAllWires();
-    }
-
-    if (this.isWiring) {
-      this.updateGhostWire(e);
-    }
-  }
-
-  /**
-   * Handle mouse up
-   */
-  onMouseUp(e) {
-    if (this.isPanning) {
-      this.isPanning = false;
-    }
-
-    if (this.isDragging) {
-      this.isDragging = false;
-      this.dragOffsets = null;
-    }
-
-    if (this.isWiring) {
-      // Check if we're over a valid target pin
-      const target = document.elementFromPoint(e.clientX, e.clientY);
-      if (target && target.classList.contains("pin-dot")) {
-        const pinEl = target.parentElement;
-        const pinId = pinEl.dataset.pinId;
-
-        // Find the target node and pin
-        for (const [id, node] of this.nodes) {
-          const pin = node.findPin(pinId);
-          if (pin && pin !== this.wiringStartPin) {
-            this.endWiring(pin);
-            return;
-          }
-        }
-      }
-
-      this.endWiring();
-    }
-  }
-
-  /**
-   * Handle mouse wheel (zoom)
-   */
-  onWheel(e) {
-    e.preventDefault();
-
-    const rect = this.graphPanel.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Calculate zoom
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.25, Math.min(2, this.zoom * zoomFactor));
-
-    // Zoom toward mouse position
-    const zoomRatio = newZoom / this.zoom;
-    this.panX = mouseX - (mouseX - this.panX) * zoomRatio;
-    this.panY = mouseY - (mouseY - this.panY) * zoomRatio;
-    this.zoom = newZoom;
-
-    // Update display
-    document.getElementById("zoom-readout").textContent = `${Math.round(
-      this.zoom * 100
-    )}%`;
-
-    this.drawGrid();
-    this.nodes.forEach((node) => this.updateNodePosition(node));
-    this.updateAllWires();
-  }
-
-  /**
-   * Handle context menu (right-click)
-   */
-  onContextMenu(e) {
-    e.preventDefault();
-
-    // Don't show menu if over a node
-    if (e.target.closest(".node")) return;
-
-    this.app.actionMenu.show(e.clientX, e.clientY);
-  }
-
-  /**
-   * Handle key down
-   */
-  onKeyDown(e) {
-    // Don't handle if in input
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-    // Delete
-    if (e.key === "Delete" || e.key === "Backspace") {
-      e.preventDefault();
-      this.deleteSelected();
-    }
-
-    // Ctrl shortcuts
-    if (e.ctrlKey) {
-      if (e.key === "z" || e.key === "Z") {
-        e.preventDefault();
-        // TODO: Undo
-      }
-      if (e.key === "y" || e.key === "Y") {
-        e.preventDefault();
-        // TODO: Redo
-      }
-      if (e.key === "s" || e.key === "S") {
-        e.preventDefault();
-        this.app.save();
-      }
-      if (e.key === "d" || e.key === "D") {
-        e.preventDefault();
-        this.duplicateSelected();
-      }
-    }
-
-    // Shift+WASD - Node alignment shortcuts
-    if (e.shiftKey && !e.ctrlKey && !e.altKey) {
-      switch (e.key.toLowerCase()) {
-        case "w":
-          e.preventDefault();
-          this.alignSelected("top");
-          break;
-        case "a":
-          e.preventDefault();
-          this.alignSelected("left");
-          break;
-        case "s":
-          e.preventDefault();
-          this.alignSelected("bottom");
-          break;
-        case "d":
-          e.preventDefault();
-          this.alignSelected("right");
-          break;
-      }
-    }
-
-    // F - Focus on selected nodes
-    if (e.key === "f" && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-      e.preventDefault();
-      this.focusSelected();
-    }
-
-    // Home - Focus on main material node
-    if (e.key === "Home") {
-      e.preventDefault();
-      this.focusMainNode();
-    }
-
-    // Hotkey spawning is now handled by HotkeyManager via "Hold key + Click"
-    // The HotkeyManager is wired up in the constructor and graph click handler
-  }
-
-  /**
-   * Handle key up
-   */
-  onKeyUp(e) {
-    // Nothing special needed
-  }
 
   /**
    * Duplicate selected nodes
@@ -914,7 +488,7 @@ export class MaterialGraphController {
       }
     }
 
-    this.updateAllWires();
+    this.wiring.updateAllWires();
   }
 
   /**
@@ -949,7 +523,7 @@ export class MaterialGraphController {
 
     this.drawGrid();
     this.nodes.forEach((node) => this.updateNodePosition(node));
-    this.updateAllWires();
+    this.wiring.updateAllWires();
 
     this.app.updateStatus(`Focused on ${nodes.length} selected node(s)`);
   }
@@ -969,6 +543,6 @@ export class MaterialGraphController {
 
     this.drawGrid();
     this.nodes.forEach((node) => this.updateNodePosition(node));
-    this.updateAllWires();
+    this.wiring.updateAllWires();
   }
 }

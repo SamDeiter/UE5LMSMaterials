@@ -5,6 +5,7 @@
  */
 
 // Import all controllers
+<<<<<<< HEAD:app.js
 import { Pin, Node, WiringController, GraphController } from "./graph.js";
 import {
   VariableController,
@@ -26,6 +27,17 @@ import { TestRunner, registerTests } from "./tests.js?v=2";
 import { BlueprintValidator, SAMPLE_TASK } from "./validator.js";
 import { nodeRegistry } from "./registries/NodeRegistry.js";
 import { NodeDefinitions } from "./data/NodeDefinitions.js";
+=======
+import { Pin, Node, WiringController, GraphController } from './core/graph.js';
+import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController } from '../shared/ui.js';
+import { Compiler, Persistence, GridController, HistoryManager, SimulationEngine } from '../services.js';
+// Cache bust the tests module to ensure latest export is found
+import { TestRunner, registerTests } from '../tests.js?v=2';
+import { BlueprintValidator, SAMPLE_TASK } from '../shared/validator.js';
+import { nodeRegistry } from './registries/NodeRegistry.js';
+import { NodeDefinitions } from '../data/NodeDefinitions.js';
+
+>>>>>>> restore/merge-tests:blueprint/app.js
 
 /**
  * Main static application class to initialize and namespace all controllers.

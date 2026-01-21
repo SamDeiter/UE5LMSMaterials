@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { TypeCompatibility, PinTypes } from "../../MaterialNodeFramework.js";
+import { TypeCompatibility, PinTypes } from "../../material/core/MaterialNodeFramework.js";
 import { getRegistry, getDefinition, createNode } from "../setup.js";
 
 describe("Type Promotion (Scalar Broadcasting)", () => {

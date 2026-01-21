@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { TypeCompatibility, PinTypes } from "../../MaterialNodeFramework.js";
+import { TypeCompatibility, PinTypes } from "../../material/core/MaterialNodeFramework.js";
 import { getRegistry } from "../setup.js";
 
 // Alias for cleaner test code

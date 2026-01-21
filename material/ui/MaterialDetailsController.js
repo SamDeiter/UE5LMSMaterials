@@ -5,7 +5,7 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { textureManager } from "./TextureManager.js";
+import { textureManager } from "../engine/TextureManager.js";
 
 export class DetailsController {
   constructor(app) {

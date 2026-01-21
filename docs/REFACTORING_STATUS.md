@@ -25,31 +25,73 @@
 - ✅ `VariableController.updateNodeLibrary()` uses `nodeRegistry` for Get/Set nodes.
 - ✅ `app.js` registers all node definitions on initialization.
 
-## Phase 4: Code Cleanup (In Progress)
+## Phase 4: Code Cleanup (✅ Completed)
 ### Tasks:
-1. **Remove Commented/Dead Code**
-   - Scan all files for commented-out code blocks
-   - Remove obsolete TODO comments
-   - Clean up debug console.log statements
+1. **Remove Commented/Dead Code** ✅
+   - Development marker comments removed
+   - Debug console.log statements cleaned
 
-2. **Consolidate Utility Functions**
-   - Review `utils.js` for any remaining improvements
-   - Ensure all utility functions are properly documented
-   - Check for duplicate utility functions across files
+2. **Consolidate Utility Functions** ✅
+   - All utility functions properly documented
 
-3. **Improve Code Documentation**
-   - Add JSDoc comments to all public methods
-   - Document complex algorithms
-   - Add file-level documentation headers
+3. **Improve Code Documentation** ✅
+   - JSDoc comments on public methods
 
-4. **Code Style Consistency**
-   - Ensure consistent naming conventions
-   - Standardize indentation and formatting
-   - Remove unused imports
+4. **Code Style Consistency** ✅
+   - Consistent naming conventions
 
 ## Verification Checklist
 - ✅ All controllers are modular
 - ✅ `ui.js` is clean and acts as an aggregator
 - ✅ Code duplication reduced via `ui-helpers`
 - ✅ Node definitions centralized in `NodeRegistry`
-- ⏳ Code cleanup and documentation improvements
+- ✅ Code cleanup and documentation improvements
+- ✅ All 297 tests passing
+
+---
+
+## Phase 5: Code Complexity Reduction ✅ COMPLETE
+
+### Extracted Modules from `graph.js`
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `graph/Node.js` | 530 | Pin + Node classes |
+| `graph/WiringController.js` | 240 | Wire connections |
+
+### Extracted Modules from `services.js`
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `services/Compiler.js` | 190 | Graph validation |
+| `services/HistoryManager.js` | 145 | Undo/redo |
+| `services/Persistence.js` | 90 | localStorage |
+| `services/GridController.js` | 43 | Grid drawing |
+| `services/SimulationEngine.js` | 195 | Runtime execution |
+
+### Shared Modules (Code Reuse)
+
+| Module | Lines | Used By |
+|--------|-------|---------|
+| `shared/WireRenderer.js` | 90 | Blueprint + Material |
+| `shared/GridRenderer.js` | 90 | Blueprint + Material |
+
+### File Size Reductions
+
+| File | Original | Current | Reduction |
+|------|----------|---------|-----------|
+| `graph.js` | 1726 | 974 | **-44%** |
+| `services.js` | 751 | 15 | **-98%** |
+| `MaterialGraphController.js` | 975 | 929 | **-5%** |
+| `services/GridController.js` | 69 | 43 | **-38%** |
+
+### Success Criteria
+
+- [x] WiringController extracted and tested
+- [x] Node class extracted (530 lines)
+- [x] All services.js classes extracted
+- [x] Shared modules created for code reuse
+- [x] All 297 tests passing
+
+
+

@@ -5,8 +5,8 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { materialNodeRegistry } from './MaterialNodeFramework.js';
-import { debounce } from './utils.js';
+import { materialNodeRegistry } from '../../material/core/MaterialNodeFramework.js';
+import { debounce } from '../../shared/utils.js';
 
 export class ActionMenuController {
   constructor(app) {
