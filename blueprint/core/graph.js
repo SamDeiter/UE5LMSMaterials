@@ -1,15 +1,16 @@
 /**
  * Core Graph Logic: GraphController.
- * Pin and Node have been extracted to graph/Node.js
- * WiringController has been extracted to graph/WiringController.js
- * SelectionController has been extracted to graph/SelectionController.js
- * This file now manages the GraphController and all user interactions 
- * (pan, zoom, drag, wiring).
+ * Pin and Node have been extracted to Node.js
+ * WiringController has been extracted to WiringController.js
+ * SelectionController has been extracted to SelectionController.js
+ * InputController has been extracted to InputController.js
+ * This file now manages the GraphController and core graph operations.
  */
 import { Utils } from '../../shared/utils.js';
 import { nodeRegistry } from '../registries/NodeRegistry.js';
 import { WiringController } from './WiringController.js';
 import { SelectionController } from './SelectionController.js';
+import { InputController } from './InputController.js';
 import { Pin, Node } from './Node.js';
 
 // Re-export for compatibility
@@ -25,22 +26,12 @@ class GraphController {
         this.zoomReadout = document.getElementById('zoom-readout');
         this.pan = { x: 0, y: 0 };
         this.zoom = 1;
-        this.isPanning = false;
-        this.isDraggingNode = false;
-        this.isWiring = false;
-        this.isRmbDown = false;
-        this.isMarqueeing = false;
-        this.isEditingLiteral = false; // New flag to prevent graph interaction
-        this.hasDragged = false;
-        this.activePin = null;
-        // Selection is now delegated to SelectionController
+        this.isEditingLiteral = false;
+        this.graphPanel = editor; // Alias for compatibility
+        
+        // Delegate to extracted controllers
         this.selection = new SelectionController(this);
-        this.dragStart = { x: 0, y: 0 };
-        this.nodeDragOffsets = new Map();
-        this.marqueeStart = { x: 0, y: 0 };
-        this.marqueeEl = document.getElementById('selection-marquee');
-        this.handleGlobalMouseMove = this.handleGlobalMouseMove.bind(this);
-        this.handleGlobalMouseUp = this.handleGlobalMouseUp.bind(this);
+        this.input = new InputController(this);
         
         // Backwards compatibility: expose selectedNodes as a getter
         Object.defineProperty(this, 'selectedNodes', {
@@ -55,32 +46,13 @@ class GraphController {
      * Binds mouse, wheel, drag, and keyboard events.
      */
     initEvents() {
-        this.editor.addEventListener('mousedown', this.handleEditorMouseDown.bind(this));
-        this.editor.addEventListener('wheel', this.handleZoom.bind(this));
-        this.editor.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+        this.editor.addEventListener('mousedown', (e) => this.input.handleEditorMouseDown(e));
+        this.editor.addEventListener('wheel', (e) => this.input.handleZoom(e));
+        this.editor.addEventListener('contextmenu', (e) => this.input.handleContextMenu(e));
         this.nodesContainer.addEventListener('contextmenu', this.handlePinContextMenu.bind(this));
         this.editor.addEventListener('dragover', this.handleDragOver.bind(this));
         this.editor.addEventListener('drop', this.handleDrop.bind(this));
-        // Add delete listener
-        document.addEventListener('keydown', this.handleKeyDown.bind(this));
-    }
-
-    handleKeyDown(e) {
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            if (this.selection.size > 0) {
-                e.preventDefault();
-                this.selection.deleteSelectedNodes();
-            } else if (this.app.wiring.selectedLinks.size > 0) {
-                e.preventDefault();
-                this.app.wiring.deleteSelectedLinks();
-            }
-        }
-        if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
-            if (this.selection.size > 0) {
-                e.preventDefault();
-                this.selection.duplicateSelectedNodes(null, nodeRegistry, Utils, Node);
-            }
-        }
+        document.addEventListener('keydown', (e) => this.input.handleKeyDown(e));
     }
 
     handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }
@@ -106,271 +78,7 @@ class GraphController {
             this.app.persistence.autoSave();
         }
     }
-    handleEditorMouseDown(e) {
-        // If user is editing a text input, ignore mousedown on the graph background
-        if (this.isEditingLiteral) {
-            return;
-        }
 
-        this.hasDragged = false;
-        this.app.wiring.clearLinkSelection();
-        if (this.isMarqueeing) {
-            this.isMarqueeing = false;
-            this.marqueeEl.style.display = 'none';
-        }
-
-        const pinElement = e.target.closest('.pin-container');
-        const nodeElement = e.target.closest('.node');
-
-        // 1. Wiring Start
-        if (pinElement && e.button === 0) {
-            e.stopPropagation();
-            e.preventDefault();
-            this.isWiring = true;
-            const pinId = pinElement.dataset.pinId;
-            this.activePin = this.findPinById(pinId);
-
-            if (e.altKey && this.activePin && this.activePin.isConnected()) {
-                this.app.wiring.breakPinLinks(this.activePin.id);
-            }
-
-            // If the pin is connected and we are starting to drag *from* it, break the link automatically if it's an input pin (to avoid creating a loop/invalid state)
-            if (this.activePin && this.activePin.dir === 'in' && this.activePin.isConnected()) {
-                this.app.wiring.breakPinLinks(this.activePin.id);
-                // After breaking, the activePin is now free to start a new connection, but we flip it to act as an output for the drag.
-                // This is a common UE-style behavior, but for simplicity we treat it as an output pin starting a drag.
-            }
-
-            if (this.activePin) {
-                this.app.wiring.updateGhostWire(e, this.activePin);
-            }
-
-            document.addEventListener('mousemove', this.handleGlobalMouseMove);
-            document.addEventListener('mouseup', this.handleGlobalMouseUp);
-            return;
-        }
-
-        // 2. Node Dragging/Selection
-        if (nodeElement && e.button === 0) {
-            e.stopPropagation();
-            this.isDraggingNode = true;
-            const mode = e.ctrlKey ? 'toggle' : (e.shiftKey ? 'add' : 'new');
-
-            if (mode === 'new' && !this.selectedNodes.has(nodeElement.id)) {
-                this.selectNode(nodeElement.id, false, 'new');
-            } else if (mode !== 'new') {
-                this.selectNode(nodeElement.id, true, mode);
-            }
-
-            const mouseGraphCoords = this.getGraphCoords(e.clientX, e.clientY);
-            this.nodeDragOffsets.clear();
-            for (const nodeId of this.selectedNodes) {
-                const node = this.nodes.get(nodeId);
-                if (node) {
-                    this.nodeDragOffsets.set(nodeId, {
-                        x: mouseGraphCoords.x - node.x,
-                        y: mouseGraphCoords.y - node.y
-                    });
-                }
-            }
-
-            document.addEventListener('mousemove', this.handleGlobalMouseMove);
-            document.addEventListener('mouseup', this.handleGlobalMouseUp);
-            return;
-        }
-
-        // 3. Panning
-        if (e.button === 2) { // Right mouse button
-            e.preventDefault(); // Prevents context menu popup on initial mousedown
-            this.isRmbDown = true;
-            this.dragStart.x = e.clientX;
-            this.dragStart.y = e.clientY;
-            this.editor.classList.add('dragging');
-            document.addEventListener('mousemove', this.handleGlobalMouseMove);
-            document.addEventListener('mouseup', this.handleGlobalMouseUp);
-            return;
-        }
-
-        // 4. Marqueeing (Click on background)
-        if (e.button === 0) {
-            this.isMarqueeing = true;
-            this.marqueeStart.x = e.clientX;
-            this.marqueeStart.y = e.clientY;
-            // Position marquee relative to the editor container
-            const rect = this.editor.getBoundingClientRect();
-            this.marqueeEl.style.display = 'block';
-            this.marqueeEl.style.left = `${e.clientX - rect.left}px`;
-            this.marqueeEl.style.top = `${e.clientY - rect.top}px`;
-            this.marqueeEl.style.width = '0px';
-            this.marqueeEl.style.height = '0px';
-
-            if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
-                this.clearSelection();
-            }
-
-            document.addEventListener('mousemove', this.handleGlobalMouseMove);
-            document.addEventListener('mouseup', this.handleGlobalMouseUp);
-        }
-    }
-
-    handleGlobalMouseMove(e) {
-        if (e.movementX !== 0 || e.movementY !== 0) { this.hasDragged = true; }
-        e.preventDefault();
-
-        if (this.isRmbDown) { // Panning
-            const dx = e.clientX - this.dragStart.x;
-            const dy = e.clientY - this.dragStart.y;
-            this.pan.x += dx;
-            this.pan.y += dy;
-            this.updateTransform();
-            this.dragStart.x = e.clientX;
-            this.dragStart.y = e.clientY;
-        }
-        else if (this.isDraggingNode) { // Node Dragging
-            const mouseGraphCoords = this.getGraphCoords(e.clientX, e.clientY);
-            for (const nodeId of this.selectedNodes) {
-                const node = this.nodes.get(nodeId);
-                const offset = this.nodeDragOffsets.get(nodeId);
-                if (node && offset) {
-                    node.x = mouseGraphCoords.x - offset.x;
-                    node.y = mouseGraphCoords.y - offset.y;
-                    node.element.style.left = `${node.x}px`;
-                    node.element.style.top = `${node.y}px`;
-                    this.redrawNodeWires(node.id);
-                }
-            }
-        }
-        else if (this.isWiring) { // Wiring
-            if (this.activePin) {
-                this.app.wiring.updateGhostWire(e, this.activePin);
-            }
-        }
-        else if (this.isMarqueeing) { // Marqueeing
-            const rect = this.editor.getBoundingClientRect();
-            const left = Math.min(e.clientX, this.marqueeStart.x) - rect.left;
-            const top = Math.min(e.clientY, this.marqueeStart.y) - rect.top;
-            const width = Math.abs(e.clientX - this.marqueeStart.x);
-            const height = Math.abs(e.clientY - this.marqueeStart.y);
-            this.marqueeEl.style.left = `${left}px`;
-            this.marqueeEl.style.top = `${top}px`;
-            this.marqueeEl.style.width = `${width}px`;
-            this.marqueeEl.style.height = `${height}px`;
-        }
-    }
-
-    handleGlobalMouseUp(e) {
-        document.removeEventListener('mousemove', this.handleGlobalMouseMove);
-        document.removeEventListener('mouseup', this.handleGlobalMouseUp);
-
-        if (this.isWiring) {
-            const targetPinEl = e.target.closest('.pin-container');
-            if (targetPinEl && this.activePin) {
-                const endPinId = targetPinEl.dataset.pinId;
-                const endPin = this.findPinById(endPinId);
-
-                if (endPin && this.canConnect(this.activePin, endPin)) {
-                    this.app.wiring.createConnection(this.activePin, endPin);
-                } else if (endPin && !this.canConnect(this.activePin, endPin)) {
-                    // Fail to connect, open action menu only if user dragged a lot
-                    if (this.hasDragged) {
-                        this.app.actionMenu.show(e.clientX, e.clientY, this.activePin);
-                    }
-                } else if (!endPin && this.hasDragged) {
-                    // Drop on canvas, open action menu
-                    this.app.actionMenu.show(e.clientX, e.clientY, this.activePin);
-                    this.isWiring = false;
-                    this.activePin = null;
-                    this.app.wiring.updateGhostWire(null, null);
-                    return;
-                }
-            } else if (this.activePin && this.hasDragged) {
-                // Drop on canvas, open action menu
-                this.app.actionMenu.show(e.clientX, e.clientY, this.activePin);
-                this.isWiring = false;
-                this.activePin = null;
-                this.app.wiring.updateGhostWire(null, null);
-                return;
-            } else if (this.activePin && !this.hasDragged) {
-                // Simple click on pin - just clear wiring mode
-            }
-
-            this.isWiring = false;
-            this.activePin = null;
-            this.app.wiring.updateGhostWire(null, null);
-        }
-
-        if (this.isDraggingNode) {
-            this.isDraggingNode = false;
-            this.snapSelectedNodesToGrid();
-            this.nodeDragOffsets.clear();
-            this.app.persistence.autoSave();
-            this.app.compiler.markDirty();
-        }
-
-        if (this.isMarqueeing) {
-            this.isMarqueeing = false;
-            const marqueeRect = this.marqueeEl.getBoundingClientRect();
-            this.marqueeEl.style.display = 'none';
-
-            // Only select if there was movement
-            if (this.hasDragged) {
-                let mode = 'new';
-                if (e.shiftKey) mode = 'add';
-                else if (e.ctrlKey) mode = 'toggle';
-                else if (e.altKey) mode = 'remove';
-                this.selectNodesInRect(marqueeRect, mode);
-            } else {
-                // Simple click on background clears selection unless modifier key is held
-                if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
-                    this.clearSelection();
-                }
-            }
-        }
-
-        if (this.isRmbDown) { this.isRmbDown = false; }
-        this.isPanning = false;
-        this.editor.classList.remove('dragging');
-        this.hasDragged = false;
-        this.dragStart = { x: 0, y: 0 };
-    }
-
-    handleZoom(e) {
-        e.preventDefault();
-
-        // Prevent zoom if user is trying to scroll a node literal input field
-        if (e.target.closest('.node-literal-input')) {
-            return;
-        }
-
-        const scaleAmount = 1.1;
-        const rect = this.editor.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const mouseGraphX_before = (mouseX - this.pan.x) / this.zoom;
-        const mouseGraphY_before = (mouseY - this.pan.y) / this.zoom;
-
-        if (e.deltaY < 0) this.zoom *= scaleAmount;
-        else this.zoom /= scaleAmount;
-
-        this.zoom = Math.max(0.2, Math.min(this.zoom, 1.5));
-
-        this.pan.x = mouseX - mouseGraphX_before * this.zoom;
-        this.pan.y = mouseY - mouseGraphY_before * this.zoom;
-
-        this.updateTransform();
-        this.app.grid.draw();
-        this.zoomReadout.textContent = `${Math.round(this.zoom * 100)}%`;
-
-        // Redraw all wires after zoom/pan
-        this.drawAllWires();
-    }
-
-    handleContextMenu(e) {
-        e.preventDefault();
-        if (e.target.closest('.node')) { return; }
-        this.app.actionMenu.show(e.clientX, e.clientY, null);
-    }
 
     handlePinContextMenu(e) {
         const pinContainerEl = e.target.closest('.pin-container');
