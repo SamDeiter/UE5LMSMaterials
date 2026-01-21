@@ -664,55 +664,50 @@ body {
 }
 
 /* ============================================================================
-   MATERIAL NODES - UE5 Style
+   MATERIAL NODES - UE5 Style (Accurate)
    ============================================================================ */
 .node {
   position: absolute;
   min-width: var(--node-min-width);
-  background: linear-gradient(180deg, #282828 0%, #202020 100%);
-  border: 1px solid #0a0a0a;
-  border-radius: 6px;
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.6),
-    0 4px 16px rgba(0, 0, 0, 0.4);
+  background: #1a1a1a;
+  border: 1px solid #000000;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
   cursor: move;
   z-index: 10;
   contain: layout;
+  overflow: hidden;
 }
 
 .node:hover {
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.6),
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-color: #333333;
 }
 
 .node.selected {
+  border-color: var(--accent-orange);
   box-shadow: 
-    0 0 0 2px var(--accent-orange),
-    0 0 16px rgba(255, 149, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.5);
+    0 0 0 1px var(--accent-orange),
+    0 2px 8px rgba(255, 149, 0, 0.25);
 }
 
+/* Thin colored title bar - UE5 style */
 .node-header {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
-  background: var(--header-expression);
-  border-radius: 5px 5px 0 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-bright);
-  letter-spacing: 0.2px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  padding: 3px 6px;
+  background: #2a2a2a;
+  border-top: 3px solid var(--header-expression);
+  font-size: 9px;
+  font-weight: 500;
+  color: #cccccc;
+  letter-spacing: 0.3px;
 }
 
 .node-icon {
-  margin-right: 8px;
-  font-size: 13px;
+  margin-right: 5px;
+  font-size: 10px;
   font-weight: bold;
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 .node-title {
@@ -722,29 +717,32 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Node type header colors - UE5 Categories */
+/* Node type header colors - Thin top border */
 .node.material-parameter .node-header {
-  background: linear-gradient(180deg, #00897b 0%, #00796b 100%);
+  border-top-color: #00897b;
 }
 
 .node.material-function .node-header {
-  background: linear-gradient(180deg, #1e88e5 0%, #1976d2 100%);
+  border-top-color: #1976d2;
 }
 
-.node.material-texture .node-header {
-  background: linear-gradient(180deg, #8e24aa 0%, #7b1fa2 100%);
+.node.material-texture .node-header,
+.node[data-category="Texture"] .node-header {
+  border-top-color: #8e24aa;
 }
 
-.node.material-math .node-header {
-  background: linear-gradient(180deg, #43a047 0%, #388e3c 100%);
+.node.material-math .node-header,
+.node[data-category="Math"] .node-header {
+  border-top-color: #43a047;
 }
 
 .node.comment-node .node-header {
-  background: linear-gradient(180deg, #689f38 0%, #558b2f 100%);
+  border-top-color: #558b2f;
 }
 
 .node.main-output .node-header {
-  background: linear-gradient(180deg, #455a64 0%, #37474f 100%);
+  border-top-color: #37474f;
+  background: #252525;
 }
 
 .node-content {
@@ -804,22 +802,23 @@ body {
 }
 
 .pin-dot {
-  width: var(--pin-size);
-  height: var(--pin-size);
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid currentColor;
   background-color: currentColor;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.1s;
   flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
 }
 
 .pin-dot.hollow {
-  background-color: transparent;
+  background-color: #1a1a1a;
+  border: 2px solid currentColor;
+  box-shadow: none;
 }
 
 .pin:hover .pin-dot {
-  transform: scale(1.25);
-  box-shadow: 0 0 8px currentColor;
+  transform: scale(1.3);
 }
 
 .pin-label {
