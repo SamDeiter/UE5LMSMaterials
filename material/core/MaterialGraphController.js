@@ -1,7 +1,8 @@
 /**
  * MaterialGraphController.js
  *
- * Manages the graph canvas, node rendering, wire connections, and user interactions.
+ * Manages the graph canvas, node rendering, wire connections, and core operations.
+ * InputController has been extracted to MaterialInputController.js
  * Extracted from material-app.js for modularity.
  */
 
@@ -14,6 +15,8 @@ import {
 import { debounce, generateId } from "../../shared/utils.js";
 import { WireRenderer } from "../../shared/WireRenderer.js";
 import { GridRenderer } from "../../shared/GridRenderer.js";
+import { MaterialInputController } from "./MaterialInputController.js";
+
 
 export class MaterialGraphController {
   constructor(app) {
@@ -53,6 +56,9 @@ export class MaterialGraphController {
     // Hotkey manager for "Hold key + Click" node spawning
     this.hotkeyManager = new HotkeyManager(this, materialNodeRegistry);
 
+    // Delegate input handling to InputController
+    this.input = new MaterialInputController(this);
+
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
 
@@ -73,14 +79,12 @@ export class MaterialGraphController {
       debounce(() => this.resize(), 100)
     );
 
-    // Mouse events
-    this.graphPanel.addEventListener("mousedown", (e) => this.onMouseDown(e));
-    this.graphPanel.addEventListener("mousemove", (e) => this.onMouseMove(e));
-    this.graphPanel.addEventListener("mouseup", (e) => this.onMouseUp(e));
-    this.graphPanel.addEventListener("wheel", (e) => this.onWheel(e));
-    this.graphPanel.addEventListener("contextmenu", (e) =>
-      this.onContextMenu(e)
-    );
+    // Mouse events - delegate to InputController
+    this.graphPanel.addEventListener("mousedown", (e) => this.input.onMouseDown(e));
+    this.graphPanel.addEventListener("mousemove", (e) => this.input.onMouseMove(e));
+    this.graphPanel.addEventListener("mouseup", (e) => this.input.onMouseUp(e));
+    this.graphPanel.addEventListener("wheel", (e) => this.input.onWheel(e));
+    this.graphPanel.addEventListener("contextmenu", (e) => this.input.onContextMenu(e));
 
     // Drag and drop from palette
     this.graphPanel.addEventListener("dragover", (e) => {
@@ -103,9 +107,9 @@ export class MaterialGraphController {
       }
     });
 
-    // Keyboard events
-    document.addEventListener("keydown", (e) => this.onKeyDown(e));
-    document.addEventListener("keyup", (e) => this.onKeyUp(e));
+    // Keyboard events - delegate to InputController
+    document.addEventListener("keydown", (e) => this.input.onKeyDown(e));
+    document.addEventListener("keyup", (e) => this.input.onKeyUp(e));
 
     // Click outside to deselect AND handle hotkey spawning
     this.graphPanel.addEventListener("click", (e) => {
@@ -582,206 +586,7 @@ export class MaterialGraphController {
     this.app.details.showMaterialProperties();
   }
 
-  /**
-   * Handle mouse down
-   */
-  onMouseDown(e) {
-    // Middle mouse or right mouse for panning
-    if (e.button === 1 || (e.button === 2 && !e.target.closest(".node"))) {
-      this.isPanning = true;
-      this.dragStartX = e.clientX - this.panX;
-      this.dragStartY = e.clientY - this.panY;
-      e.preventDefault();
-    }
-  }
 
-  /**
-   * Handle mouse move
-   */
-  onMouseMove(e) {
-    if (this.isPanning) {
-      this.panX = e.clientX - this.dragStartX;
-      this.panY = e.clientY - this.dragStartY;
-      this.drawGrid();
-      this.nodes.forEach((node) => this.updateNodePosition(node));
-      this.updateAllWires();
-    }
-
-    if (this.isDragging && this.dragOffsets) {
-      const dx = (e.clientX - this.dragStartX) / this.zoom;
-      const dy = (e.clientY - this.dragStartY) / this.zoom;
-
-      this.selectedNodes.forEach((nodeId) => {
-        const node = this.nodes.get(nodeId);
-        const offset = this.dragOffsets.get(nodeId);
-        if (node && offset) {
-          node.x = offset.x + dx;
-          node.y = offset.y + dy;
-          this.updateNodePosition(node);
-        }
-      });
-
-      this.updateAllWires();
-    }
-
-    if (this.isWiring) {
-      this.updateGhostWire(e);
-    }
-  }
-
-  /**
-   * Handle mouse up
-   */
-  onMouseUp(e) {
-    if (this.isPanning) {
-      this.isPanning = false;
-    }
-
-    if (this.isDragging) {
-      this.isDragging = false;
-      this.dragOffsets = null;
-    }
-
-    if (this.isWiring) {
-      // Check if we're over a valid target pin
-      const target = document.elementFromPoint(e.clientX, e.clientY);
-      if (target && target.classList.contains("pin-dot")) {
-        const pinEl = target.parentElement;
-        const pinId = pinEl.dataset.pinId;
-
-        // Find the target node and pin
-        for (const [id, node] of this.nodes) {
-          const pin = node.findPin(pinId);
-          if (pin && pin !== this.wiringStartPin) {
-            this.endWiring(pin);
-            return;
-          }
-        }
-      }
-
-      this.endWiring();
-    }
-  }
-
-  /**
-   * Handle mouse wheel (zoom)
-   */
-  onWheel(e) {
-    e.preventDefault();
-
-    const rect = this.graphPanel.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Calculate zoom
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.25, Math.min(2, this.zoom * zoomFactor));
-
-    // Zoom toward mouse position
-    const zoomRatio = newZoom / this.zoom;
-    this.panX = mouseX - (mouseX - this.panX) * zoomRatio;
-    this.panY = mouseY - (mouseY - this.panY) * zoomRatio;
-    this.zoom = newZoom;
-
-    // Update display
-    document.getElementById("zoom-readout").textContent = `${Math.round(
-      this.zoom * 100
-    )}%`;
-
-    this.drawGrid();
-    this.nodes.forEach((node) => this.updateNodePosition(node));
-    this.updateAllWires();
-  }
-
-  /**
-   * Handle context menu (right-click)
-   */
-  onContextMenu(e) {
-    e.preventDefault();
-
-    // Don't show menu if over a node
-    if (e.target.closest(".node")) return;
-
-    this.app.actionMenu.show(e.clientX, e.clientY);
-  }
-
-  /**
-   * Handle key down
-   */
-  onKeyDown(e) {
-    // Don't handle if in input
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-    // Delete
-    if (e.key === "Delete" || e.key === "Backspace") {
-      e.preventDefault();
-      this.deleteSelected();
-    }
-
-    // Ctrl shortcuts
-    if (e.ctrlKey) {
-      if (e.key === "z" || e.key === "Z") {
-        e.preventDefault();
-        // TODO: Undo
-      }
-      if (e.key === "y" || e.key === "Y") {
-        e.preventDefault();
-        // TODO: Redo
-      }
-      if (e.key === "s" || e.key === "S") {
-        e.preventDefault();
-        this.app.save();
-      }
-      if (e.key === "d" || e.key === "D") {
-        e.preventDefault();
-        this.duplicateSelected();
-      }
-    }
-
-    // Shift+WASD - Node alignment shortcuts
-    if (e.shiftKey && !e.ctrlKey && !e.altKey) {
-      switch (e.key.toLowerCase()) {
-        case "w":
-          e.preventDefault();
-          this.alignSelected("top");
-          break;
-        case "a":
-          e.preventDefault();
-          this.alignSelected("left");
-          break;
-        case "s":
-          e.preventDefault();
-          this.alignSelected("bottom");
-          break;
-        case "d":
-          e.preventDefault();
-          this.alignSelected("right");
-          break;
-      }
-    }
-
-    // F - Focus on selected nodes
-    if (e.key === "f" && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-      e.preventDefault();
-      this.focusSelected();
-    }
-
-    // Home - Focus on main material node
-    if (e.key === "Home") {
-      e.preventDefault();
-      this.focusMainNode();
-    }
-
-    // Hotkey spawning is now handled by HotkeyManager via "Hold key + Click"
-    // The HotkeyManager is wired up in the constructor and graph click handler
-  }
-
-  /**
-   * Handle key up
-   */
-  onKeyUp(e) {
-    // Nothing special needed
-  }
 
   /**
    * Duplicate selected nodes
