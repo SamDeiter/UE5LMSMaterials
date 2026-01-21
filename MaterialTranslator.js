@@ -5,8 +5,8 @@
  * Adopts UE5-style patterns: Scoped caching (Deduplication) and result structs.
  */
 
-import { shaderEvaluator } from "./ShaderEvaluator.js";
-import { textureManager } from "./TextureManager.js";
+import { shaderEvaluator } from "./material/engine/ShaderEvaluator.js";
+import { textureManager } from "./material/engine/TextureManager.js";
 
 export class MaterialTranslator {
   constructor() {
