@@ -428,12 +428,12 @@ body {
 }
 
 #right-column {
-  width: 220px;
-  min-width: 180px;
+  width: 250px;
+  min-width: 200px;
   background-color: var(--bg-panel);
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 8px;
+  box-sizing: border-box;
 }
 
 /* ============================================================================

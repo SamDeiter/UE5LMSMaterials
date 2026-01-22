@@ -244,16 +244,7 @@ export class ViewportController {
 
     // Track L key state
     this.isLKeyDown = false;
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "l" || e.key === "L") {
-        this.isLKeyDown = true;
-      }
-    });
-    document.addEventListener("keyup", (e) => {
-      if (e.key === "l" || e.key === "L") {
-        this.isLKeyDown = false;
-      }
-    });
+    // Note: Using only Shift for light rotation to avoid conflict with Lerp hotkey (L)
   }
 
   updateLightPosition() {
