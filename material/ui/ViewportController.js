@@ -77,17 +77,12 @@ export class ViewportController {
       this.controls.enableDamping = true;
       this.controls.target.set(0, 1, 0);
 
-      // Lighting - enhanced for better roughness visibility
-      this.directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+      // Lighting - single directional light for clean appearance
+      this.directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
       this.directionalLight.position.set(3, 10, 5);
       this.scene.add(this.directionalLight);
 
-      // Add a second light for rim lighting
-      const rimLight = new THREE.DirectionalLight(0xaaccff, 1.0);
-      rimLight.position.set(-3, 5, -5);
-      this.scene.add(rimLight);
-
-      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
+      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
       this.scene.add(this.ambientLight);
 
       // Create procedural environment map for PBR reflections  
@@ -154,11 +149,11 @@ export class ViewportController {
         metalness: 0,
         roughness: 0.5,
         side: THREE.DoubleSide,
-        envMapIntensity: 1.5, // Boost environment reflections
+        envMapIntensity: 0.5, // Reduced to prevent color washout
         specularIntensity: 0.5, // UE5 default specular = 0.5
         specularColor: new THREE.Color(0xffffff),
-        reflectivity: 0.5, // Matches UE5 specular default
-        ior: 1.5, // Standard glass IOR
+        reflectivity: 0.5,
+        ior: 1.5,
       });
 
       // Create initial mesh
@@ -332,7 +327,7 @@ export class ViewportController {
     }
 
     // Use slight metalness if nothing connected to make roughness more visible
-    this.material.metalness = result.metallic ?? 0.3;
+    this.material.metalness = result.metallic ?? 0;
     this.material.roughness = result.roughness ?? 0.5;
 
     if (result.emissive) {

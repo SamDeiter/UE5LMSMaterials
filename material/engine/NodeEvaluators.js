@@ -199,7 +199,7 @@ export function dispatchNodeEvaluation(pinEvaluator, node, outputPin, visited) {
   if (nodeKey === "Divide") {
     return evaluateBinaryOp(pinEvaluator, node, visited, divideValues, 1);
   }
-  if (nodeKey === "Lerp") {
+  if (nodeKey === "Lerp" || nodeKey === "LinearInterpolate") {
     return evaluateLerp(pinEvaluator, node, visited);
   }
   if (nodeKey === "Max") {
