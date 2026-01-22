@@ -1157,6 +1157,50 @@ body {
   border-color: var(--accent-blue);
 }
 
+/* Input Defaults Section for unconnected pins */
+.input-defaults-section {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-medium);
+}
+
+.input-defaults-section .section-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-left: 8px;
+}
+
+.input-pin-row {
+  background-color: rgba(0, 100, 200, 0.05);
+}
+
+.input-pin-row label {
+  color: var(--accent-blue);
+}
+
+.vec3-input {
+  display: flex;
+  gap: 4px;
+}
+
+.vec3-input input {
+  width: 50px;
+  flex: 1;
+}
+
+.pin-input {
+  width: 100%;
+  padding: 3px 6px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
 /* UE5-style Checkbox */
 .ue5-checkbox {
   appearance: none;

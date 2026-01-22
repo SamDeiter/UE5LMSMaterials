@@ -87,6 +87,19 @@ export class DetailsController {
       html += this.renderProperty(key, value, node);
     });
 
+    // Render unconnected input pins with default values
+    if (node.inputs && node.inputs.length > 0) {
+      const unconnectedInputs = node.inputs.filter(pin => !pin.connectedTo);
+      if (unconnectedInputs.length > 0) {
+        html += `<div class="input-defaults-section"><div class="section-label">Input Defaults</div>`;
+        unconnectedInputs.forEach(pin => {
+          const defaultValue = pin.defaultValue ?? 0;
+          html += this.renderInputPin(pin, defaultValue, node);
+        });
+        html += `</div>`;
+      }
+    }
+
     html += "</div></div>";
     this.nodeProps.innerHTML = html;
 
@@ -120,6 +133,34 @@ export class DetailsController {
         // Trigger live update if enabled
         if (this.app && this.app.triggerLiveUpdate) {
           this.app.triggerLiveUpdate();
+        }
+      });
+    });
+
+    // Bind input pin default value changes
+    this.nodeProps.querySelectorAll(".pin-input").forEach((input) => {
+      input.addEventListener("change", (e) => {
+        const pinId = e.target.dataset.pinId;
+        const component = e.target.dataset.component;
+        const newValue = parseFloat(e.target.value);
+        
+        const pin = node.inputs.find(p => p.localId === pinId);
+        if (pin) {
+          if (component !== undefined) {
+            // Vector component
+            if (!Array.isArray(pin.defaultValue)) {
+              pin.defaultValue = [0, 0, 0];
+            }
+            pin.defaultValue[parseInt(component)] = newValue;
+          } else {
+            // Scalar value
+            pin.defaultValue = newValue;
+          }
+          
+          // Trigger live update
+          if (this.app && this.app.triggerLiveUpdate) {
+            this.app.triggerLiveUpdate();
+          }
         }
       });
     });
@@ -236,6 +277,36 @@ export class DetailsController {
     }">
             </div>
         `;
+  }
+
+  /**
+   * Render an input pin with its default value
+   */
+  renderInputPin(pin, defaultValue, node) {
+    const pinName = pin.name || pin.localId || "Input";
+    const pinType = pin.type || "float";
+    
+    // Different rendering based on expected type
+    if (pinType === "float3" || pinType === "color") {
+      return `
+        <div class="property-row input-pin-row">
+          <label>${pinName}</label>
+          <div class="vec3-input">
+            <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="0" value="${defaultValue[0] ?? 0}" step="0.01">
+            <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="1" value="${defaultValue[1] ?? 0}" step="0.01">
+            <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="2" value="${defaultValue[2] ?? 0}" step="0.01">
+          </div>
+        </div>
+      `;
+    }
+    
+    // Default: scalar input
+    return `
+      <div class="property-row input-pin-row">
+        <label>${pinName}</label>
+        <input type="number" class="pin-input" data-pin-id="${pin.localId}" value="${defaultValue}" step="0.01">
+      </div>
+    `;
   }
 
   /**
