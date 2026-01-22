@@ -18,6 +18,7 @@ import { WireRenderer } from "../../shared/WireRenderer.js";
 import { GridRenderer } from "../../shared/GridRenderer.js";
 import { MaterialInputController } from "./MaterialInputController.js";
 import { MaterialWiringController } from "./MaterialWiringController.js";
+import { AlignmentGuides } from "../ui/AlignmentGuides.js";
 
 
 export class MaterialGraphController {
@@ -67,6 +68,9 @@ export class MaterialGraphController {
 
     // Delegate wiring operations to WiringController
     this.wiring = new MaterialWiringController(this);
+
+    // Alignment guides for UE5-style visual feedback
+    this.alignmentGuides = new AlignmentGuides(this);
 
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
@@ -320,6 +324,70 @@ export class MaterialGraphController {
           this.app.details.showNodeProperties(node);
         }
       }
+    });
+
+    // Double-click on Comment nodes for inline editing
+    if (node.nodeKey === "Comment" || node.type === "comment") {
+      el.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        this.startCommentEditing(node);
+      });
+    }
+  }
+
+  /**
+   * Start inline editing for a Comment node
+   */
+  startCommentEditing(node) {
+    const titleEl = node.element.querySelector(".node-title");
+    if (!titleEl) return;
+
+    const currentText = node.properties.CommentText || "Comment";
+    
+    // Create editable input
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = currentText;
+    input.style.cssText = `
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #FF6B00;
+      color: white;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 3px;
+      outline: none;
+    `;
+
+    const originalText = titleEl.textContent;
+    titleEl.textContent = "";
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    const finishEditing = () => {
+      const newText = input.value.trim() || "Comment";
+      node.properties.CommentText = newText;
+      titleEl.textContent = newText;
+      
+      // Update details panel if showing this node
+      if (this.app && this.app.details) {
+        this.app.details.showNodeProperties(node);
+      }
+      
+      this.app.updateStatus(`Updated comment: "${newText}"`);
+    };
+
+    input.addEventListener("blur", finishEditing);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
+      }
+      if (e.key === "Escape") {
+        titleEl.textContent = originalText;
+      }
+      e.stopPropagation();
     });
   }
 

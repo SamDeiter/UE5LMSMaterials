@@ -57,6 +57,14 @@ export const EXTENDED_HOTKEYS = {
   W: "WorldPosition",
   X: "CrossProduct",
   ".": "DotProduct",
+  
+  // Additional common nodes
+  // Note: G is reserved for snap-to-grid toggle
+  H: "Time", // H for Hour/Time
+  J: "Saturate", // J for saturation clamping
+  Y: "Reroute", // Y for redirecting wires
+  Z: "Abs", // Z for absolute value
+  Q: "SphereMask", // Q for radial masking
 };
 
 /**

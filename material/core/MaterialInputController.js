@@ -70,6 +70,26 @@ export class MaterialInputController {
                 }
             });
 
+            // Show alignment guides during drag
+            if (this.graph.alignmentGuides) {
+                const alignments = this.graph.alignmentGuides.update(this.graph.selectedNodes);
+                
+                // Apply magnetic snap if not using grid snap
+                if (!this.graph.snapToGrid && alignments && alignments.length > 0) {
+                    const snapOffset = this.graph.alignmentGuides.getSnapOffset(this.graph.selectedNodes);
+                    if (snapOffset.dx !== 0 || snapOffset.dy !== 0) {
+                        this.graph.selectedNodes.forEach((nodeId) => {
+                            const node = this.graph.nodes.get(nodeId);
+                            if (node) {
+                                node.x += snapOffset.dx;
+                                node.y += snapOffset.dy;
+                                this.graph.updateNodePosition(node);
+                            }
+                        });
+                    }
+                }
+            }
+
             this.graph.wiring.updateAllWires();
         }
 
@@ -90,6 +110,11 @@ export class MaterialInputController {
             this.graph.isDragging = false;
             this.graph.dragOffsets = null;
             this.altDragDuplicated = false; // Reset alt+drag state
+            
+            // Clear alignment guides
+            if (this.graph.alignmentGuides) {
+                this.graph.alignmentGuides.clear();
+            }
         }
 
         if (this.graph.isWiring) {
