@@ -16,7 +16,66 @@ export class DetailsController {
     this.currentNode = null;
 
     this.bindMaterialPropertyEvents();
+    this.bindCategoryToggles();
+    this.bindSearchFilter();
   }
+
+  /**
+   * Bind click handlers for collapsible category headers
+   */
+  bindCategoryToggles() {
+    document.querySelectorAll('#material-properties .category-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const category = header.parentElement;
+        category.classList.toggle('collapsed');
+        // Update chevron icon direction
+        const icon = header.querySelector('i');
+        if (icon) {
+          icon.className = category.classList.contains('collapsed') 
+            ? 'fas fa-chevron-right' 
+            : 'fas fa-chevron-down';
+        }
+      });
+    });
+  }
+
+  /**
+   * Bind search filter input for property filtering
+   */
+  bindSearchFilter() {
+    const input = document.getElementById('details-filter');
+    if (!input) return;
+    
+    input.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      this.filterProperties(query);
+    });
+  }
+
+  /**
+   * Filter properties by search query
+   */
+  filterProperties(query) {
+    // Filter property rows
+    document.querySelectorAll('#details-content .property-row').forEach(row => {
+      const label = row.querySelector('label')?.textContent.toLowerCase() || '';
+      row.style.display = !query || label.includes(query) ? '' : 'none';
+    });
+    
+    // Show/hide categories based on whether they have visible children
+    document.querySelectorAll('#details-content .property-category').forEach(category => {
+      const hasVisibleRows = category.querySelector('.property-row:not([style*="display: none"])');
+      category.style.display = hasVisibleRows ? '' : 'none';
+      
+      // Auto-expand categories when searching
+      if (query && hasVisibleRows) {
+        category.classList.remove('collapsed');
+        const icon = category.querySelector('.category-header i');
+        if (icon) icon.className = 'fas fa-chevron-down';
+      }
+    });
+  }
+
 
   bindMaterialPropertyEvents() {
     // Blend mode changes affect main node pins and conditional sections

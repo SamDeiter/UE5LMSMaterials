@@ -248,11 +248,12 @@ describe("HLSL Code Generation", () => {
         expect(outPin.type).toBe("float3");
       });
 
-      it("should have R, G, B properties", () => {
+      it("should have Color property with R, G, B", () => {
         const def = getDefinition("Constant3Vector");
-        expect(def.properties).toHaveProperty("R");
-        expect(def.properties).toHaveProperty("G");
-        expect(def.properties).toHaveProperty("B");
+        expect(def.properties).toHaveProperty("Color");
+        expect(def.properties.Color).toHaveProperty("R");
+        expect(def.properties.Color).toHaveProperty("G");
+        expect(def.properties.Color).toHaveProperty("B");
       });
 
       it('should have hotkey "3"', () => {
@@ -283,11 +284,12 @@ describe("HLSL Code Generation", () => {
         expect(outPin.type).toBe("float4");
       });
 
-      it("should have R, G, B, A properties", () => {
+      it("should have Color property with R, G, B and separate A", () => {
         const def = getDefinition("Constant4Vector");
-        expect(def.properties).toHaveProperty("R");
-        expect(def.properties).toHaveProperty("G");
-        expect(def.properties).toHaveProperty("B");
+        expect(def.properties).toHaveProperty("Color");
+        expect(def.properties.Color).toHaveProperty("R");
+        expect(def.properties.Color).toHaveProperty("G");
+        expect(def.properties.Color).toHaveProperty("B");
         expect(def.properties).toHaveProperty("A");
       });
     });

@@ -151,9 +151,11 @@ describe("NodeEvaluators", () => {
   // Utility Evaluators
   // ==========================================================================
   describe("Utility Evaluators", () => {
-    it("evaluateFresnel should return 0.5 (preview approximation)", () => {
-      const node = createMockNode("Fresnel", { Exponent: 5 });
-      expect(evaluateFresnel(node)).toBe(0.5);
+    it("evaluateFresnel should return Schlick approximation result", () => {
+      const node = createMockNode("Fresnel", { Exponent: 5 }, []);
+      // Schlick approximation: F0 + (1 - F0) * (1 - NdotV)^exp
+      // With F0=0.04, NdotV=0.5, exp=5: 0.04 + 0.96 * (0.5)^5 = 0.04 + 0.03 = 0.07
+      expect(evaluateFresnel(null, node, new Set())).toBeCloseTo(0.07, 1);
     });
   });
 
