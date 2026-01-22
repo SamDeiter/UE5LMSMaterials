@@ -77,13 +77,68 @@ export class ViewportController {
       this.controls.enableDamping = true;
       this.controls.target.set(0, 1, 0);
 
-      // Lighting
-      this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      // Lighting - enhanced for better roughness visibility
+      this.directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
       this.directionalLight.position.set(3, 10, 5);
       this.scene.add(this.directionalLight);
 
-      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      // Add a second light for rim lighting
+      const rimLight = new THREE.DirectionalLight(0xaaccff, 1.0);
+      rimLight.position.set(-3, 5, -5);
+      this.scene.add(rimLight);
+
+      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
       this.scene.add(this.ambientLight);
+
+      // Create procedural environment map for PBR reflections  
+      // Using high contrast for clear roughness visualization
+      const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+      pmremGenerator.compileEquirectangularShader();
+      
+      // Create a studio-style environment with distinct bright/dark areas
+      const envScene = new THREE.Scene();
+      const envGeo = new THREE.SphereGeometry(50, 32, 32);
+      const envMat = new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        uniforms: {},
+        vertexShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            float x = dir.x;
+            
+            // Studio lighting setup - bright top area, dark sides
+            vec3 topColor = vec3(2.0, 1.9, 1.8);      // Bright warm top light
+            vec3 bottomColor = vec3(0.05, 0.05, 0.08); // Dark floor
+            vec3 sideColor = vec3(0.1, 0.12, 0.15);    // Dark gray sides
+            
+            // Create distinct light source regions
+            float topLight = smoothstep(0.3, 0.9, y);
+            float rimLight = smoothstep(0.6, 1.0, abs(x)) * step(0.0, y) * 0.5;
+            
+            vec3 color = mix(sideColor, topColor, topLight);
+            color = mix(color, bottomColor, smoothstep(-0.2, -0.8, y));
+            color += vec3(0.8, 0.9, 1.0) * rimLight; // Blue rim
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `
+      });
+      const envMesh = new THREE.Mesh(envGeo, envMat);
+      envScene.add(envMesh);
+      
+      this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
+      this.scene.environment = this.envMap;
+      pmremGenerator.dispose();
 
       // Create geometries
       this.geometries = {
@@ -93,12 +148,17 @@ export class ViewportController {
         plane: new THREE.PlaneGeometry(3, 3),
       };
 
-      // Create material
+      // Create material with proper PBR settings matching UE5 defaults
       this.material = new THREE.MeshPhysicalMaterial({
-        color: 0x808080,
+        color: 0xffffff, // Default white to match UE5
         metalness: 0,
         roughness: 0.5,
         side: THREE.DoubleSide,
+        envMapIntensity: 1.5, // Boost environment reflections
+        specularIntensity: 0.5, // UE5 default specular = 0.5
+        specularColor: new THREE.Color(0xffffff),
+        reflectivity: 0.5, // Matches UE5 specular default
+        ior: 1.5, // Standard glass IOR
       });
 
       // Create initial mesh
@@ -145,6 +205,65 @@ export class ViewportController {
     meshSelect?.addEventListener("change", (e) => {
       this.setGeometry(e.target.value);
     });
+
+    // Light rotation controls (L + mouse drag)
+    this.isLightDragging = false;
+    this.lightAngleX = 0.3; // Initial angle (radians)
+    this.lightAngleY = 0.8;
+    this.lightDistance = 12;
+
+    this.canvas?.addEventListener("mousedown", (e) => {
+      if (e.shiftKey || this.isLKeyDown) {
+        this.isLightDragging = true;
+        this.controls.enabled = false;
+        e.preventDefault();
+      }
+    });
+
+    this.canvas?.addEventListener("mousemove", (e) => {
+      if (this.isLightDragging) {
+        this.lightAngleX += e.movementX * 0.01;
+        this.lightAngleY = Math.max(-1.5, Math.min(1.5, this.lightAngleY - e.movementY * 0.01));
+        this.updateLightPosition();
+      }
+    });
+
+    this.canvas?.addEventListener("mouseup", () => {
+      if (this.isLightDragging) {
+        this.isLightDragging = false;
+        this.controls.enabled = true;
+      }
+    });
+
+    this.canvas?.addEventListener("mouseleave", () => {
+      if (this.isLightDragging) {
+        this.isLightDragging = false;
+        this.controls.enabled = true;
+      }
+    });
+
+    // Track L key state
+    this.isLKeyDown = false;
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "l" || e.key === "L") {
+        this.isLKeyDown = true;
+      }
+    });
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "l" || e.key === "L") {
+        this.isLKeyDown = false;
+      }
+    });
+  }
+
+  updateLightPosition() {
+    if (!this.directionalLight) return;
+    
+    const x = Math.cos(this.lightAngleX) * Math.cos(this.lightAngleY) * this.lightDistance;
+    const y = Math.sin(this.lightAngleY) * this.lightDistance;
+    const z = Math.sin(this.lightAngleX) * Math.cos(this.lightAngleY) * this.lightDistance;
+    
+    this.directionalLight.position.set(x, y, z);
   }
 
   updateLighting() {
@@ -218,10 +337,11 @@ export class ViewportController {
         );
       }
     } else {
-      this.material.color.setRGB(0.5, 0.5, 0.5);
+      this.material.color.setRGB(1, 1, 1); // Default white
     }
 
-    this.material.metalness = result.metallic ?? 0;
+    // Use slight metalness if nothing connected to make roughness more visible
+    this.material.metalness = result.metallic ?? 0.3;
     this.material.roughness = result.roughness ?? 0.5;
 
     if (result.emissive) {
@@ -258,6 +378,32 @@ export class ViewportController {
       // Clear texture if no texture connected
       if (this.material.map) {
         this.material.map = null;
+      }
+    }
+
+    // Handle roughness texture
+    if (result.roughnessTexture) {
+      this.loadTexture(result.roughnessTexture, (texture) => {
+        this.material.roughnessMap = texture;
+        this.material.roughness = 1.0; // Use full range with texture
+        this.material.needsUpdate = true;
+      });
+    } else {
+      if (this.material.roughnessMap) {
+        this.material.roughnessMap = null;
+      }
+    }
+
+    // Handle metallic texture
+    if (result.metallicTexture) {
+      this.loadTexture(result.metallicTexture, (texture) => {
+        this.material.metalnessMap = texture;
+        this.material.metalness = 1.0; // Use full range with texture
+        this.material.needsUpdate = true;
+      });
+    } else {
+      if (this.material.metalnessMap) {
+        this.material.metalnessMap = null;
       }
     }
 

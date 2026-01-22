@@ -70,11 +70,15 @@ export class MaterialEvaluator {
     if (!mainNode) return null;
 
     const result = {
-      baseColor: [0.5, 0.5, 0.5],
+      baseColor: [1.0, 1.0, 1.0], // Default white to match UE5 default
       metallic: 0,
       roughness: 0.5,
       emissive: null,
       opacity: 1.0,
+      // Texture maps
+      baseColorTexture: null,
+      roughnessTexture: null,
+      metallicTexture: null,
     };
 
     // Evaluate each main node input
@@ -89,10 +93,10 @@ export class MaterialEvaluator {
           this.processBaseColor(value, result);
           break;
         case "metallic":
-          result.metallic = this.extractScalar(value, 0);
+          this.processScalarOrTexture(value, result, 'metallic', 'metallicTexture', 0);
           break;
         case "roughness":
-          result.roughness = this.extractScalar(value, 0.5);
+          this.processScalarOrTexture(value, result, 'roughness', 'roughnessTexture', 0.5);
           break;
         case "emissive color":
           result.emissive = this.extractColor(value);
@@ -115,6 +119,17 @@ export class MaterialEvaluator {
     if (typeof value === "number") return value;
     if (Array.isArray(value)) return value[0];
     return fallback;
+  }
+
+  /** Process a value that could be scalar or texture */
+  processScalarOrTexture(value, result, scalarKey, textureKey, fallback) {
+    // Handle texture objects
+    if (value && typeof value === "object" && value.type === "texture") {
+      result[textureKey] = value.url;
+      result[scalarKey] = 1.0; // Use full range when texture is present
+    } else {
+      result[scalarKey] = this.extractScalar(value, fallback);
+    }
   }
 
   /** Extract an RGB color from any value type */

@@ -16,6 +16,7 @@
  * - DepthNodes.js: SceneColor, SceneDepth, DepthFade, CameraDepthFade
  * - ControlFlowNodes.js: StaticSwitch, If, Comment, Reroute nodes
  * - SubstrateNodes.js: Substrate Slab BSDF, Vertical Layer, Horizontal Blend (UE5.1+)
+ * - DebugNodes.js: BRDF Visualizer, Fresnel Debug, GGX/Smith debug nodes
  */
 
 import { OutputNodes } from './OutputNodes.js';
@@ -29,6 +30,7 @@ import { UtilityNodes } from './UtilityNodes.js';
 import { DepthNodes } from './DepthNodes.js';
 import { ControlFlowNodes } from './ControlFlowNodes.js';
 import { SubstrateNodes } from './SubstrateNodes.js';
+import { DebugNodes } from './DebugNodes.js';
 
 // Combine all node modules into a single export
 export const MaterialExpressionDefinitions = {
@@ -43,6 +45,7 @@ export const MaterialExpressionDefinitions = {
   ...DepthNodes,
   ...ControlFlowNodes,
   ...SubstrateNodes,
+  ...DebugNodes,
 };
 
 // Also export individual modules for direct imports
@@ -58,4 +61,6 @@ export {
   DepthNodes,
   ControlFlowNodes,
   SubstrateNodes,
+  DebugNodes,
 };
+
