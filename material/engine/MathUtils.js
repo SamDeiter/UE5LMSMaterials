@@ -74,9 +74,29 @@ export function divideValues(a, b) {
  * Lerp (linear interpolate) two values
  */
 export function lerpValues(a, b, t) {
-  const alpha = typeof t === "number" ? t : 0.5;
+  // Extract alpha value from various types
+  let alpha = 0.5;
+  if (typeof t === "number") {
+    alpha = t;
+  } else if (Array.isArray(t)) {
+    // Use first component of array (R channel) as alpha
+    alpha = t[0] ?? 0.5;
+  } else if (t && typeof t === "object" && t.type === "texture") {
+    // Texture as alpha - use midpoint for preview (can't sample texture in CPU)
+    alpha = 0.5;
+  }
+  
+  // Clamp alpha to 0-1 range
+  alpha = Math.max(0, Math.min(1, alpha));
+  
   if (Array.isArray(a) && Array.isArray(b)) {
-    return a.map((v, i) => v + (b[i] - v) * alpha);
+    return a.map((v, i) => v + ((b[i] ?? v) - v) * alpha);
+  }
+  if (Array.isArray(a) && typeof b === "number") {
+    return a.map((v) => v + (b - v) * alpha);
+  }
+  if (typeof a === "number" && Array.isArray(b)) {
+    return b.map((v) => a + (v - a) * alpha);
   }
   if (typeof a === "number" && typeof b === "number") {
     return a + (b - a) * alpha;
