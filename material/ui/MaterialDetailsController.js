@@ -69,6 +69,12 @@ export class DetailsController {
   }
 
   showNodeProperties(node) {
+    // Main material node should show Material Properties panel, not node properties
+    if (node.type === "main-output") {
+      this.showMaterialProperties();
+      return;
+    }
+    
     this.currentNode = node;
     this.materialProps.style.display = "none";
     this.nodeProps.style.display = "block";
@@ -88,7 +94,8 @@ export class DetailsController {
     });
 
     // Render unconnected input pins with default values
-    if (node.inputs && node.inputs.length > 0) {
+    // Skip for main-output node - it should show Material Properties instead
+    if (node.inputs && node.inputs.length > 0 && node.type !== "main-output") {
       const unconnectedInputs = node.inputs.filter(pin => !pin.connectedTo);
       if (unconnectedInputs.length > 0) {
         html += `<div class="input-defaults-section"><div class="section-label">Input Defaults</div>`;
