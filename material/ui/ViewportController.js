@@ -35,9 +35,15 @@ export class ViewportController {
     // Show flags
     this.gridVisible = true;
     this.gridHelper = null;
+    this.floorVisible = false;
+    this.floorPlane = null;
     
     // Tone mapping toggle
     this.toneMappingEnabled = true;
+    this.exposure = 0; // EV value (-3 to +3)
+    
+    // Environment preset
+    this.currentEnvironment = 'studio';
 
     // Lights
     this.ambientLight = null;
@@ -251,6 +257,25 @@ export class ViewportController {
       tonemapperBtn.classList.toggle("active", this.toneMappingEnabled);
     });
 
+    // Environment preset dropdown
+    const envSelect = document.getElementById("viewport-env-select");
+    envSelect?.addEventListener("change", (e) => {
+      this.setEnvironment(e.target.value);
+    });
+
+    // Floor toggle
+    const floorBtn = document.getElementById("viewport-floor-btn");
+    floorBtn?.addEventListener("click", () => {
+      this.toggleFloor();
+      floorBtn.classList.toggle("active", this.floorVisible);
+    });
+
+    // Exposure slider
+    const exposureSlider = document.getElementById("viewport-exposure");
+    exposureSlider?.addEventListener("input", (e) => {
+      this.setExposure(parseFloat(e.target.value));
+    });
+
     // Light rotation controls (Shift + mouse drag)
     this.isLightDragging = false;
     this.lightAngleX = 0.3; // Initial angle (radians)
@@ -446,6 +471,165 @@ export class ViewportController {
     this.renderer.toneMapping = this.toneMappingEnabled 
       ? this.THREE.ACESFilmicToneMapping 
       : this.THREE.NoToneMapping;
+    this.needsRender = true;
+  }
+
+  /**
+   * Set exposure (EV value from -3 to +3)
+   */
+  setExposure(ev) {
+    if (!this.initialized || !this.renderer) return;
+    
+    this.exposure = ev;
+    // Convert EV to exposure multiplier: 2^EV
+    this.renderer.toneMappingExposure = Math.pow(2, ev);
+    this.needsRender = true;
+  }
+
+  /**
+   * Toggle floor plane visibility
+   */
+  toggleFloor() {
+    if (!this.initialized) return;
+    
+    this.floorVisible = !this.floorVisible;
+    
+    if (this.floorVisible && !this.floorPlane) {
+      // Create floor plane on first toggle
+      const floorGeo = new this.THREE.PlaneGeometry(20, 20);
+      const floorMat = new this.THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.8,
+        metalness: 0,
+      });
+      this.floorPlane = new this.THREE.Mesh(floorGeo, floorMat);
+      this.floorPlane.rotation.x = -Math.PI / 2;
+      this.floorPlane.position.y = 0;
+      this.floorPlane.receiveShadow = true;
+      this.scene.add(this.floorPlane);
+    } else if (this.floorPlane) {
+      this.floorPlane.visible = this.floorVisible;
+    }
+    
+    this.needsRender = true;
+  }
+
+  /**
+   * Set environment preset (studio, outdoor, night)
+   */
+  setEnvironment(preset) {
+    if (!this.initialized) return;
+    
+    this.currentEnvironment = preset;
+    
+    const pmremGenerator = new this.THREE.PMREMGenerator(this.renderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    const envScene = new this.THREE.Scene();
+    const envGeo = new this.THREE.SphereGeometry(50, 32, 32);
+    
+    let fragmentShader;
+    
+    switch (preset) {
+      case 'outdoor':
+        // Blue sky with sun
+        fragmentShader = `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            
+            vec3 skyColor = vec3(0.4, 0.6, 1.0);
+            vec3 horizonColor = vec3(0.8, 0.85, 0.9);
+            vec3 groundColor = vec3(0.2, 0.15, 0.1);
+            vec3 sunColor = vec3(3.0, 2.8, 2.2);
+            
+            vec3 color = mix(horizonColor, skyColor, smoothstep(0.0, 0.5, y));
+            color = mix(groundColor, color, smoothstep(-0.1, 0.1, y));
+            
+            // Sun
+            float sunDot = max(0.0, dot(dir, normalize(vec3(0.5, 0.7, 0.3))));
+            color += sunColor * pow(sunDot, 64.0);
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+        break;
+        
+      case 'night':
+        // Dark blue night sky
+        fragmentShader = `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            
+            vec3 skyColor = vec3(0.02, 0.03, 0.08);
+            vec3 horizonColor = vec3(0.05, 0.05, 0.1);
+            vec3 groundColor = vec3(0.01, 0.01, 0.02);
+            
+            vec3 color = mix(horizonColor, skyColor, smoothstep(0.0, 0.5, y));
+            color = mix(groundColor, color, smoothstep(-0.1, 0.1, y));
+            
+            // Subtle rim light
+            float rim = smoothstep(0.7, 1.0, abs(dir.x)) * step(0.0, y) * 0.1;
+            color += vec3(0.1, 0.15, 0.3) * rim;
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+        break;
+        
+      default: // studio
+        fragmentShader = `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            float x = dir.x;
+            
+            vec3 topColor = vec3(2.0, 1.9, 1.8);
+            vec3 bottomColor = vec3(0.05, 0.05, 0.08);
+            vec3 sideColor = vec3(0.1, 0.12, 0.15);
+            
+            float topLight = smoothstep(0.3, 0.9, y);
+            float rimLight = smoothstep(0.6, 1.0, abs(x)) * step(0.0, y) * 0.5;
+            
+            vec3 color = mix(sideColor, topColor, topLight);
+            color = mix(color, bottomColor, smoothstep(-0.2, -0.8, y));
+            color += vec3(0.8, 0.9, 1.0) * rimLight;
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+    }
+    
+    const envMat = new this.THREE.ShaderMaterial({
+      side: this.THREE.BackSide,
+      uniforms: {},
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: fragmentShader
+    });
+    
+    const envMesh = new this.THREE.Mesh(envGeo, envMat);
+    envScene.add(envMesh);
+    
+    // Dispose old env map
+    if (this.envMap) {
+      this.envMap.dispose();
+    }
+    
+    this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
+    this.scene.environment = this.envMap;
+    pmremGenerator.dispose();
+    
     this.needsRender = true;
   }
 

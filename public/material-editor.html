@@ -176,7 +176,17 @@
             <div class="panel-header">
               <span>Viewport</span>
               <div class="panel-header-tools">
-                <!-- View Mode Dropdown (replaces Lit/Unlit buttons) -->
+                <!-- Environment Preset Dropdown -->
+                <select
+                  id="viewport-env-select"
+                  class="panel-select"
+                  title="Environment Preset"
+                >
+                  <option value="studio">Studio</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="night">Night</option>
+                </select>
+                <!-- View Mode Dropdown -->
                 <select
                   id="viewport-view-mode"
                   class="panel-select"
@@ -209,6 +219,19 @@
                     class="fov-slider"
                   />
                 </label>
+                <!-- Exposure Control -->
+                <label class="exposure-label" title="Exposure (EV)">
+                  EV
+                  <input
+                    type="range"
+                    id="viewport-exposure"
+                    min="-3"
+                    max="3"
+                    value="0"
+                    step="0.1"
+                    class="exposure-slider"
+                  />
+                </label>
                 <!-- Realtime Toggle -->
                 <button
                   id="viewport-realtime-btn"
@@ -216,6 +239,14 @@
                   title="Toggle Realtime Rendering"
                 >
                   ⏱️
+                </button>
+                <!-- Floor Toggle -->
+                <button
+                  id="viewport-floor-btn"
+                  class="panel-tool"
+                  title="Toggle Floor Plane"
+                >
+                  Floor
                 </button>
                 <!-- Show Flags -->
                 <button
