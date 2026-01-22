@@ -155,6 +155,26 @@ export function evaluateTextureSample(node, outputPin) {
     textureId = "checkerboard";
   }
 
+  // Check which output pin is being used
+  const pinId = outputPin?.localId?.toLowerCase() || outputPin?.name?.toLowerCase() || 'rgb';
+  
+  // For individual channel pins, return a scalar value
+  // In a real implementation, this would sample the texture
+  // For preview, we return mid-gray (0.5) for channels
+  if (pinId === 'r') {
+    return 0.5; // Red channel as scalar
+  }
+  if (pinId === 'g') {
+    return 0.5; // Green channel as scalar
+  }
+  if (pinId === 'b') {
+    return 0.5; // Blue channel as scalar
+  }
+  if (pinId === 'a') {
+    return 1.0; // Alpha channel as scalar (default opaque)
+  }
+
+  // For RGB output, return texture or color array
   if (textureId && textureManager) {
     const texData = textureManager.get(textureId);
     if (texData && texData.dataUrl) {
@@ -163,10 +183,7 @@ export function evaluateTextureSample(node, outputPin) {
   }
 
   // Fallback to mid-gray
-  if (outputPin && (outputPin.localId === "rgb" || outputPin.name === "RGB")) {
-    return [0.5, 0.5, 0.5];
-  }
-  return 0.5;
+  return [0.5, 0.5, 0.5];
 }
 
 // ============================================================================
