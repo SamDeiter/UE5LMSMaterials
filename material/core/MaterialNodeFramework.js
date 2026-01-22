@@ -566,9 +566,17 @@ export class MaterialNode {
    * Get texture URL from asset ID
    */
   getTextureUrl(assetId) {
-    // Try to get texture info from the app's texture manager
-    if (this.app && this.app.textures) {
-      const texture = this.app.textures.get(assetId);
+    // Try to get texture info from the app's texture manager reference
+    // The textureManager is a singleton imported by material-app.js
+    if (this.app && this.app.textureManager) {
+      const texture = this.app.textureManager.get(assetId);
+      if (texture && texture.dataUrl) {
+        return texture.dataUrl;
+      }
+    }
+    // Fallback: Try window global if available (browser only)
+    if (typeof window !== 'undefined' && window.textureManager) {
+      const texture = window.textureManager.get(assetId);
       if (texture && texture.dataUrl) {
         return texture.dataUrl;
       }

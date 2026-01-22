@@ -57,6 +57,9 @@ class MaterialEditorApp {
     // Initialize evaluator (uses graph for node access)
     this.evaluator = new MaterialEvaluator(this.graph);
 
+    // Store textureManager reference for node access
+    this.textureManager = textureManager;
+
     // Bind toolbar buttons
     this.bindToolbar();
 
