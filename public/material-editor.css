@@ -428,8 +428,12 @@ body {
 }
 
 #right-column {
-  width: 280px;
+  width: 220px;
+  min-width: 180px;
   background-color: var(--bg-panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
 }
 
 /* ============================================================================
@@ -1095,9 +1099,9 @@ body {
 
 .property-row {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 90px 1fr;
   align-items: center;
-  padding: 3px 8px 3px 24px;
+  padding: 3px 4px 3px 8px;
   font-size: 11px;
   min-height: 26px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
