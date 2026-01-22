@@ -84,9 +84,24 @@ export function evaluateLerp(pinEvaluator, node, visited) {
   const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
   const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
   const pinAlpha = node.inputs.find((p) => p.localId === "alpha" || p.name === "Alpha");
-  const valA = pinEvaluator(pinA, new Set(visited)) ?? 0;
-  const valB = pinEvaluator(pinB, new Set(visited)) ?? 1;
-  const alpha = pinEvaluator(pinAlpha, new Set(visited)) ?? 0.5;
+  
+  // Use pin.defaultValue if not connected, fallback to 0
+  const valA = pinEvaluator(pinA, new Set(visited)) ?? pinA?.defaultValue ?? 0;
+  const valB = pinEvaluator(pinB, new Set(visited)) ?? pinB?.defaultValue ?? 0;
+  
+  // For alpha: if connected to texture, extract scalar from result
+  let alpha = pinEvaluator(pinAlpha, new Set(visited));
+  if (alpha === null || alpha === undefined) {
+    alpha = pinAlpha?.defaultValue ?? 0.5;
+  } else if (typeof alpha === 'object' && alpha.url) {
+    // Texture - default to 0.5 for now (would need actual sampling)
+    alpha = 0.5;
+  } else if (Array.isArray(alpha)) {
+    // Use R channel as alpha
+    alpha = alpha[0] ?? 0.5;
+  }
+  
+  console.log("[Lerp] A:", valA, "B:", valB, "alpha:", alpha);
   return lerpValues(valA, valB, alpha);
 }
 
