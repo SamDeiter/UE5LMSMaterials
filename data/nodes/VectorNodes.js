@@ -114,4 +114,72 @@ export const VectorNodes = {
     pins: [{ id: "out", name: "", type: "float3", dir: "out" }],
     shaderCode: `float3 {OUTPUT} = reflect(-CameraVectorWS, PixelNormalWS);`,
   },
+
+  BreakOutFloat2Components: {
+    title: "BreakOutFloat2",
+    type: "material-expression",
+    category: "Math|Vector",
+    icon: "⊟",
+    description: "Breaks a float2 into R and G components",
+    pins: [
+      { id: "in", name: "", type: "float2", dir: "in" },
+      { id: "r", name: "R", type: "float", dir: "out" },
+      { id: "g", name: "G", type: "float", dir: "out" },
+    ],
+    shaderCode: `
+            float {OUTPUT}_r = {in}.r;
+            float {OUTPUT}_g = {in}.g;
+        `,
+  },
+
+  BreakOutFloat4Components: {
+    title: "BreakOutFloat4",
+    type: "material-expression",
+    category: "Math|Vector",
+    icon: "⊟",
+    description: "Breaks a float4 into R, G, B, and A components",
+    pins: [
+      { id: "in", name: "", type: "float4", dir: "in" },
+      { id: "r", name: "R", type: "float", dir: "out" },
+      { id: "g", name: "G", type: "float", dir: "out" },
+      { id: "b", name: "B", type: "float", dir: "out" },
+      { id: "a", name: "A", type: "float", dir: "out" },
+    ],
+    shaderCode: `
+            float {OUTPUT}_r = {in}.r;
+            float {OUTPUT}_g = {in}.g;
+            float {OUTPUT}_b = {in}.b;
+            float {OUTPUT}_a = {in}.a;
+        `,
+  },
+
+  MakeFloat2: {
+    title: "MakeFloat2",
+    type: "material-expression",
+    category: "Math|Vector",
+    icon: "⊞",
+    description: "Combines two floats into a float2",
+    pins: [
+      { id: "r", name: "R", type: "float", dir: "in", defaultValue: 0.0 },
+      { id: "g", name: "G", type: "float", dir: "in", defaultValue: 0.0 },
+      { id: "out", name: "", type: "float2", dir: "out" },
+    ],
+    shaderCode: `float2 {OUTPUT} = float2({r}, {g});`,
+  },
+
+  MakeFloat4: {
+    title: "MakeFloat4",
+    type: "material-expression",
+    category: "Math|Vector",
+    icon: "⊞",
+    description: "Combines four floats into a float4",
+    pins: [
+      { id: "r", name: "R", type: "float", dir: "in", defaultValue: 0.0 },
+      { id: "g", name: "G", type: "float", dir: "in", defaultValue: 0.0 },
+      { id: "b", name: "B", type: "float", dir: "in", defaultValue: 0.0 },
+      { id: "a", name: "A", type: "float", dir: "in", defaultValue: 1.0 },
+      { id: "out", name: "", type: "float4", dir: "out" },
+    ],
+    shaderCode: `float4 {OUTPUT} = float4({r}, {g}, {b}, {a});`,
+  },
 };

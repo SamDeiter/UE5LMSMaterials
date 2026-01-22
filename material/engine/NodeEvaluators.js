@@ -630,6 +630,59 @@ export function dispatchNodeEvaluation(pinEvaluator, node, outputPin, visited) {
     // Return world-space normal (up direction for preview)
     return [0, 0, 1];
   }
+  
+  // Noise variants - all use the same evaluator with different parameters
+  if (nodeKey === "SimplexNoise" || nodeKey === "VoronoiNoise" || nodeKey === "GradientNoise") {
+    return evaluateNoise(pinEvaluator, node, visited);
+  }
+  
+  // MakeFloat nodes - construct vectors from scalars
+  if (nodeKey === "MakeFloat2") {
+    const pinR = node.inputs.find(p => p.localId === 'r' || p.name === 'R');
+    const pinG = node.inputs.find(p => p.localId === 'g' || p.name === 'G');
+    const r = pinEvaluator(pinR, new Set(visited || [])) ?? 0;
+    const g = pinEvaluator(pinG, new Set(visited || [])) ?? 0;
+    return [r, g];
+  }
+  if (nodeKey === "MakeFloat3") {
+    const pinR = node.inputs.find(p => p.localId === 'r' || p.name === 'R');
+    const pinG = node.inputs.find(p => p.localId === 'g' || p.name === 'G');
+    const pinB = node.inputs.find(p => p.localId === 'b' || p.name === 'B');
+    const r = pinEvaluator(pinR, new Set(visited || [])) ?? 0;
+    const g = pinEvaluator(pinG, new Set(visited || [])) ?? 0;
+    const b = pinEvaluator(pinB, new Set(visited || [])) ?? 0;
+    return [r, g, b];
+  }
+  if (nodeKey === "MakeFloat4") {
+    const pinR = node.inputs.find(p => p.localId === 'r' || p.name === 'R');
+    const pinG = node.inputs.find(p => p.localId === 'g' || p.name === 'G');
+    const pinB = node.inputs.find(p => p.localId === 'b' || p.name === 'B');
+    const pinA = node.inputs.find(p => p.localId === 'a' || p.name === 'A');
+    const r = pinEvaluator(pinR, new Set(visited || [])) ?? 0;
+    const g = pinEvaluator(pinG, new Set(visited || [])) ?? 0;
+    const b = pinEvaluator(pinB, new Set(visited || [])) ?? 0;
+    const a = pinEvaluator(pinA, new Set(visited || [])) ?? 1;
+    return [r, g, b, a];
+  }
+  
+  // BreakFloat nodes - extract components from vectors
+  if (nodeKey === "BreakOutFloat2Components" || nodeKey === "BreakOutFloat3Components" || nodeKey === "BreakOutFloat4Components") {
+    const inputPin = node.inputs.find(p => p.localId === 'in' || p.name === '');
+    const val = pinEvaluator(inputPin, new Set(visited || [])) ?? [0, 0, 0];
+    const arr = Array.isArray(val) ? val : [val, val, val];
+    
+    const outputPinId = outputPin?.localId?.toLowerCase() || 'r';
+    if (outputPinId === 'r') return arr[0] ?? 0;
+    if (outputPinId === 'g') return arr[1] ?? 0;
+    if (outputPinId === 'b') return arr[2] ?? 0;
+    if (outputPinId === 'a') return arr[3] ?? 1;
+    return arr;
+  }
+  
+  // StaticBoolParameter
+  if (nodeKey === "StaticBoolParameter") {
+    return node.properties?.DefaultValue ? 1 : 0;
+  }
 
   // Default: try properties
   if (node.properties.R !== undefined) {

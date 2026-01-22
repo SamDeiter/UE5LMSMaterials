@@ -19,10 +19,15 @@ export class DetailsController {
   }
 
   bindMaterialPropertyEvents() {
-    // Blend mode changes affect main node pins
+    // Blend mode changes affect main node pins and conditional sections
     const blendMode = document.getElementById("blend-mode");
     if (blendMode) {
-      blendMode.addEventListener("change", () => this.updateMainNodePins());
+      blendMode.addEventListener("change", (e) => {
+        this.updateMainNodePins();
+        this.updateConditionalSections(e.target.value);
+      });
+      // Initialize on load
+      this.updateConditionalSections(blendMode.value);
     }
 
     const shadingModel = document.getElementById("shading-model");
@@ -33,6 +38,23 @@ export class DetailsController {
     const materialDomain = document.getElementById("material-domain");
     if (materialDomain) {
       materialDomain.addEventListener("change", () => this.updateMainNodePins());
+    }
+  }
+
+  /**
+   * Update visibility of conditional sections based on Blend Mode
+   */
+  updateConditionalSections(blendMode) {
+    // Opacity Mask Clip Value - only show for Masked blend mode
+    const opacityClipRow = document.getElementById("opacity-clip-row");
+    if (opacityClipRow) {
+      opacityClipRow.style.display = blendMode === "Masked" ? "flex" : "none";
+    }
+
+    // Translucency section - only show for Translucent blend mode
+    const translucencyCategory = document.querySelector('.property-category:has(#translucency-lighting)');
+    if (translucencyCategory) {
+      translucencyCategory.style.display = blendMode === "Translucent" ? "block" : "none";
     }
   }
 
@@ -144,6 +166,78 @@ export class DetailsController {
       });
     });
 
+    // Bind color picker events
+    this.nodeProps.querySelectorAll(".color-picker").forEach((picker) => {
+      const handleColorChange = (e) => {
+        const propKey = e.target.dataset.property;
+        const hex = e.target.value;
+        
+        // Convert hex to RGB (0-1)
+        const r = parseInt(hex.substr(1, 2), 16) / 255;
+        const g = parseInt(hex.substr(3, 2), 16) / 255;
+        const b = parseInt(hex.substr(5, 2), 16) / 255;
+        
+        // Update node properties
+        node.properties[propKey] = { R: r, G: g, B: b };
+        
+        // Sync with number inputs
+        const group = e.target.closest(".color-input-group");
+        if (group) {
+          const rInput = group.querySelector(`input[data-property="${propKey}.R"]`);
+          const gInput = group.querySelector(`input[data-property="${propKey}.G"]`);
+          const bInput = group.querySelector(`input[data-property="${propKey}.B"]`);
+          if (rInput) rInput.value = r.toFixed(2);
+          if (gInput) gInput.value = g.toFixed(2);
+          if (bInput) bInput.value = b.toFixed(2);
+        }
+        
+        node.updatePreview(node.element.querySelector(".node-preview"));
+        if (this.app && this.app.triggerLiveUpdate) {
+          this.app.triggerLiveUpdate();
+        }
+      };
+      
+      picker.addEventListener("input", handleColorChange);
+      picker.addEventListener("change", handleColorChange);
+    });
+
+    // Bind RGB component inputs to sync back to color picker
+    this.nodeProps.querySelectorAll(".color-component").forEach((input) => {
+      const handleComponentChange = (e) => {
+        const propKey = e.target.dataset.property;
+        const [baseKey, component] = propKey.split(".");
+        const newValue = parseFloat(e.target.value);
+        
+        // Ensure valid value
+        if (isNaN(newValue)) return;
+        
+        // Update color object
+        if (!node.properties[baseKey]) {
+          node.properties[baseKey] = { R: 0, G: 0, B: 0 };
+        }
+        node.properties[baseKey][component] = Math.max(0, Math.min(1, newValue));
+        
+        // Sync color picker
+        const group = e.target.closest(".color-input-group");
+        if (group) {
+          const picker = group.querySelector(".color-picker");
+          if (picker) {
+            const color = node.properties[baseKey];
+            const toHex = (v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0');
+            picker.value = `#${toHex(color.R)}${toHex(color.G)}${toHex(color.B)}`;
+          }
+        }
+        
+        node.updatePreview(node.element.querySelector(".node-preview"));
+        if (this.app && this.app.triggerLiveUpdate) {
+          this.app.triggerLiveUpdate();
+        }
+      };
+      
+      input.addEventListener("input", handleComponentChange);
+      input.addEventListener("change", handleComponentChange);
+    });
+
     // Bind input pin default value changes (number inputs)
     this.nodeProps.querySelectorAll(".pin-input").forEach((input) => {
       input.addEventListener("change", (e) => {
@@ -199,13 +293,31 @@ export class DetailsController {
     if (typeof value === "number") {
       // Determine sensible min/max/step based on property name
       let min = 0, max = 1, step = 0.01;
+      let useSlider = true;
       const keyLower = key.toLowerCase();
-      if (keyLower.includes("speed") || keyLower.includes("scale")) {
+      
+      // Tiling, index, and coordinate properties: number-only (no slider)
+      if (keyLower.includes("tiling") || keyLower.includes("index") || 
+          keyLower.includes("coord") || keyLower.includes("channel")) {
+        useSlider = false;
+        min = 0; max = 100; step = 1;
+      } else if (keyLower.includes("speed") || keyLower.includes("scale")) {
         min = -10; max = 10; step = 0.1;
       } else if (keyLower.includes("angle") || keyLower.includes("rotation")) {
         min = -360; max = 360; step = 1;
       } else if (keyLower.includes("power") || keyLower.includes("exponent")) {
         min = 0; max = 10; step = 0.1;
+      }
+      
+      // Simple number input (no slider) for tiling/index properties
+      if (!useSlider) {
+        return `
+                <div class="property-row">
+                    <label>${key}</label>
+                    <input type="number" class="ue5-number-input" data-property="${key}" 
+                           value="${value}" step="${step}">
+                </div>
+            `;
       }
       
       return `
@@ -224,16 +336,21 @@ export class DetailsController {
     if (typeof value === "object" && value !== null) {
       // Color/Vector value
       if ("R" in value) {
+        // Convert RGB (0-1) to hex for color picker
+        const toHex = (v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0');
+        const hexColor = `#${toHex(value.R)}${toHex(value.G)}${toHex(value.B)}`;
+        
         return `
-                    <div class="property-row">
-                        <label>${key}</label>
-                        <div style="display:flex;gap:4px;flex:1;">
-                            <input type="number" data-property="${key}.R" value="${value.R}" step="0.01" style="width:50px;">
-                            <input type="number" data-property="${key}.G" value="${value.G}" step="0.01" style="width:50px;">
-                            <input type="number" data-property="${key}.B" value="${value.B}" step="0.01" style="width:50px;">
-                        </div>
-                    </div>
-                `;
+          <div class="property-row color-row">
+            <label>${key}</label>
+            <div class="color-input-group">
+              <input type="color" class="color-picker" data-property="${key}" value="${hexColor}" title="Click to pick color">
+              <input type="number" class="color-component" data-property="${key}.R" value="${value.R}" step="0.01" min="0" max="1" title="Red">
+              <input type="number" class="color-component" data-property="${key}.G" value="${value.G}" step="0.01" min="0" max="1" title="Green">
+              <input type="number" class="color-component" data-property="${key}.B" value="${value.B}" step="0.01" min="0" max="1" title="Blue">
+            </div>
+          </div>
+        `;
       }
       return "";
     }

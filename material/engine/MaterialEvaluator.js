@@ -79,6 +79,7 @@ export class MaterialEvaluator {
       baseColorTexture: null,
       roughnessTexture: null,
       metallicTexture: null,
+      normalTexture: null,
     };
 
     // Evaluate each main node input
@@ -100,6 +101,12 @@ export class MaterialEvaluator {
           break;
         case "emissive color":
           result.emissive = this.extractColor(value);
+          break;
+        case "normal":
+          // Handle normal map texture
+          if (value && typeof value === "object" && value.type === "texture") {
+            result.normalTexture = value.url;
+          }
           break;
         case "opacity":
           result.opacity = this.extractScalar(value, 1.0);
@@ -147,10 +154,27 @@ export class MaterialEvaluator {
           value.texture,
           value.color
         );
+        // Preserve UV tiling from texture
+        if (value.texture.uTiling !== undefined) {
+          result.baseColorUTiling = value.texture.uTiling;
+          result.baseColorVTiling = value.texture.vTiling;
+        }
+      } else if (value.operation === "lerp_texture_alpha") {
+        // Lerp between two colors using texture's grayscale as per-pixel alpha
+        result.pendingBaseColor = shaderEvaluator.lerpColorsWithTextureAlpha(
+          value.colorA,
+          value.colorB,
+          value.alphaTexture
+        );
       }
     } else if (value && typeof value === "object" && value.type === "texture") {
       result.baseColorTexture = value.url;
       result.baseColor = [1, 1, 1];
+      // Extract UV tiling if present
+      if (value.uTiling !== undefined) {
+        result.baseColorUTiling = value.uTiling;
+        result.baseColorVTiling = value.vTiling;
+      }
     } else if (Array.isArray(value)) {
       result.baseColor = value.slice(0, 3);
     } else if (typeof value === "number") {

@@ -103,6 +103,87 @@ export const UtilityNodes = {
     shaderCode: `float {OUTPUT} = PerlinNoise3D({position} * {Scale});`,
   },
 
+  SimplexNoise: {
+    title: "SimplexNoise",
+    type: "material-expression",
+    category: "Utility",
+    icon: "◌",
+    description: "Simplex noise - faster and smoother than Perlin noise with fewer artifacts",
+    pins: [
+      { id: "position", name: "Position", type: "float3", dir: "in" },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    properties: {
+      Scale: 1.0,
+      Levels: 1,
+      OutputMin: -1.0,
+      OutputMax: 1.0,
+    },
+    shaderCode: `float {OUTPUT} = SimplexNoise3D({position} * {Scale});`,
+  },
+
+  VoronoiNoise: {
+    title: "VoronoiNoise",
+    type: "material-expression",
+    category: "Utility",
+    icon: "⬡",
+    description: "Voronoi (cellular) noise - creates cell-like patterns useful for cracks, skin, organic textures",
+    pins: [
+      { id: "position", name: "Position", type: "float2", dir: "in" },
+      { id: "cell_density", name: "CellDensity", type: "float", dir: "in", defaultValue: 5.0 },
+      { id: "out", name: "", type: "float", dir: "out" },
+      { id: "cells", name: "Cells", type: "float", dir: "out" },
+    ],
+    properties: {
+      AngleOffset: 0.0,
+    },
+    shaderCode: `
+            float2 _p = {position} * {cell_density};
+            float2 _cell = floor(_p);
+            float2 _frac = frac(_p);
+            float _minDist = 1.0;
+            float _cellId = 0.0;
+            for (int y = -1; y <= 1; y++) {
+                for (int x = -1; x <= 1; x++) {
+                    float2 _neighbor = float2(x, y);
+                    float2 _point = frac(sin(dot(_cell + _neighbor, float2(12.9898, 78.233))) * 43758.5453);
+                    float2 _diff = _neighbor + _point - _frac;
+                    float _dist = length(_diff);
+                    if (_dist < _minDist) {
+                        _minDist = _dist;
+                        _cellId = frac(sin(dot(_cell + _neighbor, float2(7.9898, 1.233))) * 43758.5453);
+                    }
+                }
+            }
+            float {OUTPUT} = _minDist;
+            float {OUTPUT}_cells = _cellId;
+        `,
+  },
+
+  GradientNoise: {
+    title: "GradientNoise",
+    type: "material-expression",
+    category: "Utility",
+    icon: "▤",
+    description: "Gradient (Perlin) noise - classic smooth noise with continuous gradients",
+    pins: [
+      { id: "uv", name: "UV", type: "float2", dir: "in" },
+      { id: "scale", name: "Scale", type: "float", dir: "in", defaultValue: 1.0 },
+      { id: "out", name: "", type: "float", dir: "out" },
+    ],
+    shaderCode: `
+            float2 _p = {uv} * {scale};
+            float2 _i = floor(_p);
+            float2 _f = frac(_p);
+            float2 _u = _f * _f * (3.0 - 2.0 * _f);
+            float _a = frac(sin(dot(_i, float2(12.9898, 78.233))) * 43758.5453);
+            float _b = frac(sin(dot(_i + float2(1, 0), float2(12.9898, 78.233))) * 43758.5453);
+            float _c = frac(sin(dot(_i + float2(0, 1), float2(12.9898, 78.233))) * 43758.5453);
+            float _d = frac(sin(dot(_i + float2(1, 1), float2(12.9898, 78.233))) * 43758.5453);
+            float {OUTPUT} = lerp(lerp(_a, _b, _u.x), lerp(_c, _d, _u.x), _u.y);
+        `,
+  },
+
   FlattenNormal: {
     title: "FlattenNormal",
     type: "material-expression",

@@ -40,11 +40,9 @@ export const ConstantNodes = {
     showPreview: true,
     pins: [{ id: "rgb", name: "", type: "float3", dir: "out" }],
     properties: {
-      R: 1.0,
-      G: 1.0,
-      B: 1.0,
+      Color: { R: 1.0, G: 1.0, B: 1.0 },
     },
-    shaderCode: `float3 {OUTPUT} = float3({R}, {G}, {B});`,
+    shaderCode: `float3 {OUTPUT} = float3({Color.R}, {Color.G}, {Color.B});`,
   },
 
   Constant4Vector: {
@@ -55,11 +53,9 @@ export const ConstantNodes = {
     showPreview: true,
     pins: [{ id: "rgba", name: "", type: "float4", dir: "out" }],
     properties: {
-      R: 1.0,
-      G: 1.0,
-      B: 1.0,
+      Color: { R: 1.0, G: 1.0, B: 1.0 },
       A: 1.0,
     },
-    shaderCode: `float4 {OUTPUT} = float4({R}, {G}, {B}, {A});`,
+    shaderCode: `float4 {OUTPUT} = float4({Color.R}, {Color.G}, {Color.B}, {A});`,
   },
 };

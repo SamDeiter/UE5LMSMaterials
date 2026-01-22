@@ -48,6 +48,11 @@ export class TextureManager {
         name: "Base Texture",
         path: "assets/T_Base_Texture_00.png",
       },
+      {
+        id: "normal_brick",
+        name: "Brick Normal Map",
+        path: "assets/normal_map_brick.png",
+      },
     ];
 
     fileTextures.forEach(({ id, name, path }) => {

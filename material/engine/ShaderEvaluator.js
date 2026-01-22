@@ -273,6 +273,82 @@ export class ShaderEvaluator {
   }
 
   /**
+   * Lerp between two colors using a texture's grayscale as per-pixel alpha
+   * @param {Array|number} colorA - First color (RGB array or scalar)
+   * @param {Array|number} colorB - Second color (RGB array or scalar)
+   * @param {Object} alphaTexture - Texture object with .url property
+   * @returns {Promise<Object>} - New texture with per-pixel interpolated colors
+   */
+  async lerpColorsWithTextureAlpha(colorA, colorB, alphaTexture) {
+    const vecA = this.normalizeToVector3(colorA);
+    const vecB = this.normalizeToVector3(colorB);
+
+    const cacheKey = `lerp_colors_${vecA.join(",")}_${vecB.join(",")}_${alphaTexture.url}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    if (this.pendingOperations.has(cacheKey)) {
+      return this.pendingOperations.get(cacheKey);
+    }
+
+    const operation = new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Color A and B in 0-255 range
+        const rA = (vecA[0] ?? 0) * 255;
+        const gA = (vecA[1] ?? 0) * 255;
+        const bA = (vecA[2] ?? 0) * 255;
+        const rB = (vecB[0] ?? 1) * 255;
+        const gB = (vecB[1] ?? 1) * 255;
+        const bB = (vecB[2] ?? 1) * 255;
+
+        for (let i = 0; i < data.length; i += 4) {
+          // Use the texture's luminance as alpha (grayscale conversion)
+          const texR = data[i];
+          const texG = data[i + 1];
+          const texB = data[i + 2];
+          // Standard luminance formula
+          const alpha = (texR * 0.299 + texG * 0.587 + texB * 0.114) / 255;
+          
+          // Lerp between color A and color B based on alpha
+          data[i] = rA + (rB - rA) * alpha;       // R
+          data[i + 1] = gA + (gB - gA) * alpha;   // G
+          data[i + 2] = bA + (bB - bA) * alpha;   // B
+          // Keep original alpha
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        const result = { type: "texture", url: dataUrl };
+
+        this.cache.set(cacheKey, result);
+        this.pendingOperations.delete(cacheKey);
+        resolve(result);
+      };
+      img.onerror = () => {
+        this.pendingOperations.delete(cacheKey);
+        // Fallback to colorB on error
+        resolve({ type: "texture", url: alphaTexture.url });
+      };
+      img.src = alphaTexture.url;
+    });
+
+    this.pendingOperations.set(cacheKey, operation);
+    return operation;
+  }
+
+  /**
    * Subtract a color from a texture
    */
   async subtractFromTexture(textureObj, color) {

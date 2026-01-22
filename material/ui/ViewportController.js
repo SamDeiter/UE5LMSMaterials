@@ -23,18 +23,42 @@ export class ViewportController {
     this.geometries = {};
     this.initialized = false;
     this.animationId = null;
-    this.isLit = true;
     this.currentGeoType = "sphere";
+
+    // View mode: 'lit', 'unlit', 'wireframe'
+    this.viewMode = 'lit';
+    
+    // Realtime rendering toggle
+    this.isRealtime = true;
+    this.needsRender = true;
+    
+    // Show flags
+    this.gridVisible = true;
+    this.gridHelper = null;
+    
+    // Tone mapping toggle
+    this.toneMappingEnabled = true;
 
     // Lights
     this.ambientLight = null;
     this.directionalLight = null;
+    
+    // Store original material for wireframe toggle
+    this.originalMaterial = null;
+    this.wireframeMaterial = null;
+
+    // WASD navigation state
+    this.keysPressed = {};
+    this.moveSpeed = 0.05;
 
     // Initialize Three.js
     this.init();
 
     // Bind UI controls
     this.bindControls();
+    
+    // Bind keyboard controls
+    this.bindKeyboardControls();
   }
 
   async init() {
@@ -51,9 +75,9 @@ export class ViewportController {
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(0x0a0a0a);
 
-      // Grid helper
-      const gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
-      this.scene.add(gridHelper);
+      // Grid helper (store reference for visibility toggle)
+      this.gridHelper = new THREE.GridHelper(10, 10, 0x333333, 0x111111);
+      this.scene.add(this.gridHelper);
 
       // Camera
       const aspect = this.canvas.clientWidth / this.canvas.clientHeight || 1;
@@ -155,6 +179,14 @@ export class ViewportController {
         reflectivity: 0.5,
         ior: 1.5,
       });
+      this.originalMaterial = this.material;
+      
+      // Create wireframe material for wireframe view mode
+      this.wireframeMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff00,
+        wireframe: true,
+        side: THREE.DoubleSide,
+      });
 
       // Create initial mesh
       this.mesh = new THREE.Mesh(this.geometries.sphere, this.material);
@@ -177,22 +209,10 @@ export class ViewportController {
   }
 
   bindControls() {
-    // Lit/Unlit buttons
-    const litBtn = document.getElementById("viewport-lit-btn");
-    const unlitBtn = document.getElementById("viewport-unlit-btn");
-
-    litBtn?.addEventListener("click", () => {
-      this.isLit = true;
-      litBtn.classList.add("active");
-      unlitBtn?.classList.remove("active");
-      this.updateLighting();
-    });
-
-    unlitBtn?.addEventListener("click", () => {
-      this.isLit = false;
-      unlitBtn.classList.add("active");
-      litBtn?.classList.remove("active");
-      this.updateLighting();
+    // View Mode dropdown (replaces old Lit/Unlit buttons)
+    const viewModeSelect = document.getElementById("viewport-view-mode");
+    viewModeSelect?.addEventListener("change", (e) => {
+      this.setViewMode(e.target.value);
     });
 
     // Mesh select
@@ -201,14 +221,44 @@ export class ViewportController {
       this.setGeometry(e.target.value);
     });
 
-    // Light rotation controls (L + mouse drag)
+    // FOV slider
+    const fovSlider = document.getElementById("viewport-fov");
+    fovSlider?.addEventListener("input", (e) => {
+      this.setFOV(parseFloat(e.target.value));
+    });
+
+    // Realtime toggle
+    const realtimeBtn = document.getElementById("viewport-realtime-btn");
+    realtimeBtn?.addEventListener("click", () => {
+      this.isRealtime = !this.isRealtime;
+      realtimeBtn.classList.toggle("active", this.isRealtime);
+      if (this.isRealtime) {
+        this.needsRender = true;
+      }
+    });
+
+    // Grid toggle
+    const gridBtn = document.getElementById("viewport-grid-btn");
+    gridBtn?.addEventListener("click", () => {
+      this.toggleGrid();
+      gridBtn.classList.toggle("active", this.gridVisible);
+    });
+
+    // Tone Mapper toggle
+    const tonemapperBtn = document.getElementById("viewport-tonemapper-btn");
+    tonemapperBtn?.addEventListener("click", () => {
+      this.toggleToneMapping();
+      tonemapperBtn.classList.toggle("active", this.toneMappingEnabled);
+    });
+
+    // Light rotation controls (Shift + mouse drag)
     this.isLightDragging = false;
     this.lightAngleX = 0.3; // Initial angle (radians)
     this.lightAngleY = 0.8;
     this.lightDistance = 12;
 
     this.canvas?.addEventListener("mousedown", (e) => {
-      if (e.shiftKey || this.isLKeyDown) {
+      if (e.shiftKey) {
         this.isLightDragging = true;
         this.controls.enabled = false;
         e.preventDefault();
@@ -220,6 +270,11 @@ export class ViewportController {
         this.lightAngleX += e.movementX * 0.01;
         this.lightAngleY = Math.max(-1.5, Math.min(1.5, this.lightAngleY - e.movementY * 0.01));
         this.updateLightPosition();
+        this.needsRender = true;
+      }
+      // Mark for render on any mouse movement (for non-realtime mode)
+      if (!this.isRealtime) {
+        this.needsRender = true;
       }
     });
 
@@ -236,10 +291,6 @@ export class ViewportController {
         this.controls.enabled = true;
       }
     });
-
-    // Track L key state
-    this.isLKeyDown = false;
-    // Note: Using only Shift for light rotation to avoid conflict with Lerp hotkey (L)
   }
 
   updateLightPosition() {
@@ -252,17 +303,150 @@ export class ViewportController {
     this.directionalLight.position.set(x, y, z);
   }
 
-  updateLighting() {
-    if (!this.initialized) return;
+  /**
+   * Bind keyboard controls for WASD navigation
+   */
+  bindKeyboardControls() {
+    // Make canvas focusable
+    this.canvas.tabIndex = 0;
+    
+    this.canvas?.addEventListener("keydown", (e) => {
+      this.keysPressed[e.key.toLowerCase()] = true;
+    });
+    
+    this.canvas?.addEventListener("keyup", (e) => {
+      this.keysPressed[e.key.toLowerCase()] = false;
+    });
+    
+    // Clear keys when canvas loses focus
+    this.canvas?.addEventListener("blur", () => {
+      this.keysPressed = {};
+    });
+  }
 
-    if (this.isLit) {
-      this.directionalLight.intensity = 3;
-      this.ambientLight.intensity = 0.5;
-    } else {
-      // Unlit mode - flat lighting
-      this.directionalLight.intensity = 0;
-      this.ambientLight.intensity = 2;
+  /**
+   * Update camera position based on pressed keys
+   * Called during the render loop
+   */
+  updateCameraFromKeys() {
+    if (!this.camera || Object.keys(this.keysPressed).length === 0) return;
+    
+    const forward = new this.THREE.Vector3();
+    this.camera.getWorldDirection(forward);
+    forward.y = 0; // Keep movement horizontal
+    forward.normalize();
+    
+    const right = new this.THREE.Vector3();
+    right.crossVectors(forward, new this.THREE.Vector3(0, 1, 0)).normalize();
+    
+    let moved = false;
+    
+    // W - Forward
+    if (this.keysPressed['w']) {
+      this.camera.position.addScaledVector(forward, this.moveSpeed);
+      this.controls.target.addScaledVector(forward, this.moveSpeed);
+      moved = true;
     }
+    // S - Backward
+    if (this.keysPressed['s']) {
+      this.camera.position.addScaledVector(forward, -this.moveSpeed);
+      this.controls.target.addScaledVector(forward, -this.moveSpeed);
+      moved = true;
+    }
+    // A - Left
+    if (this.keysPressed['a']) {
+      this.camera.position.addScaledVector(right, -this.moveSpeed);
+      this.controls.target.addScaledVector(right, -this.moveSpeed);
+      moved = true;
+    }
+    // D - Right
+    if (this.keysPressed['d']) {
+      this.camera.position.addScaledVector(right, this.moveSpeed);
+      this.controls.target.addScaledVector(right, this.moveSpeed);
+      moved = true;
+    }
+    // Q - Down
+    if (this.keysPressed['q']) {
+      this.camera.position.y -= this.moveSpeed;
+      this.controls.target.y -= this.moveSpeed;
+      moved = true;
+    }
+    // E - Up
+    if (this.keysPressed['e']) {
+      this.camera.position.y += this.moveSpeed;
+      this.controls.target.y += this.moveSpeed;
+      moved = true;
+    }
+    
+    if (moved) {
+      this.needsRender = true;
+    }
+  }
+
+  /**
+   * Set the view mode: 'lit', 'unlit', or 'wireframe'
+   */
+  setViewMode(mode) {
+    if (!this.initialized) return;
+    
+    this.viewMode = mode;
+    
+    switch (mode) {
+      case 'lit':
+        this.directionalLight.intensity = 3;
+        this.ambientLight.intensity = 0.5;
+        this.mesh.material = this.originalMaterial;
+        break;
+        
+      case 'unlit':
+        this.directionalLight.intensity = 0;
+        this.ambientLight.intensity = 2;
+        this.mesh.material = this.originalMaterial;
+        break;
+        
+      case 'wireframe':
+        this.directionalLight.intensity = 0;
+        this.ambientLight.intensity = 2;
+        this.mesh.material = this.wireframeMaterial;
+        break;
+    }
+    
+    this.needsRender = true;
+  }
+
+  /**
+   * Set camera field of view (30-90 degrees)
+   */
+  setFOV(degrees) {
+    if (!this.initialized || !this.camera) return;
+    
+    this.camera.fov = degrees;
+    this.camera.updateProjectionMatrix();
+    this.needsRender = true;
+  }
+
+  /**
+   * Toggle grid visibility
+   */
+  toggleGrid() {
+    if (!this.initialized || !this.gridHelper) return;
+    
+    this.gridVisible = !this.gridVisible;
+    this.gridHelper.visible = this.gridVisible;
+    this.needsRender = true;
+  }
+
+  /**
+   * Toggle tone mapping (ACES Filmic vs None)
+   */
+  toggleToneMapping() {
+    if (!this.initialized || !this.renderer) return;
+    
+    this.toneMappingEnabled = !this.toneMappingEnabled;
+    this.renderer.toneMapping = this.toneMappingEnabled 
+      ? this.THREE.ACESFilmicToneMapping 
+      : this.THREE.NoToneMapping;
+    this.needsRender = true;
   }
 
   setGeometry(type) {
@@ -270,7 +454,13 @@ export class ViewportController {
 
     this.currentGeoType = type;
     this.scene.remove(this.mesh);
-    this.mesh = new this.THREE.Mesh(this.geometries[type], this.material);
+    
+    // Use current material based on view mode
+    const materialToUse = this.viewMode === 'wireframe' 
+      ? this.wireframeMaterial 
+      : this.originalMaterial;
+    
+    this.mesh = new this.THREE.Mesh(this.geometries[type], materialToUse);
     this.mesh.position.y = type === "plane" ? 1.5 : 1;
     if (type === "plane") {
       this.mesh.rotation.x = -Math.PI / 2;
@@ -278,13 +468,23 @@ export class ViewportController {
       this.mesh.rotation.x = 0;
     }
     this.scene.add(this.mesh);
+    this.needsRender = true;
   }
 
   startRenderLoop() {
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
+      
+      // Update camera position from keyboard input
+      this.updateCameraFromKeys();
+      
       this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+      
+      // Only render if in realtime mode or if render is needed
+      if (this.isRealtime || this.needsRender) {
+        this.renderer.render(this.scene, this.camera);
+        this.needsRender = false;
+      }
     };
     animate();
   }
@@ -355,10 +555,15 @@ export class ViewportController {
 
     // Handle base color texture
     if (result.baseColorTexture) {
+      const uTiling = result.baseColorUTiling ?? 1;
+      const vTiling = result.baseColorVTiling ?? 1;
       this.loadTexture(result.baseColorTexture, (texture) => {
+        // Apply UV tiling from TextureCoordinate node
+        texture.repeat.set(uTiling, vTiling);
         this.material.map = texture;
         this.material.color.setRGB(1, 1, 1); // Reset color when using texture
         this.material.needsUpdate = true;
+        this.needsRender = true;
       });
     } else {
       // Clear texture if no texture connected
@@ -390,6 +595,22 @@ export class ViewportController {
     } else {
       if (this.material.metalnessMap) {
         this.material.metalnessMap = null;
+      }
+    }
+
+    // Handle normal map texture
+    if (result.normalTexture) {
+      this.loadTexture(result.normalTexture, (texture) => {
+        // Note: Three.js expects normal maps in tangent space
+        this.material.normalMap = texture;
+        this.material.normalScale = new this.THREE.Vector2(1, 1);
+        this.material.needsUpdate = true;
+        this.needsRender = true;
+      });
+    } else {
+      if (this.material.normalMap) {
+        this.material.normalMap = null;
+        this.material.needsUpdate = true;
       }
     }
 

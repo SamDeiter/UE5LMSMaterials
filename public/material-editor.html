@@ -176,20 +176,17 @@
             <div class="panel-header">
               <span>Viewport</span>
               <div class="panel-header-tools">
-                <button
-                  id="viewport-lit-btn"
-                  class="panel-tool active"
-                  title="Lit"
+                <!-- View Mode Dropdown (replaces Lit/Unlit buttons) -->
+                <select
+                  id="viewport-view-mode"
+                  class="panel-select"
+                  title="View Mode"
                 >
-                  Lit
-                </button>
-                <button
-                  id="viewport-unlit-btn"
-                  class="panel-tool"
-                  title="Unlit"
-                >
-                  Unlit
-                </button>
+                  <option value="lit">Lit</option>
+                  <option value="unlit">Unlit</option>
+                  <option value="wireframe">Wireframe</option>
+                </select>
+                <!-- Mesh Selection -->
                 <select
                   id="viewport-mesh-select"
                   class="panel-select"
@@ -200,6 +197,42 @@
                   <option value="plane">Plane</option>
                   <option value="cube">Cube</option>
                 </select>
+                <!-- FOV Control -->
+                <label class="fov-label" title="Field of View">
+                  FOV
+                  <input
+                    type="range"
+                    id="viewport-fov"
+                    min="30"
+                    max="90"
+                    value="45"
+                    class="fov-slider"
+                  />
+                </label>
+                <!-- Realtime Toggle -->
+                <button
+                  id="viewport-realtime-btn"
+                  class="panel-tool active"
+                  title="Toggle Realtime Rendering"
+                >
+                  ⏱️
+                </button>
+                <!-- Show Flags -->
+                <button
+                  id="viewport-grid-btn"
+                  class="panel-tool active"
+                  title="Toggle Grid"
+                >
+                  Grid
+                </button>
+                <!-- Tone Mapper Toggle -->
+                <button
+                  id="viewport-tonemapper-btn"
+                  class="panel-tool active"
+                  title="Toggle Tone Mapping"
+                >
+                  TM
+                </button>
               </div>
             </div>
             <div id="viewport-container" class="panel-content viewport-content">
@@ -213,6 +246,35 @@
           </div>
 
           <div class="resizer-horizontal" id="resizer-viewport"></div>
+
+          <!-- STATS PANEL -->
+          <div id="stats-panel" class="panel">
+            <div class="panel-header">
+              <span>📊 Stats</span>
+            </div>
+            <div id="stats-content" class="panel-content">
+              <div class="stats-grid">
+                <div class="stat-row">
+                  <span class="stat-label">Nodes</span>
+                  <span class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Texture Samplers</span>
+                  <span class="stat-value">0 / 16</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Est. Instructions</span>
+                  <span class="stat-value">~0</span>
+                </div>
+                <div class="stat-row">
+                  <span class="stat-label">Budget</span>
+                  <span class="stat-value">🟢 Low</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="resizer-horizontal" id="resizer-stats"></div>
 
           <!-- PALETTE PANEL -->
           <div id="palette-panel" class="panel">
@@ -508,6 +570,14 @@
                       <input
                         type="checkbox"
                         id="usage-geocache"
+                        class="ue5-checkbox"
+                      />
+                    </div>
+                    <div class="property-row">
+                      <label>Used with Virtual Heightfield Mesh</label>
+                      <input
+                        type="checkbox"
+                        id="usage-heightfield"
                         class="ue5-checkbox"
                       />
                     </div>

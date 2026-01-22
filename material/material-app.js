@@ -27,6 +27,8 @@ import { PaletteController } from "./ui/PaletteController.js";
 import { DetailsController } from "./ui/MaterialDetailsController.js";
 import { ViewportController } from "./ui/ViewportController.js";
 import { ActionMenuController } from "../blueprint/core/ActionMenuController.js";
+import { StatsController } from "./ui/StatsController.js";
+import { LayoutController } from "./ui/LayoutController.js";
 
 import { debounce, generateId } from "../shared/utils.js";
 
@@ -49,6 +51,8 @@ class MaterialEditorApp {
     this.details = new DetailsController(this);
     this.viewport = new ViewportController(this);
     this.actionMenu = new ActionMenuController(this);
+    this.stats = new StatsController(this);
+    this.layout = new LayoutController(this);
 
     // Initialize evaluator (uses graph for node access)
     this.evaluator = new MaterialEvaluator(this.graph);
@@ -58,6 +62,10 @@ class MaterialEditorApp {
 
     // Create main material node (after all controllers are ready)
     this.graph.createMainNode();
+
+    // Initialize main node pins based on default blend mode
+    // Must be called after main node is created
+    this.details.updateMainNodePins();
 
     // Initial state
     this.updateStatus("Ready");
@@ -279,6 +287,11 @@ class MaterialEditorApp {
 
     if (nodeCount) nodeCount.textContent = `Nodes: ${nodesSize}`;
     if (connCount) connCount.textContent = `Connections: ${linksSize}`;
+
+    // Update stats panel
+    if (this.stats) {
+      this.stats.calculateStats();
+    }
   }
 
   // ==========================================================================
