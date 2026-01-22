@@ -29,8 +29,8 @@ export const PinTypes = {
   // Scalar Types (from GraphEditorSettings.cpp:45)
   FLOAT: { name: "float", components: 1, color: "#5BFF0F" }, // Bright green (0.357667, 1.0, 0.06)
   FLOAT2: { name: "float2", components: 2, color: "#FF970A" }, // Yellow/Orange - Vector style
-  FLOAT3: { name: "float3", components: 3, color: "#FF9702" }, // Yellow (1.0, 0.591255, 0.016512) - VectorPinTypeColor
-  FLOAT4: { name: "float4", components: 4, color: "#FF9702" }, // Same as float3 for consistency
+  FLOAT3: { name: "float3", components: 3, color: "#FFD800" }, // Golden yellow - VectorPinTypeColor (UE5 exact)
+  FLOAT4: { name: "float4", components: 4, color: "#FFAAFF" }, // Light pink - UE5 exact for RGBA
 
   // Integer Types (from GraphEditorSettings.cpp:43-44)
   INT: { name: "int", components: 1, color: "#03C46D" }, // Green-blue (0.013575, 0.77, 0.429609)
@@ -245,12 +245,21 @@ export class MaterialNode {
     let code = this.shaderCode;
 
     // Substitute property values into shader code
-    // e.g., "float result = {A} * {B};" becomes "float result = input_a * input_b;"
-    Object.keys(this.properties).forEach((key) => {
-      code = code.replace(
-        new RegExp(`\\{${key}\\}`, "g"),
-        this.properties[key]
-      );
+    // Supports nested paths like {Color.R} for objects
+    // e.g., "float3 result = float3({Color.R}, {Color.G}, {Color.B});"
+    const propPattern = /\{([\w.]+)\}/g;
+    code = code.replace(propPattern, (match, path) => {
+      const parts = path.split('.');
+      let value = this.properties;
+      for (const part of parts) {
+        if (value && typeof value === 'object' && part in value) {
+          value = value[part];
+        } else {
+          // Fall back to literal path if not found
+          return match;
+        }
+      }
+      return value;
     });
 
     // Substitute pin references
@@ -290,27 +299,52 @@ export class MaterialNode {
     el.className = `node ${this.type}`;
     el.id = `node-${this.id}`;
     el.dataset.nodeId = this.id;
+    el.dataset.category = this.category;
     el.style.left = `${this.x}px`;
     el.style.top = `${this.y}px`;
 
-    // Header
+    // Header with title, subtitle, and collapse button
     const header = document.createElement("div");
     header.className = "node-header";
     if (this.headerColor) {
       header.style.background = this.headerColor;
     }
 
+    // Title row (title + collapse arrow)
+    const titleRow = document.createElement("div");
+    titleRow.className = "node-title-row";
+
+    const titleWrap = document.createElement("div");
+    titleWrap.style.display = "flex";
+    titleWrap.style.alignItems = "center";
+
     if (this.icon) {
       const iconSpan = document.createElement("span");
       iconSpan.className = "node-icon";
       iconSpan.textContent = this.icon;
-      header.appendChild(iconSpan);
+      titleWrap.appendChild(iconSpan);
     }
 
     const titleSpan = document.createElement("span");
     titleSpan.className = "node-title";
     titleSpan.textContent = this.title;
-    header.appendChild(titleSpan);
+    titleWrap.appendChild(titleSpan);
+
+    titleRow.appendChild(titleWrap);
+
+    // Collapse button
+    const collapseBtn = document.createElement("span");
+    collapseBtn.className = "node-collapse-btn";
+    collapseBtn.innerHTML = "▼";
+    titleRow.appendChild(collapseBtn);
+
+    header.appendChild(titleRow);
+
+    // Subtitle showing node type/category
+    const subtitle = document.createElement("div");
+    subtitle.className = "node-subtitle";
+    subtitle.textContent = this.category || this.type;
+    header.appendChild(subtitle);
 
     el.appendChild(header);
 
@@ -494,13 +528,52 @@ export class MaterialNode {
    * Update the preview thumbnail (override in subclasses)
    */
   updatePreview(previewEl) {
-    // Default: show a gradient based on properties
-    if (this.properties.R !== undefined) {
-      const r = Math.round((this.properties.R || 0) * 255);
-      const g = Math.round((this.properties.G || 0) * 255);
-      const b = Math.round((this.properties.B || 0) * 255);
-      previewEl.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+    // Check for texture-based preview (TextureSample nodes)
+    if (this.properties.TextureAsset && this.properties.TextureAsset !== 'None') {
+      // Find the texture URL from the TextureManager
+      const textureUrl = this.getTextureUrl(this.properties.TextureAsset);
+      if (textureUrl) {
+        previewEl.style.backgroundImage = `url(${textureUrl})`;
+        previewEl.style.backgroundSize = 'cover';
+        previewEl.style.backgroundPosition = 'center';
+        previewEl.style.backgroundColor = 'transparent';
+        return;
+      }
     }
+    
+    // Default: show a color based on properties
+    // Support both nested Color object and individual R,G,B properties
+    let r = 0, g = 0, b = 0;
+    
+    if (this.properties.Color && typeof this.properties.Color === 'object') {
+      // New style: Color object with R, G, B
+      r = Math.round((this.properties.Color.R || 0) * 255);
+      g = Math.round((this.properties.Color.G || 0) * 255);
+      b = Math.round((this.properties.Color.B || 0) * 255);
+      previewEl.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      previewEl.style.backgroundImage = 'none';
+    } else if (this.properties.R !== undefined) {
+      // Old style: individual R, G, B properties
+      r = Math.round((this.properties.R || 0) * 255);
+      g = Math.round((this.properties.G || 0) * 255);
+      b = Math.round((this.properties.B || 0) * 255);
+      previewEl.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      previewEl.style.backgroundImage = 'none';
+    }
+  }
+
+  /**
+   * Get texture URL from asset ID
+   */
+  getTextureUrl(assetId) {
+    // Try to get texture info from the app's texture manager
+    if (this.app && this.app.textures) {
+      const texture = this.app.textures.get(assetId);
+      if (texture && texture.dataUrl) {
+        return texture.dataUrl;
+      }
+    }
+    return null;
   }
 
   /**
@@ -632,12 +705,28 @@ export class MaterialPin {
     const el = document.createElement("div");
     el.className = `pin pin-${this.dir}`;
     el.dataset.pinId = this.id;
+    el.dataset.type = this.type;
+    
+    // Add channel attribute for RGBA color coding
+    const pinIdLower = this.localId.toLowerCase();
+    if (pinIdLower === 'r' || pinIdLower === 'red') {
+      el.dataset.channel = 'r';
+    } else if (pinIdLower === 'g' || pinIdLower === 'green') {
+      el.dataset.channel = 'g';
+    } else if (pinIdLower === 'b' || pinIdLower === 'blue') {
+      el.dataset.channel = 'b';
+    } else if (pinIdLower === 'a' || pinIdLower === 'alpha') {
+      el.dataset.channel = 'a';
+    } else if (pinIdLower === 'rgb') {
+      el.dataset.channel = 'rgb';
+    } else if (pinIdLower === 'rgba' || pinIdLower === 'out' && this.type === 'float4') {
+      el.dataset.channel = 'rgba';
+    }
 
     // Pin connector dot
     const dot = document.createElement("div");
     dot.className = "pin-dot";
-    dot.style.backgroundColor = this.color;
-    dot.style.borderColor = this.color;
+    dot.style.color = this.color;
     if (!this.isConnected()) {
       dot.classList.add("hollow");
     }

@@ -250,6 +250,7 @@ body {
    ============================================================================ */
 .toolbar {
   display: flex;
+  flex-direction: row !important; /* Override .panel's column direction */
   align-items: center;
   background: linear-gradient(180deg, #2a2a2a 0%, #222 100%);
   border-bottom: 1px solid var(--border-dark);
@@ -414,6 +415,7 @@ body {
   flex: 1;
   overflow: hidden;
   background-color: var(--bg-darkest);
+  min-height: 0;
 }
 
 .panel-column {
@@ -425,6 +427,9 @@ body {
 #left-column {
   width: var(--sidebar-width);
   background-color: var(--bg-panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 100%;
 }
 
 #right-column {
@@ -488,6 +493,40 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Viewport panel specific - compact controls that wrap if needed */
+#viewport-panel .panel-header {
+  min-height: var(--panel-header-height);
+  height: auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+#viewport-panel .panel-header-tools {
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* Compact controls for viewport */
+#viewport-panel .panel-select {
+  font-size: 9px;
+  padding: 2px 3px;
+}
+
+#viewport-panel .panel-tool {
+  font-size: 9px;
+  padding: 2px 4px;
+}
+
+#viewport-panel .fov-label {
+  font-size: 8px;
+}
+
+#viewport-panel .fov-slider {
+  width: 40px;
 }
 
 .panel-tool {
@@ -520,6 +559,44 @@ body {
   cursor: pointer;
 }
 
+/* FOV Slider styling */
+.fov-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.fov-slider {
+  width: 50px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.fov-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+}
+
+.fov-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: none;
+}
+
 .panel-toolbar {
   display: flex;
   align-items: center;
@@ -532,6 +609,57 @@ body {
   flex: 1;
   overflow: auto;
   padding: 8px;
+}
+
+/* ============================================================================
+   STATS PANEL
+   ============================================================================ */
+#stats-panel {
+  flex: 0 0 auto;
+  min-height: 80px;
+}
+
+#stats-panel .panel-content {
+  padding: 6px 8px;
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.stat-row.warning .stat-value {
+  color: #ff6b6b;
+}
+
+.stat-row.budget-low .stat-value {
+  color: #4ade80;
+}
+
+.stat-row.budget-medium .stat-value {
+  color: #fbbf24;
+}
+
+.stat-row.budget-high .stat-value {
+  color: #f87171;
 }
 
 /* ============================================================================
@@ -751,123 +879,162 @@ body {
 }
 
 /* ============================================================================
-   MATERIAL NODES - UE5 Style (Accurate)
+   MATERIAL NODES - UE5 Style (Pixel-Perfect Replica)
    ============================================================================ */
 .node {
   position: absolute;
-  min-width: var(--node-min-width);
-  background: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
-  border: 1px solid #000000;
-  border-radius: 6px;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  min-width: 160px;
+  background: #262626;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   cursor: move;
   z-index: 10;
   contain: layout;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .node:hover {
-  border-color: #444444;
-  box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-color: #4a4a4a;
 }
 
 .node.selected {
   border-color: var(--accent-orange);
+  border-width: 2px;
   box-shadow:
-    0 0 0 2px var(--accent-orange),
-    0 6px 20px rgba(255, 149, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 0 0 1px var(--accent-orange),
+    0 0 12px rgba(255, 149, 0, 0.5),
+    0 0 24px rgba(255, 149, 0, 0.25),
+    0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
-/* UE5 style header with gradient */
+/* UE5 style header with blue gradient */
 .node-header {
   display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
-  border-bottom: 1px solid #000;
-  border-radius: 5px 5px 0 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #e0e0e0;
-  letter-spacing: 0.2px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 8px 12px 6px;
+  background: linear-gradient(180deg, #2a4a6a 0%, #1a3050 100%);
+  border-bottom: 1px solid #0a1520;
+  border-radius: 3px 3px 0 0;
   position: relative;
+  min-height: 32px;
 }
 
-/* Colored accent bar at top of header */
-.node-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--header-expression);
-  border-radius: 5px 5px 0 0;
+/* Title row with collapse arrow */
+.node-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .node-icon {
   margin-right: 6px;
-  font-size: 12px;
-  font-weight: bold;
-  opacity: 0.9;
+  font-size: 11px;
+  opacity: 0.8;
+  color: #8ab4d8;
 }
 
 .node-title {
   flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8f0f8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Node type header colors */
-.node.material-parameter .node-header::before {
-  background: linear-gradient(90deg, #00897b, #26a69a);
+.node-subtitle {
+  font-size: 10px;
+  color: #6090b0;
+  font-weight: 400;
+  font-style: italic;
+  margin-top: 2px;
 }
 
-.node.material-function .node-header::before {
-  background: linear-gradient(90deg, #1565c0, #42a5f5);
+.node-collapse-btn {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6090b0;
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.15s;
 }
 
-.node.material-texture .node-header::before,
-.node[data-category="Texture"] .node-header::before {
-  background: linear-gradient(90deg, #7b1fa2, #ba68c8);
+.node-collapse-btn:hover {
+  color: #a0c0e0;
 }
 
-.node.material-math .node-header::before,
-.node[data-category="Math"] .node-header::before {
-  background: linear-gradient(90deg, #2e7d32, #66bb6a);
+/* Node type header colors - UE5 categories */
+.node.material-parameter .node-header {
+  background: linear-gradient(180deg, #2a5a5a 0%, #1a4040 100%);
 }
 
-.node.comment-node .node-header::before {
-  background: linear-gradient(90deg, #558b2f, #9ccc65);
+.node.material-function .node-header {
+  background: linear-gradient(180deg, #3a4a6a 0%, #2a3a50 100%);
+}
+
+.node.material-texture .node-header,
+.node[data-category="Texture"] .node-header {
+  background: linear-gradient(180deg, #2a4a6a 0%, #1a3050 100%);
+}
+
+.node.material-math .node-header,
+.node[data-category="Math"] .node-header {
+  background: linear-gradient(180deg, #3a5a4a 0%, #2a4030 100%);
+}
+
+/* Utility/Time nodes - Red/Orange header */
+.node[data-category="Utility"] .node-header,
+.node[data-category="Time"] .node-header {
+  background: linear-gradient(180deg, #6a2a2a 0%, #501a1a 100%);
+}
+
+/* Constants - Dark header */
+.node[data-category="Constants"] .node-header,
+.node[data-category="Constant"] .node-header {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+}
+
+/* Coordinates - Teal header */
+.node[data-category="Coordinates"] .node-header {
+  background: linear-gradient(180deg, #2a5a5a 0%, #1a4040 100%);
+}
+
+/* Vector Operations - Purple */
+.node[data-category="VectorOps"] .node-header {
+  background: linear-gradient(180deg, #4a3a6a 0%, #3a2a50 100%);
+}
+
+.node.comment-node .node-header {
+  background: linear-gradient(180deg, #4a5a3a 0%, #3a4a2a 100%);
 }
 
 .node.main-output .node-header {
-  background: linear-gradient(180deg, #37474f 0%, #263238 100%);
-}
-
-.node.main-output .node-header::before {
-  background: linear-gradient(90deg, #546e7a, #78909c);
+  background: linear-gradient(180deg, #4a4a5a 0%, #3a3a4a 100%);
 }
 
 .node-content {
   display: flex;
-  padding: 6px 0;
-  background: linear-gradient(180deg, #1e1e1e 0%, #181818 100%);
+  padding: 4px 0 6px;
+  background: #262626;
+  min-height: 40px;
 }
 
 .node-inputs,
 .node-outputs {
   display: flex;
   flex-direction: column;
-  min-width: 55px;
-  gap: 2px;
+  min-width: 50px;
+  gap: 1px;
 }
 
 .node-inputs {
@@ -879,30 +1046,41 @@ body {
   margin-left: auto;
 }
 
-/* Node preview thumbnail */
+/* Node preview thumbnail - UE5 style */
 .node-preview {
-  width: 56px;
-  height: 56px;
-  margin: 6px auto;
-  border: 1px solid #000;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #333 0%, #222 100%);
+  width: 64px;
+  height: 64px;
+  margin: 4px 8px;
+  border: 1px solid #1a1a1a;
+  border-radius: 2px;
+  background: #1e1e1e;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.node-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ============================================================================
-   PINS - UE5 Style
+   PINS - UE5 Style (Accurate Channel Colors)
    ============================================================================ */
 .pin {
   display: flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 2px 8px;
   cursor: pointer;
   transition: background-color 0.15s;
+  min-height: 18px;
 }
 
 .pin:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .pin.pin-in {
@@ -918,17 +1096,20 @@ body {
   height: 10px;
   border-radius: 50%;
   background-color: currentColor;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
   flex-shrink: 0;
-  box-shadow: 
-    0 0 0 2px rgba(0, 0, 0, 0.5),
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
     0 1px 2px rgba(0, 0, 0, 0.3);
   position: relative;
 }
 
 /* Larger invisible hitbox for easier wire connections */
 .pin-dot::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -8px;
   left: -8px;
@@ -938,48 +1119,48 @@ body {
 }
 
 .pin-dot.hollow {
-  background-color: #181818;
+  background-color: #262626;
   border: 2px solid currentColor;
-  box-shadow: 
+  box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.5),
     inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .pin:hover .pin-dot {
-  transform: scale(1.4);
-  box-shadow: 
-    0 0 0 2px rgba(0, 0, 0, 0.5),
-    0 0 8px currentColor;
+  transform: scale(1.3);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 8px currentColor,
+    0 0 16px currentColor;
 }
 
 .pin-label {
   font-size: 10px;
   color: #a0a0a0;
-  margin: 0 8px;
+  margin: 0 6px;
   white-space: nowrap;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
 }
 
 .pin:hover .pin-label {
-  color: #e0e0e0;
+  color: #d0d0d0;
 }
 
 /* Pin type colors - UE5 accurate */
 .pin[data-type="float"] .pin-dot,
 .pin[data-type="scalar"] .pin-dot {
-  color: #8c8c8c; /* Grey for scalar */
+  color: #a0a0a0; /* Grey for scalar */
 }
 
 .pin[data-type="float2"] .pin-dot {
-  color: #9ccc65; /* Light green for float2/UV */
+  color: #a0a0a0; /* Grey for float2/UV - same as scalar in UE5 */
 }
 
 .pin[data-type="float3"] .pin-dot {
-  color: #ffd54f; /* Yellow/amber for float3/RGB */
+  color: #e0e0e0; /* Light grey/white for RGB */
 }
 
 .pin[data-type="float4"] .pin-dot {
-  color: #f48fb1; /* Pink for float4/RGBA */
+  color: #e0e0e0; /* Light grey/white for RGBA */
 }
 
 .pin[data-type="texture"] .pin-dot,
@@ -994,6 +1175,14 @@ body {
 .pin[data-type="material"] .pin-dot {
   color: #ffb74d; /* Orange for material */
 }
+
+/* Channel-specific pin colors (R, G, B, A) - UE5 Exact */
+.pin[data-channel="r"] .pin-dot { color: #ff4040 !important; } /* Red channel */
+.pin[data-channel="g"] .pin-dot { color: #40ff40 !important; } /* Green channel */
+.pin[data-channel="b"] .pin-dot { color: #4080ff !important; } /* Blue channel */
+.pin[data-channel="a"] .pin-dot { color: #a0a0a0 !important; } /* Alpha channel - grey */
+.pin[data-channel="rgb"] .pin-dot { color: #e0e0e0 !important; } /* RGB output - white */
+.pin[data-channel="rgba"] .pin-dot { color: #e0e0e0 !important; } /* RGBA output - white */
 
 /* Inactive pins (grayed out for wrong blend mode) */
 .pin.inactive {
@@ -1019,46 +1208,72 @@ body {
 }
 
 /* ============================================================================
-   WIRES
+   WIRES - UE5 Style (Thicker, Glowing)
    ============================================================================ */
 .wire {
   fill: none;
-  stroke-width: 2;
+  stroke-width: 3;
   stroke-linecap: round;
   pointer-events: stroke;
+  transition: stroke-width 0.1s, filter 0.15s;
 }
 
 .wire:hover {
-  stroke-width: 3;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 3px currentColor);
 }
 
 .wire.selected {
-  stroke-width: 3;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px var(--accent-orange));
 }
 
 .wire.ghost {
-  stroke-dasharray: 5, 5;
-  opacity: 0.6;
+  stroke-dasharray: 8, 4;
+  opacity: 0.7;
+  stroke-width: 3;
 }
 
-/* Wire type colors */
+/* Exec wires - animated flow */
+.wire[data-type="exec"] {
+  stroke-dasharray: 6, 3;
+  animation: wire-flow 0.8s linear infinite;
+}
+
+@keyframes wire-flow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -18; }
+}
+
+/* Wire type colors - UE5 accurate */
 .wire[data-type="float"] {
-  stroke: var(--pin-float);
+  stroke: #5BFF0F; /* Bright green - from GraphEditorSettings.cpp */
 }
 .wire[data-type="float2"] {
-  stroke: var(--pin-float2);
+  stroke: #FF970A; /* Orange-yellow */
 }
 .wire[data-type="float3"] {
-  stroke: var(--pin-float3);
+  stroke: #FFD800; /* Golden yellow - VectorPinTypeColor */
 }
 .wire[data-type="float4"] {
-  stroke: var(--pin-float4);
+  stroke: #FFAAFF; /* Light pink - UE5 exact */
 }
-.wire[data-type="texture"] {
-  stroke: var(--pin-texture);
+.wire[data-type="texture"],
+.wire[data-type="texture2d"] {
+  stroke: #0066E8; /* Sharp blue */
 }
 .wire[data-type="bool"] {
-  stroke: var(--pin-bool);
+  stroke: #FF3333; /* Bright red */
+}
+.wire[data-type="substrate"],
+.wire[data-type="materialattributes"] {
+  stroke: #A30FF5; /* Purple/Magenta - Substrate */
+}
+.wire[data-type="exec"] {
+  stroke: #FFFFFF; /* White - Execution */
+}
+.wire[data-type="int"] {
+  stroke: #03C46D; /* Green-blue */
 }
 
 /* ============================================================================
@@ -1111,7 +1326,7 @@ body {
 
 .property-row {
   display: grid;
-  grid-template-columns: 90px 1fr;
+  grid-template-columns: 140px 1fr;
   align-items: center;
   padding: 3px 4px 3px 8px;
   font-size: 11px;
@@ -1155,6 +1370,46 @@ body {
 .property-row input:focus {
   outline: none;
   border-color: var(--accent-blue);
+}
+
+/* Color picker and input group */
+.color-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.color-picker {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.color-picker::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
+.color-component {
+  width: 50px !important;
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  flex-shrink: 0;
+  padding: 3px 4px !important;
+  font-size: 10px;
 }
 
 /* Input Defaults Section for unconnected pins */
@@ -1278,6 +1533,24 @@ body {
   font-size: 11px;
 }
 
+/* Standalone number input (no slider) */
+.ue5-number-input {
+  width: 100%;
+  max-width: 120px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.ue5-number-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
 .vec3-input-group {
   display: flex;
   flex-direction: column;
@@ -1356,6 +1629,8 @@ body {
   padding: 0 12px;
   font-size: 10px;
   color: var(--text-muted);
+  min-height: var(--statusbar-height);
+  flex-shrink: 0;
 }
 
 .status-left,
@@ -2005,13 +2280,22 @@ body {
    TEXTURE PICKER (Details Panel)
    ============================================================================ */
 .texture-property {
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
   align-items: stretch;
-  gap: 8px;
+  gap: 4px;
+  grid-template-columns: none !important;
 }
 
 .texture-property > label {
   margin-bottom: 4px;
+  border-right: none !important;
+  padding-right: 0 !important;
+  white-space: normal !important;
+}
+
+.texture-property > *:nth-child(2) {
+  padding-left: 0 !important;
 }
 
 .texture-picker {
@@ -2022,6 +2306,8 @@ body {
   border: 1px solid var(--border-medium);
   border-radius: 4px;
   padding: 8px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .texture-preview-container {
@@ -2047,6 +2333,8 @@ body {
   color: var(--text-muted);
   font-size: 11px;
   font-style: italic;
+  text-align: center;
+  word-break: break-word;
 }
 
 .texture-controls {
@@ -2096,6 +2384,50 @@ body {
 .texture-load-btn i,
 .texture-url-btn i {
   font-size: 11px;
+}
+
+/* ============================================================================
+   STATUS BAR
+   ============================================================================ */
+.status-bar {
+  display: flex;
+  flex-direction: row !important; /* Override .panel's column direction */
+  align-items: center;
+  justify-content: space-between;
+  height: var(--statusbar-height);
+  min-height: var(--statusbar-height);
+  padding: 0 12px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1e1e1e 100%);
+  border-top: 1px solid var(--border-dark);
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-divider {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+#status-message {
+  color: var(--accent-green);
+}
+
+#node-count,
+#connection-count {
+  color: var(--text-secondary);
 }
 
 /* ============================================================================

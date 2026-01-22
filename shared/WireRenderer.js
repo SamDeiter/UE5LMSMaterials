@@ -23,12 +23,31 @@ export class WireRenderer {
         const {
             direction = 'out',
             tensionFactor = 0.5,
-            maxTension = 100
+            maxTension = 100,
+            minTension = 30
         } = options;
 
-        const dx = Math.abs(endX - startX);
-        const tension = Math.min(dx * tensionFactor, maxTension);
+        const dx = endX - startX;
+        const dy = Math.abs(endY - startY);
+        const absDx = Math.abs(dx);
+        
+        // UE5-style tension: tighter curves for short horizontal distances
+        // More relaxed curves for longer distances
+        let tension = Math.min(absDx * tensionFactor, maxTension);
+        tension = Math.max(tension, minTension);
+        
+        // For backwards connections (output to left of input), use S-curve
+        if (dx < 0) {
+            // Tighter S-curve for backwards wires
+            const sCurveTension = Math.max(50, Math.min(dy * 0.5 + absDx * 0.3, 150));
+            if (direction === 'out') {
+                return `M ${startX} ${startY} C ${startX + sCurveTension} ${startY}, ${endX - sCurveTension} ${endY}, ${endX} ${endY}`;
+            } else {
+                return `M ${startX} ${startY} C ${startX - sCurveTension} ${startY}, ${endX + sCurveTension} ${endY}, ${endX} ${endY}`;
+            }
+        }
 
+        // Standard forward bezier curve
         if (direction === 'out') {
             return `M ${startX} ${startY} C ${startX + tension} ${startY}, ${endX - tension} ${endY}, ${endX} ${endY}`;
         } else {
