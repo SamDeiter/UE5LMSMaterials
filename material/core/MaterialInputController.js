@@ -10,6 +10,9 @@ export class MaterialInputController {
         this.graph = graphController;
         this.app = graphController.app;
         this.graphPanel = graphController.graphPanel;
+        
+        // Alt+drag duplication tracking
+        this.altDragDuplicated = false;
     }
 
     /**
@@ -38,6 +41,21 @@ export class MaterialInputController {
         }
 
         if (this.graph.isDragging && this.graph.dragOffsets) {
+            // Alt+drag duplication: duplicate on first move while Alt is held
+            if (e.altKey && !this.altDragDuplicated && this.graph.selectedNodes.size > 0) {
+                this.graph.duplicateSelected();
+                this.altDragDuplicated = true;
+                // Reset drag offsets for new duplicated nodes
+                this.graph.dragStartX = e.clientX;
+                this.graph.dragStartY = e.clientY;
+                this.graph.dragOffsets = new Map();
+                this.graph.selectedNodes.forEach((nodeId) => {
+                    const n = this.graph.nodes.get(nodeId);
+                    if (n) this.graph.dragOffsets.set(nodeId, { x: n.x, y: n.y });
+                });
+                this.app.updateStatus('Duplicated (Alt+drag)');
+            }
+
             const dx = (e.clientX - this.graph.dragStartX) / this.graph.zoom;
             const dy = (e.clientY - this.graph.dragStartY) / this.graph.zoom;
 
@@ -47,7 +65,8 @@ export class MaterialInputController {
                 if (node && offset) {
                     node.x = offset.x + dx;
                     node.y = offset.y + dy;
-                    this.graph.updateNodePosition(node);
+                    // Apply snap-to-grid if enabled
+                    this.graph.updateNodePositionWithSnap(node, true);
                 }
             });
 
@@ -70,6 +89,7 @@ export class MaterialInputController {
         if (this.graph.isDragging) {
             this.graph.isDragging = false;
             this.graph.dragOffsets = null;
+            this.altDragDuplicated = false; // Reset alt+drag state
         }
 
         if (this.graph.isWiring) {
@@ -212,6 +232,22 @@ export class MaterialInputController {
         if (e.key === "Home") {
             e.preventDefault();
             this.graph.focusMainNode();
+        }
+
+        // G - Toggle snap-to-grid
+        if (e.key === "g" && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            this.graph.toggleSnapToGrid();
+        }
+
+        // Tab - Quick search popup (UE5 style)
+        if (e.key === "Tab" && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            // Get center of graph panel for spawn position
+            const rect = this.graphPanel.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            this.app.actionMenu.show(centerX, centerY);
         }
     }
 

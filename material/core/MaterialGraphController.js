@@ -55,6 +55,10 @@ export class MaterialGraphController {
     this.gridColor = "#1a1a1a";
     this.gridLineColor = "#222222";
 
+    // Snap-to-grid settings (UE5 feature)
+    this.snapToGrid = false;
+    this.snapGridSize = 20; // Snap increment when enabled
+
     // Hotkey manager for "Hold key + Click" node spawning
     this.hotkeyManager = new HotkeyManager(this, materialNodeRegistry);
 
@@ -287,6 +291,19 @@ export class MaterialGraphController {
             // Clear marking
             this.markedPin.dot.classList.remove("marked");
             this.markedPin = null;
+          }
+          return;
+        }
+
+        // Ctrl+Click on connected input: disconnect and start re-wiring
+        if (e.ctrlKey && pin.dir === 'in' && pin.connectedTo) {
+          const linkId = pin.connectedTo;
+          const link = this.links.get(linkId);
+          if (link) {
+            const outputPin = link.outputPin;
+            this.wiring.breakLink(linkId);
+            this.wiring.startWiring(outputPin, e);
+            this.app.updateStatus("Rewiring - drag to new target");
           }
           return;
         }
@@ -632,5 +649,54 @@ export class MaterialGraphController {
     this.drawGrid();
     this.nodes.forEach((node) => this.updateNodePosition(node));
     this.wiring.updateAllWires();
+  }
+
+  /**
+   * Toggle snap-to-grid mode
+   */
+  toggleSnapToGrid() {
+    this.snapToGrid = !this.snapToGrid;
+    this.app.updateStatus(`Snap to grid: ${this.snapToGrid ? 'ON' : 'OFF'}`);
+    
+    // Update toolbar indicator if it exists
+    const snapIndicator = document.getElementById('snap-indicator');
+    if (snapIndicator) {
+      snapIndicator.classList.toggle('active', this.snapToGrid);
+    }
+    
+    return this.snapToGrid;
+  }
+
+  /**
+   * Snap a coordinate to the grid
+   * @param {number} value - Position to snap
+   * @returns {number} Snapped position
+   */
+  snapPosition(value) {
+    if (!this.snapToGrid) return value;
+    return Math.round(value / this.snapGridSize) * this.snapGridSize;
+  }
+
+  /**
+   * Update node position with optional grid snapping
+   * @param {MaterialNode} node - The node to update
+   * @param {boolean} applySnap - Whether to apply snap-to-grid
+   */
+  updateNodePositionWithSnap(node, applySnap = true) {
+    if (applySnap && this.snapToGrid) {
+      node.x = this.snapPosition(node.x);
+      node.y = this.snapPosition(node.y);
+    }
+    this.updateNodePosition(node);
+  }
+
+  /**
+   * Create a connection between two pins
+   * @param {MaterialPin} sourcePin 
+   * @param {MaterialPin} targetPin 
+   */
+  createConnection(sourcePin, targetPin) {
+    // Delegate to wiring controller
+    this.wiring.createConnection(sourcePin, targetPin);
   }
 }
