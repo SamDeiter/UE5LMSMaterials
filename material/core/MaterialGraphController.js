@@ -67,6 +67,9 @@ export class MaterialGraphController {
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
 
+    // Clipboard for copy/paste operations
+    this.clipboard = [];
+
     this.initEvents();
     this.resize();
 
@@ -429,6 +432,91 @@ export class MaterialGraphController {
     // Select the new nodes
     this.deselectAll();
     newNodes.forEach((node) => this.selectNode(node, true));
+  }
+
+  /**
+   * Copy selected nodes to clipboard
+   */
+  copySelected() {
+    if (this.selectedNodes.size === 0) {
+      this.app.updateStatus("No nodes selected to copy");
+      return;
+    }
+
+    this.clipboard = [];
+    
+    this.selectedNodes.forEach((nodeId) => {
+      const node = this.nodes.get(nodeId);
+      if (!node || node.type === "main-output") return;
+
+      this.clipboard.push({
+        nodeKey: node.nodeKey,
+        x: node.x,
+        y: node.y,
+        properties: { ...node.properties }
+      });
+    });
+
+    this.app.updateStatus(`Copied ${this.clipboard.length} node(s)`);
+  }
+
+  /**
+   * Paste nodes from clipboard
+   */
+  pasteNodes() {
+    if (this.clipboard.length === 0) {
+      this.app.updateStatus("Clipboard is empty");
+      return;
+    }
+
+    const offset = 50;
+    const newNodes = [];
+
+    // Find the bounding box of copied nodes to calculate relative positions
+    const minX = Math.min(...this.clipboard.map(n => n.x));
+    const minY = Math.min(...this.clipboard.map(n => n.y));
+
+    // Get paste position (center of view or offset from original)
+    const rect = this.graphPanel.getBoundingClientRect();
+    const pasteX = (rect.width / 2 - this.panX) / this.zoom;
+    const pasteY = (rect.height / 2 - this.panY) / this.zoom;
+
+    this.clipboard.forEach((nodeData) => {
+      // Calculate relative position from the copy group's origin
+      const relX = nodeData.x - minX;
+      const relY = nodeData.y - minY;
+
+      const newNode = this.addNode(
+        nodeData.nodeKey,
+        pasteX + relX,
+        pasteY + relY
+      );
+
+      if (newNode) {
+        // Copy properties
+        newNode.properties = { ...nodeData.properties };
+        newNodes.push(newNode);
+      }
+    });
+
+    // Select the pasted nodes
+    this.deselectAll();
+    newNodes.forEach((node) => this.selectNode(node, true));
+
+    this.app.updateStatus(`Pasted ${newNodes.length} node(s)`);
+  }
+
+  /**
+   * Select all nodes in the graph
+   */
+  selectAll() {
+    this.deselectAll();
+    
+    this.nodes.forEach((node) => {
+      this.selectNode(node, true);
+    });
+
+    this.app.updateStatus(`Selected ${this.selectedNodes.size} node(s)`);
   }
 
   /**

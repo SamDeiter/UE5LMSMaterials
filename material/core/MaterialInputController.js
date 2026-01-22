@@ -166,6 +166,18 @@ export class MaterialInputController {
                 e.preventDefault();
                 this.graph.duplicateSelected();
             }
+            if (e.key === "c" || e.key === "C") {
+                e.preventDefault();
+                this.graph.copySelected();
+            }
+            if (e.key === "v" || e.key === "V") {
+                e.preventDefault();
+                this.graph.pasteNodes();
+            }
+            if (e.key === "a" || e.key === "A") {
+                e.preventDefault();
+                this.graph.selectAll();
+            }
         }
 
         // Shift+WASD - Node alignment shortcuts
