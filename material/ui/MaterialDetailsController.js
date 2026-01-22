@@ -144,30 +144,38 @@ export class DetailsController {
       });
     });
 
-    // Bind input pin default value changes
+    // Bind input pin default value changes (number inputs)
     this.nodeProps.querySelectorAll(".pin-input").forEach((input) => {
       input.addEventListener("change", (e) => {
         const pinId = e.target.dataset.pinId;
         const component = e.target.dataset.component;
         const newValue = parseFloat(e.target.value);
         
-        const pin = node.inputs.find(p => p.localId === pinId);
-        if (pin) {
-          if (component !== undefined) {
-            // Vector component
-            if (!Array.isArray(pin.defaultValue)) {
-              pin.defaultValue = [0, 0, 0];
-            }
-            pin.defaultValue[parseInt(component)] = newValue;
-          } else {
-            // Scalar value
-            pin.defaultValue = newValue;
-          }
-          
-          // Trigger live update
-          if (this.app && this.app.triggerLiveUpdate) {
-            this.app.triggerLiveUpdate();
-          }
+        this.updatePinValue(node, pinId, component, newValue);
+        
+        // Sync with corresponding slider
+        const combo = e.target.closest(".slider-number-combo");
+        if (combo) {
+          const slider = combo.querySelector(".pin-slider");
+          if (slider) slider.value = Math.max(0, Math.min(1, newValue));
+        }
+      });
+    });
+
+    // Bind input pin slider changes (live updates)
+    this.nodeProps.querySelectorAll(".pin-slider").forEach((slider) => {
+      slider.addEventListener("input", (e) => {
+        const pinId = e.target.dataset.pinId;
+        const component = e.target.dataset.component;
+        const newValue = parseFloat(e.target.value);
+        
+        this.updatePinValue(node, pinId, component, newValue);
+        
+        // Sync with corresponding number input
+        const combo = e.target.closest(".slider-number-combo");
+        if (combo) {
+          const numberInput = combo.querySelector(".pin-input");
+          if (numberInput) numberInput.value = newValue;
         }
       });
     });
@@ -295,23 +303,40 @@ export class DetailsController {
     
     // Different rendering based on expected type
     if (pinType === "float3" || pinType === "color") {
+      // Vector3: three number inputs with sliders
+      const v0 = defaultValue[0] ?? 0;
+      const v1 = defaultValue[1] ?? 0;
+      const v2 = defaultValue[2] ?? 0;
       return `
         <div class="property-row input-pin-row">
           <label>${pinName}</label>
-          <div class="vec3-input">
-            <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="0" value="${defaultValue[0] ?? 0}" step="0.01">
-            <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="1" value="${defaultValue[1] ?? 0}" step="0.01">
-            <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="2" value="${defaultValue[2] ?? 0}" step="0.01">
+          <div class="vec3-input-group">
+            <div class="slider-number-combo">
+              <input type="range" class="pin-slider" data-pin-id="${pin.localId}" data-component="0" value="${v0}" min="0" max="1" step="0.01">
+              <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="0" value="${v0}" step="0.01">
+            </div>
+            <div class="slider-number-combo">
+              <input type="range" class="pin-slider" data-pin-id="${pin.localId}" data-component="1" value="${v1}" min="0" max="1" step="0.01">
+              <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="1" value="${v1}" step="0.01">
+            </div>
+            <div class="slider-number-combo">
+              <input type="range" class="pin-slider" data-pin-id="${pin.localId}" data-component="2" value="${v2}" min="0" max="1" step="0.01">
+              <input type="number" class="pin-input" data-pin-id="${pin.localId}" data-component="2" value="${v2}" step="0.01">
+            </div>
           </div>
         </div>
       `;
     }
     
-    // Default: scalar input
+    // Default: scalar input with slider
+    const val = typeof defaultValue === 'number' ? defaultValue : 0;
     return `
       <div class="property-row input-pin-row">
         <label>${pinName}</label>
-        <input type="number" class="pin-input" data-pin-id="${pin.localId}" value="${defaultValue}" step="0.01">
+        <div class="slider-number-combo">
+          <input type="range" class="pin-slider" data-pin-id="${pin.localId}" value="${val}" min="0" max="1" step="0.01">
+          <input type="number" class="pin-input" data-pin-id="${pin.localId}" value="${val}" step="0.01">
+        </div>
       </div>
     `;
   }
@@ -394,6 +419,30 @@ export class DetailsController {
   updateNodePreview(node) {
     if (node && node.element) {
       node.updatePreview(node.element.querySelector(".node-preview"));
+    }
+  }
+
+  /**
+   * Update a pin's default value
+   */
+  updatePinValue(node, pinId, component, newValue) {
+    const pin = node.inputs.find(p => p.localId === pinId);
+    if (!pin) return;
+
+    if (component !== undefined) {
+      // Vector component
+      if (!Array.isArray(pin.defaultValue)) {
+        pin.defaultValue = [0, 0, 0];
+      }
+      pin.defaultValue[parseInt(component)] = newValue;
+    } else {
+      // Scalar value
+      pin.defaultValue = newValue;
+    }
+    
+    // Trigger live update
+    if (this.app && this.app.triggerLiveUpdate) {
+      this.app.triggerLiveUpdate();
     }
   }
 }

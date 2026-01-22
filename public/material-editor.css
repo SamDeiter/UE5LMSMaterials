@@ -1241,6 +1241,58 @@ body {
   flex: 1;
 }
 
+/* Slider + Number input combo for pin defaults */
+.slider-number-combo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.slider-number-combo .pin-slider {
+  flex: 1;
+  min-width: 60px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider-number-combo .pin-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: 1px solid var(--bg-darkest);
+}
+
+.slider-number-combo .pin-input {
+  width: 50px;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+.vec3-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.vec3-input-group .slider-number-combo {
+  gap: 4px;
+}
+
+.vec3-input-group .pin-input {
+  width: 40px;
+}
+
 .ue5-slider {
   flex: 1;
   height: 4px;
