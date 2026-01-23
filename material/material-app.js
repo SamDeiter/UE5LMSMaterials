@@ -15,7 +15,7 @@ import {
   TypeCompatibility,
 } from "./core/MaterialNodeFramework.js";
 import { MaterialExpressionDefinitions } from "../data/MaterialExpressionDefinitions.js";
-import { HotkeyManager } from "../blueprint/ui/HotkeyManager.js";
+import { HotkeyManager } from "../shared/HotkeyManager.js";
 
 // Engine modules
 import { MaterialEvaluator } from "./engine/MaterialEvaluator.js";
@@ -26,7 +26,7 @@ import { MaterialGraphController } from "./core/MaterialGraphController.js";
 import { PaletteController } from "./ui/PaletteController.js";
 import { DetailsController } from "./ui/MaterialDetailsController.js";
 import { ViewportController } from "./ui/ViewportController.js";
-import { ActionMenuController } from "../blueprint/core/ActionMenuController.js";
+import { ActionMenuController } from "../shared/ActionMenuController.js";
 import { StatsController } from "./ui/StatsController.js";
 import { LayoutController } from "./ui/LayoutController.js";
 

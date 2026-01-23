@@ -40,3 +40,48 @@ export const PIN_COLORS = {
   TRANSFORM: "#ff7300",
   OBJECT: "#00a2e8",
 };
+
+/**
+ * Post-processing effect settings matching UE5 Material Editor
+ */
+export const POST_PROCESSING = {
+  BLOOM: {
+    STRENGTH: 0.5,      // Bloom intensity
+    RADIUS: 0.4,        // Bloom falloff radius
+    THRESHOLD: 0.8,     // HDR threshold for glow
+  },
+  VIGNETTE: {
+    INTENSITY: 0.3,     // Edge darkening amount
+    RADIUS: 0.8,        // Vignette falloff radius
+  },
+  FILM_GRAIN: {
+    INTENSITY: 0.003,   // Very subtle noise
+  },
+};
+
+/**
+ * Rendering and camera defaults
+ */
+export const RENDERING = {
+  DEFAULT_CAMERA_POSITION: { x: 2.5, y: 2, z: 4 },
+  DEFAULT_CAMERA_TARGET: { x: 0, y: 1, z: 0 },
+  DEFAULT_CAMERA_FOV: 45,
+  CAMERA_NEAR: 0.1,
+  CAMERA_FAR: 100,
+  DIRECTIONAL_LIGHT_INTENSITY: 2.5,
+  AMBIENT_LIGHT_INTENSITY: 0.2,
+  DEFAULT_MESH_Y: 1,
+  PLANE_MESH_Y: 1.5,
+};
+
+/**
+ * Default Material Properties
+ */
+export const MATERIAL_DEFAULTS = {
+  METALNESS: 0,
+  ROUGHNESS: 0.5,
+  ENV_MAP_INTENSITY: 0.5,
+  SPECULAR_INTENSITY: 0.5,
+  REFLECTIVITY: 0.5,
+  IOR: 1.5,
+};

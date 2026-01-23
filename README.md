@@ -1,64 +1,39 @@
-# UE5 LMS Materials
+# UE5 Material Editor
 
-Web-based Blueprint and Material editors with 100% visual parity to Unreal Engine 5.
+Web-based Material Editor with 100% visual parity to Unreal Engine 5.
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Run tests
-npm test
-
-# Start dev server
-python -m http.server 8080
-# Then open: http://localhost:8080/public/material-editor.html
+npm run dev
+# Open: http://localhost:5173/public/material-editor.html
 ```
 
-## Directory Structure
+## Features
 
-```
-├── blueprint/          # Blueprint Editor
-│   ├── core/           # GraphController, Node, WiringController, etc.
-│   ├── services/       # Compiler, Persistence, HistoryManager
-│   ├── registries/     # NodeRegistry
-│   └── ui/             # HotkeyManager, ContextMenu, etc.
-│
-├── material/           # Material Editor
-│   ├── core/           # MaterialGraphController, MaterialNodeFramework
-│   ├── engine/         # ShaderEvaluator, TextureManager
-│   └── ui/             # PaletteController, ViewportController
-│
-├── shared/             # Common utilities
-│   ├── utils.js        # Debounce, generateId, etc.
-│   ├── WireRenderer.js # Shared wire rendering
-│   └── GridRenderer.js # Shared grid rendering
-│
-├── public/             # Static assets
-│   ├── material-editor.html
-│   ├── material-editor.css
-│   └── assets/
-│
-└── tests/              # Test suites (328 tests)
-```
+- **Real-time 3D Preview** with Three.js MeshPhysicalMaterial
+- **Post-Processing Effects** (Bloom, Vignette, Film Grain) matching UE5
+- **PBR Properties**: Base Color, Metallic, Roughness, Normal, AO, Emissive
+- **Node Graph Editor** with snap-to-grid and magnetic alignment
+- **Resizable Panels** with drag handles
+- **ACES Filmic Tone Mapping** with sRGB gamma correction
 
-## Architecture
+## Configuration
 
-Both editors use a modular controller pattern:
+All settings centralized in `src/constants/EditorConstants.js`:
 
-| Module | Purpose |
-|--------|---------|
-| **GraphController** | Core graph state and operations |
-| **InputController** | Mouse/keyboard handling |
-| **WiringController** | Wire connections |
-| **SelectionController** | Node selection |
+| Category | Constants |
+|----------|-----------|
+| **POST_PROCESSING** | Bloom, Vignette, Film Grain |
+| **RENDERING** | Camera, Lighting |
+| **MATERIAL_DEFAULTS** | Roughness, IOR, Reflectivity |
 
 ## Testing
 
 ```bash
-npm test           # Run all tests
-npm test -- --run  # Run once without watch
+npm test           # Run 400+ tests
+npm test -- --run  # Run once
 ```
 
 ## License

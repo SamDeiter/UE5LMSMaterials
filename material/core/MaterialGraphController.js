@@ -7,11 +7,11 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { ActionMenuController } from "../../blueprint/core/ActionMenuController.js";
+import { ActionMenuController } from "../../shared/ActionMenuController.js";
 import { StatsController } from "../ui/StatsController.js";
 import { LayoutController } from "../ui/LayoutController.js";
 
-import { HotkeyManager } from "../../blueprint/ui/HotkeyManager.js";
+import { HotkeyManager } from "../../shared/HotkeyManager.js";
 import {
   materialNodeRegistry,
   MaterialNode,

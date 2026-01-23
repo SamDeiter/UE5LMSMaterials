@@ -5,6 +5,8 @@
  * Extracted from ViewportController.js for modularity.
  */
 
+import { POST_PROCESSING, RENDERING, MATERIAL_DEFAULTS } from '../../src/constants/EditorConstants.js';
+
 export class SceneManager {
   constructor(canvas, container) {
     this.canvas = canvas;
@@ -35,9 +37,9 @@ export class SceneManager {
     this.bloomPass = null;
     this.postProcessingEnabled = true;
     this.bloomSettings = {
-      strength: 0.5,    // Bloom intensity (UE5 default ~0.5)
-      radius: 0.4,      // Bloom falloff radius
-      threshold: 0.8    // HDR threshold for bloom (values > this glow)
+      strength: POST_PROCESSING.BLOOM.STRENGTH,
+      radius: POST_PROCESSING.BLOOM.RADIUS,
+      threshold: POST_PROCESSING.BLOOM.THRESHOLD
     };
   }
 
@@ -56,8 +58,17 @@ export class SceneManager {
 
       // Camera
       const aspect = this.canvas.clientWidth / this.canvas.clientHeight || 1;
-      this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
-      this.camera.position.set(2.5, 2, 4);
+      this.camera = new THREE.PerspectiveCamera(
+        RENDERING.DEFAULT_CAMERA_FOV, 
+        aspect, 
+        RENDERING.CAMERA_NEAR, 
+        RENDERING.CAMERA_FAR
+      );
+      this.camera.position.set(
+        RENDERING.DEFAULT_CAMERA_POSITION.x,
+        RENDERING.DEFAULT_CAMERA_POSITION.y,
+        RENDERING.DEFAULT_CAMERA_POSITION.z
+      );
 
       // Renderer
       this.renderer = new THREE.WebGLRenderer({
@@ -72,14 +83,18 @@ export class SceneManager {
       // Controls
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
-      this.controls.target.set(0, 1, 0);
+      this.controls.target.set(
+        RENDERING.DEFAULT_CAMERA_TARGET.x,
+        RENDERING.DEFAULT_CAMERA_TARGET.y,
+        RENDERING.DEFAULT_CAMERA_TARGET.z
+      );
 
       // Lighting
-      this.directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+      this.directionalLight = new THREE.DirectionalLight(0xffffff, RENDERING.DIRECTIONAL_LIGHT_INTENSITY);
       this.directionalLight.position.set(3, 10, 5);
       this.scene.add(this.directionalLight);
 
-      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+      this.ambientLight = new THREE.AmbientLight(0xffffff, RENDERING.AMBIENT_LIGHT_INTENSITY);
       this.scene.add(this.ambientLight);
 
       // Environment
@@ -157,12 +172,12 @@ export class SceneManager {
     this.material = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       metalness: 0,
-      roughness: 0.5,
+      roughness: MATERIAL_DEFAULTS.ROUGHNESS,
       side: THREE.DoubleSide,
-      envMapIntensity: 0.5,
-      specularIntensity: 0.5,
-      reflectivity: 0.5,
-      ior: 1.5,
+      envMapIntensity: MATERIAL_DEFAULTS.ENV_MAP_INTENSITY,
+      specularIntensity: MATERIAL_DEFAULTS.SPECULAR_INTENSITY,
+      reflectivity: MATERIAL_DEFAULTS.REFLECTIVITY,
+      ior: MATERIAL_DEFAULTS.IOR,
     });
     this.originalMaterial = this.material;
     
@@ -219,9 +234,9 @@ export class SceneManager {
       const vignetteFilmGrainShader = {
         uniforms: {
           tDiffuse: { value: null },
-          vignetteIntensity: { value: 0.3 },
-          vignetteRadius: { value: 0.8 },
-          filmGrainIntensity: { value: 0.003 },
+          vignetteIntensity: { value: POST_PROCESSING.VIGNETTE.INTENSITY },
+          vignetteRadius: { value: POST_PROCESSING.VIGNETTE.RADIUS },
+          filmGrainIntensity: { value: POST_PROCESSING.FILM_GRAIN.INTENSITY },
           time: { value: 0 }
         },
         vertexShader: `
