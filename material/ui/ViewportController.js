@@ -105,6 +105,12 @@ export class ViewportController {
     exposureSlider?.addEventListener("input", (e) => {
       this.setExposure(parseFloat(e.target.value));
     });
+
+    // Post-processing dropdown
+    const ppSelect = document.getElementById("viewport-pp-select");
+    ppSelect?.addEventListener("change", (e) => {
+      this.setPostProcessing(e.target.value);
+    });
   }
 
   /**
@@ -177,6 +183,13 @@ export class ViewportController {
 
   setGeometry(type) {
     this.sceneManager.setGeometry(type);
+  }
+
+  /**
+   * Set post-processing mode: 'all', 'bloom', or 'none'
+   */
+  setPostProcessing(mode) {
+    this.sceneManager.setPostProcessing(mode);
   }
 
   resize() {

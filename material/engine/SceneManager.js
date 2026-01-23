@@ -29,6 +29,16 @@ export class SceneManager {
     this.originalMaterial = null;
     this.wireframeMaterial = null;
     this.unlitMaterial = null;
+
+    // Post-processing
+    this.composer = null;
+    this.bloomPass = null;
+    this.postProcessingEnabled = true;
+    this.bloomSettings = {
+      strength: 0.5,    // Bloom intensity (UE5 default ~0.5)
+      radius: 0.4,      // Bloom falloff radius
+      threshold: 0.8    // HDR threshold for bloom (values > this glow)
+    };
   }
 
   async init() {
@@ -90,6 +100,9 @@ export class SceneManager {
       this.mesh = new THREE.Mesh(this.geometries.sphere, this.material);
       this.mesh.position.y = 1;
       this.scene.add(this.mesh);
+
+      // Setup post-processing
+      await this.setupPostProcessing();
 
       this.initialized = true;
       this.startRenderLoop();
@@ -165,6 +178,104 @@ export class SceneManager {
     });
   }
 
+  /**
+   * Setup post-processing effects matching UE5 Material Editor preview
+   * - Bloom: Glow for emissive/HDR bright areas
+   * - Vignette: Edge darkening
+   * - Film Grain: Subtle noise
+   */
+  async setupPostProcessing() {
+    try {
+      const THREE = this.THREE;
+      
+      // Import post-processing modules
+      const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
+      const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
+      const { UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js');
+      const { ShaderPass } = await import('three/addons/postprocessing/ShaderPass.js');
+      const { OutputPass } = await import('three/addons/postprocessing/OutputPass.js');
+
+      // Create composer
+      this.composer = new EffectComposer(this.renderer);
+
+      // Scene render pass
+      const renderPass = new RenderPass(this.scene, this.camera);
+      this.composer.addPass(renderPass);
+
+      // Bloom pass (for emissive glow - key UE5 feature)
+      const resolution = new THREE.Vector2(
+        this.canvas.clientWidth || 800,
+        this.canvas.clientHeight || 600
+      );
+      this.bloomPass = new UnrealBloomPass(
+        resolution,
+        this.bloomSettings.strength,
+        this.bloomSettings.radius,
+        this.bloomSettings.threshold
+      );
+      this.composer.addPass(this.bloomPass);
+
+      // Vignette + Film Grain shader pass
+      const vignetteFilmGrainShader = {
+        uniforms: {
+          tDiffuse: { value: null },
+          vignetteIntensity: { value: 0.3 },
+          vignetteRadius: { value: 0.8 },
+          filmGrainIntensity: { value: 0.003 },
+          time: { value: 0 }
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D tDiffuse;
+          uniform float vignetteIntensity;
+          uniform float vignetteRadius;
+          uniform float filmGrainIntensity;
+          uniform float time;
+          varying vec2 vUv;
+          
+          // Simple noise function
+          float rand(vec2 co) {
+            return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+          }
+          
+          void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            
+            // Vignette
+            vec2 center = vUv - 0.5;
+            float dist = length(center);
+            float vignette = smoothstep(vignetteRadius, vignetteRadius - 0.3, dist);
+            color.rgb *= mix(1.0 - vignetteIntensity, 1.0, vignette);
+            
+            // Film grain
+            float grain = rand(vUv * time) * 2.0 - 1.0;
+            color.rgb += grain * filmGrainIntensity;
+            
+            gl_FragColor = color;
+          }
+        `
+      };
+      
+      this.vignettePass = new ShaderPass(vignetteFilmGrainShader);
+      this.composer.addPass(this.vignettePass);
+
+      // Output pass (for proper color space)
+      const outputPass = new OutputPass();
+      this.composer.addPass(outputPass);
+
+      console.log('Post-processing initialized: Bloom, Vignette, Film Grain');
+    } catch (e) {
+      console.warn('Post-processing setup failed, using standard rendering:', e);
+      this.postProcessingEnabled = false;
+    }
+  }
+
   startRenderLoop() {
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
@@ -176,7 +287,17 @@ export class SceneManager {
       }
 
       if (this.renderer && (this.needsRender || this.isRealtime)) {
-        this.renderer.render(this.scene, this.camera);
+        // Update film grain time
+        if (this.vignettePass) {
+          this.vignettePass.uniforms.time.value = performance.now() * 0.001;
+        }
+        
+        // Use post-processing composer or standard renderer
+        if (this.postProcessingEnabled && this.composer) {
+          this.composer.render();
+        } else {
+          this.renderer.render(this.scene, this.camera);
+        }
         this.needsRender = false;
       }
     };
@@ -214,6 +335,14 @@ export class SceneManager {
     
     // Update renderer
     this.renderer.setSize(width, height, true); // true to update style
+
+    // Update post-processing composer
+    if (this.composer) {
+      this.composer.setSize(width, height);
+    }
+    if (this.bloomPass) {
+      this.bloomPass.resolution.set(width, height);
+    }
     
     // Update controls if they exist (OrbitControls needs to know new size for interaction)
     if (this.controls && typeof this.controls.handleResize === 'function') {
@@ -221,7 +350,30 @@ export class SceneManager {
     }
     
     this.needsRender = true;
-    console.log(`Viewport Resized: ${width}x${height} @ ${pixelRatio}x`);
+  }
+
+  /**
+   * Set post-processing mode
+   * @param {string} mode - 'all', 'bloom', or 'none'
+   */
+  setPostProcessing(mode) {
+    switch (mode) {
+      case 'all':
+        this.postProcessingEnabled = true;
+        if (this.bloomPass) this.bloomPass.enabled = true;
+        if (this.vignettePass) this.vignettePass.enabled = true;
+        break;
+      case 'bloom':
+        this.postProcessingEnabled = true;
+        if (this.bloomPass) this.bloomPass.enabled = true;
+        if (this.vignettePass) this.vignettePass.enabled = false;
+        break;
+      case 'none':
+        this.postProcessingEnabled = false;
+        break;
+    }
+    this.needsRender = true;
+    console.log(`Post-processing mode: ${mode}`);
   }
 
   setGeometry(type) {

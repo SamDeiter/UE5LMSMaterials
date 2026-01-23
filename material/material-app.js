@@ -180,12 +180,40 @@ class MaterialEditorApp {
   }
 
 
+  /**
+   * Apply button handler - compiles material and updates preview
+   * Matches UE5 behavior: shows "Compiling Shaders..." then "Applied"
+   */
   apply() {
-    this.updateStatus("Applied");
-    console.log("Material applied");
-
-    // Evaluate graph and update viewport
-    this.evaluateGraphAndUpdatePreview();
+    // Show compiling status (like UE5's shader compilation)
+    this.updateStatus("⏳ Compiling Shaders...");
+    
+    // Use setTimeout to allow UI to update before heavy computation
+    setTimeout(() => {
+      try {
+        // Evaluate graph and update viewport
+        this.evaluateGraphAndUpdatePreview();
+        
+        // Mark material as successfully compiled
+        this.materialCompiled = true;
+        this.materialDirty = false;
+        
+        // Update status to show success
+        this.updateStatus("✅ Applied");
+        
+        // Clear success message after 2 seconds
+        setTimeout(() => {
+          if (this.statusMessage === "✅ Applied") {
+            this.updateStatus("Ready");
+          }
+        }, 2000);
+        
+        console.log("Material compiled and applied successfully");
+      } catch (e) {
+        this.updateStatus("❌ Compilation Failed");
+        console.error("Material compilation failed:", e);
+      }
+    }, 50);
   }
 
   triggerLiveUpdate() {
