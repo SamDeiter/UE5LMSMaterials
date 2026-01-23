@@ -96,6 +96,9 @@ export class SceneManager {
       // Controls
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.08; // Smoother damping
+      this.controls.zoomSpeed = 0.5; // Slower, smoother zoom
+      this.controls.rotateSpeed = 0.8;
       this.controls.target.set(
         RENDERING.DEFAULT_CAMERA_TARGET.x,
         RENDERING.DEFAULT_CAMERA_TARGET.y,

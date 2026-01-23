@@ -1,6 +1,6 @@
 /**
  * NodeRegistry.js
- * 
+ *
  * Manages all node definitions and pin type metadata.
  */
 
@@ -15,10 +15,10 @@
 
 export const PinTypes = {
   // Scalar Types (from GraphEditorSettings.cpp:45)
-  FLOAT: { name: "float", components: 1, color: "#5BFF0F" }, // Bright green (0.357667, 1.0, 0.06)
-  FLOAT2: { name: "float2", components: 2, color: "#FF970A" }, // Yellow/Orange - Vector style
-  FLOAT3: { name: "float3", components: 3, color: "#FFD800" }, // Golden yellow - VectorPinTypeColor (UE5 exact)
-  FLOAT4: { name: "float4", components: 4, color: "#FFAAFF" }, // Light pink - UE5 exact for RGBA
+  FLOAT: { name: "float", components: 1, color: "#FFFFFF" }, // White - UE5 active pin style
+  FLOAT2: { name: "float2", components: 2, color: "#FFFFFF" }, // White - UE5 active pin style
+  FLOAT3: { name: "float3", components: 3, color: "#FFFFFF" }, // White - UE5 active pin style
+  FLOAT4: { name: "float4", components: 4, color: "#FFFFFF" }, // White - UE5 active pin style
 
   // Integer Types (from GraphEditorSettings.cpp:43-44)
   INT: { name: "int", components: 1, color: "#03C46D" }, // Green-blue (0.013575, 0.77, 0.429609)
@@ -230,8 +230,8 @@ export class MaterialNodeRegistry {
       return null;
     }
     if (!this.nodeClass) {
-        console.error("Node registry has no MaterialNode class associated.");
-        return null;
+      console.error("Node registry has no MaterialNode class associated.");
+      return null;
     }
     return new this.nodeClass(id, definition, x, y, app);
   }
