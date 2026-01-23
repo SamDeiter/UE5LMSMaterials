@@ -459,7 +459,9 @@ body {
   height: 6px;
   background-color: var(--accent-blue);
   cursor: row-resize;
-  transition: background-color 0.2s, height 0.1s;
+  transition:
+    background-color 0.2s,
+    height 0.1s;
   flex-shrink: 0;
 }
 
@@ -700,7 +702,9 @@ body {
    VIEWPORT PANEL
    ============================================================================ */
 #viewport-panel {
-  flex: 0 0 320px;
+  flex-shrink: 0;
+  min-height: 150px;
+  overflow: hidden;
 }
 
 .viewport-content {
@@ -1211,12 +1215,24 @@ body {
 }
 
 /* Channel-specific pin colors (R, G, B, A) - UE5 Exact */
-.pin[data-channel="r"] .pin-dot { color: #ff4040 !important; } /* Red channel */
-.pin[data-channel="g"] .pin-dot { color: #40ff40 !important; } /* Green channel */
-.pin[data-channel="b"] .pin-dot { color: #4080ff !important; } /* Blue channel */
-.pin[data-channel="a"] .pin-dot { color: #a0a0a0 !important; } /* Alpha channel - grey */
-.pin[data-channel="rgb"] .pin-dot { color: #e0e0e0 !important; } /* RGB output - white */
-.pin[data-channel="rgba"] .pin-dot { color: #e0e0e0 !important; } /* RGBA output - white */
+.pin[data-channel="r"] .pin-dot {
+  color: #ff4040 !important;
+} /* Red channel */
+.pin[data-channel="g"] .pin-dot {
+  color: #40ff40 !important;
+} /* Green channel */
+.pin[data-channel="b"] .pin-dot {
+  color: #4080ff !important;
+} /* Blue channel */
+.pin[data-channel="a"] .pin-dot {
+  color: #a0a0a0 !important;
+} /* Alpha channel - grey */
+.pin[data-channel="rgb"] .pin-dot {
+  color: #e0e0e0 !important;
+} /* RGB output - white */
+.pin[data-channel="rgba"] .pin-dot {
+  color: #e0e0e0 !important;
+} /* RGBA output - white */
 
 /* Inactive pins (grayed out for wrong blend mode) */
 .pin.inactive {
@@ -1249,7 +1265,9 @@ body {
   stroke-width: 3;
   stroke-linecap: round;
   pointer-events: stroke;
-  transition: stroke-width 0.1s, filter 0.15s;
+  transition:
+    stroke-width 0.1s,
+    filter 0.15s;
 }
 
 .wire:hover {
@@ -1275,39 +1293,43 @@ body {
 }
 
 @keyframes wire-flow {
-  0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -18; }
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -18;
+  }
 }
 
 /* Wire type colors - UE5 accurate */
 .wire[data-type="float"] {
-  stroke: #5BFF0F; /* Bright green - from GraphEditorSettings.cpp */
+  stroke: #5bff0f; /* Bright green - from GraphEditorSettings.cpp */
 }
 .wire[data-type="float2"] {
-  stroke: #FF970A; /* Orange-yellow */
+  stroke: #ff970a; /* Orange-yellow */
 }
 .wire[data-type="float3"] {
-  stroke: #FFD800; /* Golden yellow - VectorPinTypeColor */
+  stroke: #ffd800; /* Golden yellow - VectorPinTypeColor */
 }
 .wire[data-type="float4"] {
-  stroke: #FFAAFF; /* Light pink - UE5 exact */
+  stroke: #ffaaff; /* Light pink - UE5 exact */
 }
 .wire[data-type="texture"],
 .wire[data-type="texture2d"] {
-  stroke: #0066E8; /* Sharp blue */
+  stroke: #0066e8; /* Sharp blue */
 }
 .wire[data-type="bool"] {
-  stroke: #FF3333; /* Bright red */
+  stroke: #ff3333; /* Bright red */
 }
 .wire[data-type="substrate"],
 .wire[data-type="materialattributes"] {
-  stroke: #A30FF5; /* Purple/Magenta - Substrate */
+  stroke: #a30ff5; /* Purple/Magenta - Substrate */
 }
 .wire[data-type="exec"] {
-  stroke: #FFFFFF; /* White - Execution */
+  stroke: #ffffff; /* White - Execution */
 }
 .wire[data-type="int"] {
-  stroke: #03C46D; /* Green-blue */
+  stroke: #03c46d; /* Green-blue */
 }
 
 /* ============================================================================
