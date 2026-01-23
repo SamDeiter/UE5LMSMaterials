@@ -128,6 +128,16 @@ export class SceneManager {
       this.directionalLight.position.set(3, 10, 5);
       this.scene.add(this.directionalLight);
 
+      // Add directional light helper (arrow showing light direction)
+      // Creates a visual indicator for the light direction - visible during L+drag
+      this.lightHelper = new THREE.DirectionalLightHelper(
+        this.directionalLight,
+        0.5, // Size of the helper
+        0xffff00, // Yellow color for visibility
+      );
+      this.lightHelper.visible = false; // Hidden by default, shown during L+drag
+      this.scene.add(this.lightHelper);
+
       this.ambientLight = new THREE.AmbientLight(
         0xffffff,
         RENDERING.AMBIENT_LIGHT_INTENSITY,
@@ -703,5 +713,20 @@ export class SceneManager {
       showHDRI: this.showHDRIBackground,
       color: this.backgroundColor,
     };
+  }
+
+  /**
+   * Show or hide the light direction helper
+   * @param {boolean} visible - Whether to show the helper
+   */
+  showLightHelper(visible) {
+    if (this.lightHelper) {
+      this.lightHelper.visible = visible;
+      if (visible) {
+        // Update the helper to reflect current light position
+        this.lightHelper.update();
+      }
+      this.needsRender = true;
+    }
   }
 }

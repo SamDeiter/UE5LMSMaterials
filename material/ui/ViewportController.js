@@ -150,16 +150,101 @@ export class ViewportController {
   }
 
   /**
-   * Bind keyboard controls for WASD navigation
+   * Bind keyboard controls for WASD navigation and L+drag light rotation
    */
   bindKeyboardControls() {
     this.canvas.tabIndex = 0;
+
+    // Track L key state for light rotation
+    this.isLightDragging = false;
+    this.lastMousePos = { x: 0, y: 0 };
+
     this.canvas?.addEventListener("keydown", (e) => {
       this.keysPressed[e.key.toLowerCase()] = true;
     });
     this.canvas?.addEventListener("keyup", (e) => {
       this.keysPressed[e.key.toLowerCase()] = false;
     });
+
+    // L + Left Click + Drag to rotate light (UE5 style)
+    this.canvas?.addEventListener("mousedown", (e) => {
+      if (this.keysPressed["l"] && e.button === 0) {
+        this.isLightDragging = true;
+        this.lastMousePos = { x: e.clientX, y: e.clientY };
+        e.preventDefault();
+        // Show light helper while dragging
+        this.sceneManager.showLightHelper?.(true);
+      }
+    });
+
+    this.canvas?.addEventListener("mousemove", (e) => {
+      if (this.isLightDragging && this.keysPressed["l"]) {
+        const deltaX = e.clientX - this.lastMousePos.x;
+        const deltaY = e.clientY - this.lastMousePos.y;
+        this.lastMousePos = { x: e.clientX, y: e.clientY };
+
+        // Rotate light based on mouse movement
+        this.rotateLightByDelta(deltaX, deltaY);
+      }
+    });
+
+    this.canvas?.addEventListener("mouseup", (e) => {
+      if (this.isLightDragging) {
+        this.isLightDragging = false;
+        // Hide light helper after dragging
+        this.sceneManager.showLightHelper?.(false);
+      }
+    });
+
+    // Also stop dragging if mouse leaves canvas
+    this.canvas?.addEventListener("mouseleave", () => {
+      if (this.isLightDragging) {
+        this.isLightDragging = false;
+        this.sceneManager.showLightHelper?.(false);
+      }
+    });
+  }
+
+  /**
+   * Rotate the directional light based on mouse delta
+   * @param {number} deltaX - Horizontal mouse movement
+   * @param {number} deltaY - Vertical mouse movement
+   */
+  rotateLightByDelta(deltaX, deltaY) {
+    if (!this.sceneManager.directionalLight) return;
+
+    const light = this.sceneManager.directionalLight;
+    const sensitivity = 0.01;
+
+    // Get current light direction as spherical coordinates
+    const pos = light.position.clone();
+    const radius = pos.length();
+
+    // Calculate current angles
+    let theta = Math.atan2(pos.x, pos.z); // Horizontal angle
+    let phi = Math.acos(pos.y / radius); // Vertical angle
+
+    // Apply rotation based on mouse movement
+    theta -= deltaX * sensitivity;
+    phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi + deltaY * sensitivity));
+
+    // Convert back to Cartesian coordinates
+    light.position.set(
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.cos(theta),
+    );
+
+    // Light always points at origin
+    light.target.position.set(0, 0, 0);
+    light.target.updateMatrixWorld();
+
+    // Update the light helper to show new direction
+    if (this.sceneManager.lightHelper) {
+      this.sceneManager.lightHelper.update();
+    }
+
+    this.sceneManager.needsRender = true;
   }
 
   /**
