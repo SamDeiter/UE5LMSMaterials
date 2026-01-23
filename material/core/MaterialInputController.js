@@ -109,7 +109,14 @@ export class MaterialInputController {
         this.graph.panX = e.clientX - this.graph.dragStartX;
         this.graph.panY = e.clientY - this.graph.dragStartY;
         this.graph.drawGrid();
-        this.graph.updateLazyRendering();
+        
+        // Throttle lazy rendering during pan (update every 100ms instead of every frame)
+        const now = performance.now();
+        if (!this._lastLazyUpdate || now - this._lastLazyUpdate > 100) {
+            this.graph.updateLazyRendering();
+            this._lastLazyUpdate = now;
+        }
+        
         this.graph.nodes.forEach((node) => this.graph.updateNodePosition(node));
         this.graph.wiring.updateAllWires();
     }
@@ -233,6 +240,8 @@ export class MaterialInputController {
     onMouseUp(e) {
         if (this.graph.isPanning) {
             this.graph.isPanning = false;
+            // Force full lazy rendering update after pan ends
+            this.graph.updateLazyRendering();
         }
 
         if (this.graph.isDragging) {

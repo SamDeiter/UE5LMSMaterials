@@ -917,6 +917,19 @@ body {
 }
 
 /* ============================================================================
+   PERFORMANCE: VIEWPORT CULLING
+   ============================================================================ */
+.node.culled {
+  visibility: hidden;
+  pointer-events: none;
+  content-visibility: hidden; /* Skip rendering entirely */
+}
+
+.wire.culled {
+  visibility: hidden;
+}
+
+/* ============================================================================
    MATERIAL NODES - UE5 Style (Pixel-Perfect Replica)
    ============================================================================ */
 .node {
