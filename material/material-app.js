@@ -30,7 +30,13 @@ import { ActionMenuController } from "../blueprint/core/ActionMenuController.js"
 import { StatsController } from "./ui/StatsController.js";
 import { LayoutController } from "./ui/LayoutController.js";
 
+import { ToolbarManager } from "./core/ui/ToolbarManager.js";
+import { MenuManager } from "./core/ui/MenuManager.js";
+import { ModalManager } from "./core/ui/ModalManager.js";
+
 import { debounce, generateId } from "../shared/utils.js";
+import { PersistenceManager } from "./core/PersistenceManager.js";
+import { UI_TIMINGS } from "../src/constants/EditorConstants.js";
 
 // ============================================================================
 // MAIN APPLICATION
@@ -44,6 +50,11 @@ class MaterialEditorApp {
     console.log(
       `Registered ${materialNodeRegistry.definitions.size} node types`
     );
+
+    // Initialize UI Managers
+    this.toolbar = new ToolbarManager(this);
+    this.menu = new MenuManager(this);
+    this.modals = new ModalManager(this);
 
     // Initialize controllers
     this.graph = new MaterialGraphController(this);
@@ -60,8 +71,16 @@ class MaterialEditorApp {
     // Store textureManager reference for node access
     this.textureManager = textureManager;
 
-    // Bind toolbar buttons
-    this.bindToolbar();
+    // Initialize Persistence
+    this.persistence = new PersistenceManager(this);
+
+    // Bind UI elements through managers
+    this.toolbar.bind();
+    this.menu.bind();
+    this.modals.bind();
+    
+    // Bind shared handlers
+    this.bindBlendModeHandler();
 
     // Create main material node (after all controllers are ready)
     this.graph.createMainNode();
@@ -74,188 +93,16 @@ class MaterialEditorApp {
     this.updateStatus("Ready");
     this.updateCounts();
 
+    // Load saved graph if it exists
+    this.load();
+
     console.log("Material Editor initialized");
   }
 
-  // ==========================================================================
-  // TOOLBAR BINDINGS
-  // ==========================================================================
-
-  bindToolbar() {
-    // Save
-    document
-      .getElementById("save-btn")
-      ?.addEventListener("click", () => this.save());
-
-    // Apply
-    document
-      .getElementById("apply-btn")
-      ?.addEventListener("click", () => this.apply());
-
-    // Home
-    document
-      .getElementById("home-btn")
-      ?.addEventListener("click", () => this.graph.focusMainNode());
-
-    // Help
-    document.getElementById("help-btn")?.addEventListener("click", () => {
-      document.getElementById("help-modal").style.display = "flex";
-    });
-
-    document
-      .getElementById("help-modal-close")
-      ?.addEventListener("click", () => {
-        document.getElementById("help-modal").style.display = "none";
-      });
-
-    // Undo/Redo
-    document
-      .getElementById("undo-btn")
-      ?.addEventListener("click", () => this.undo());
-    document
-      .getElementById("redo-btn")
-      ?.addEventListener("click", () => this.redo());
-
-    // Live update toggle
-    document
-      .getElementById("live-update-btn")
-      ?.addEventListener("click", (e) => {
-        e.target.closest(".toolbar-btn").classList.toggle("active");
-      });
-
-    // HLSL Code Modal handlers
-    this.bindHLSLModal();
-
-    // Window menu dropdown handlers
-    this.bindMenuDropdowns();
-
-    // Blend mode change handler (show/hide Opacity Mask Clip Value)
-    this.bindBlendModeHandler();
-  }
 
   // ==========================================================================
-  // MODAL & MENU BINDINGS
+  // SHARED HANDLERS
   // ==========================================================================
-
-  bindHLSLModal() {
-    const hlslModal = document.getElementById("hlsl-modal");
-    const hlslClose = document.getElementById("hlsl-modal-close");
-    const hlslCopy = document.getElementById("hlsl-copy-btn");
-    const hlslTabs = document.querySelectorAll(".modal-tab");
-
-    if (!hlslModal) return;
-
-    // Close button
-    hlslClose?.addEventListener("click", () => {
-      hlslModal.style.display = "none";
-    });
-
-    // Click outside to close
-    hlslModal.addEventListener("click", (e) => {
-      if (e.target === hlslModal) {
-        hlslModal.style.display = "none";
-      }
-    });
-
-    // Copy to clipboard
-    hlslCopy?.addEventListener("click", () => {
-      const activeViewer = document.querySelector(
-        ".code-viewer:not([style*='display: none'])"
-      );
-      if (activeViewer) {
-        const code = activeViewer.querySelector("code")?.textContent || "";
-        navigator.clipboard.writeText(code).then(() => {
-          this.updateStatus("HLSL code copied to clipboard");
-        });
-      }
-    });
-
-    // Tab switching
-    hlslTabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        const target = tab.dataset.target;
-
-        // Update active tab
-        hlslTabs.forEach((t) => t.classList.remove("active"));
-        tab.classList.add("active");
-
-        // Show/hide viewers
-        document.querySelectorAll(".code-viewer").forEach((v) => {
-          v.style.display = v.id === target ? "block" : "none";
-        });
-      });
-    });
-  }
-
-  bindMenuDropdowns() {
-    const windowMenuItem = document.querySelector('[data-menu="window"]');
-    if (!windowMenuItem) return;
-
-    // Create dropdown if it doesn't exist
-    let dropdown = windowMenuItem.querySelector(".dropdown-menu");
-    if (!dropdown) {
-      dropdown = document.createElement("div");
-      dropdown.className = "dropdown-menu";
-      dropdown.innerHTML = `
-        <div class="dropdown-item" data-action="hlsl-code">
-          <span><i class="fas fa-code"></i> HLSL Code</span>
-        </div>
-        <div class="dropdown-item" data-action="stats">
-          <span><i class="fas fa-chart-bar"></i> Stats</span>
-        </div>
-        <div class="dropdown-divider"></div>
-        <div class="dropdown-item" data-action="palette">
-          <span><i class="fas fa-palette"></i> Palette</span>
-        </div>
-        <div class="dropdown-item" data-action="details">
-          <span><i class="fas fa-info-circle"></i> Details</span>
-        </div>
-        <div class="dropdown-item" data-action="viewport">
-          <span><i class="fas fa-cube"></i> Viewport</span>
-        </div>
-      `;
-      windowMenuItem.style.position = "relative";
-      windowMenuItem.appendChild(dropdown);
-    }
-
-    // Toggle dropdown on click
-    windowMenuItem.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle("show");
-    });
-
-    // Close dropdown when clicking elsewhere
-    document.addEventListener("click", () => {
-      dropdown.classList.remove("show");
-    });
-
-    // Handle dropdown item clicks
-    dropdown.addEventListener("click", (e) => {
-      const item = e.target.closest(".dropdown-item");
-      if (!item) return;
-
-      const action = item.dataset.action;
-      switch (action) {
-        case "hlsl-code":
-          document.getElementById("hlsl-modal").style.display = "flex";
-          break;
-        case "stats":
-          this.updateStatus("Stats panel toggled");
-          break;
-        case "palette":
-          document.getElementById("palette-panel").classList.toggle("hidden");
-          break;
-        case "details":
-          document.getElementById("details-panel").classList.toggle("hidden");
-          break;
-        case "viewport":
-          document.getElementById("viewport-panel").classList.toggle("hidden");
-          break;
-      }
-
-      dropdown.classList.remove("show");
-    });
-  }
 
   bindBlendModeHandler() {
     const blendModeSelect = document.getElementById("blend-mode");
@@ -302,10 +149,24 @@ class MaterialEditorApp {
   // ==========================================================================
 
   save() {
-    this.updateStatus("Saved");
-    console.log("Material saved");
-    // TODO: Implement persistence
+    const graphData = this.graph.serialize();
+    if (this.persistence.save(graphData)) {
+        this.updateStatus("Saved to local storage");
+        console.log("Material saved");
+    }
   }
+
+  load() {
+    if (this.persistence.hasData()) {
+        const data = this.persistence.load();
+        if (data) {
+            this.graph.deserialize(data);
+            this.updateStatus("Restored from local storage");
+            console.log("Material graph restored");
+        }
+    }
+  }
+
 
   apply() {
     this.updateStatus("Applied");
@@ -333,14 +194,29 @@ class MaterialEditorApp {
   }
 
   undo() {
+    this.graph.commands.undo();
     this.updateStatus("Undo");
-    // TODO: Implement history
+    this.triggerAutoSave();
   }
 
   redo() {
+    this.graph.commands.redo();
     this.updateStatus("Redo");
-    // TODO: Implement history
+    this.triggerAutoSave();
   }
+
+  triggerAutoSave() {
+    // Debounce auto-save to avoid excessive writes
+    if (!this._debouncedSave) {
+        this._debouncedSave = debounce(() => {
+            const graphData = this.graph.serialize();
+            this.persistence.save(graphData);
+            console.log("Auto-saved");
+        }, UI_TIMINGS.AUTO_SAVE);
+    }
+    this._debouncedSave();
+  }
+
 }
 
 // ============================================================================

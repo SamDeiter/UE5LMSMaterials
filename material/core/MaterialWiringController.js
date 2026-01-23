@@ -8,6 +8,7 @@
 import { WireRenderer } from '../../shared/WireRenderer.js';
 import { PinTypes } from './MaterialNodeFramework.js';
 import { generateId } from '../../shared/utils.js';
+import { CreateLinkCommand, BreakLinkCommand } from './GraphCommands.js';
 
 export class MaterialWiringController {
     constructor(graphController) {
@@ -66,17 +67,23 @@ export class MaterialWiringController {
         ghostWire.style.display = "none";
 
         if (targetPin && this.graph.wiringStartPin) {
-            this.createConnection(this.graph.wiringStartPin, targetPin);
+            // Use command for creation
+            this.graph.commands.execute(new CreateLinkCommand(
+                this.graph, 
+                this.graph.wiringStartPin.id, 
+                targetPin.id
+            ));
         }
 
         this.graph.isWiring = false;
         this.graph.wiringStartPin = null;
     }
 
+
     /**
      * Create a connection between two pins
      */
-    createConnection(pinA, pinB) {
+    createConnection(pinA, pinB, explicitId = null) {
         // Ensure correct direction (output -> input)
         const outputPin = pinA.dir === "out" ? pinA : pinB;
         const inputPin = pinA.dir === "in" ? pinA : pinB;
@@ -93,7 +100,7 @@ export class MaterialWiringController {
         }
 
         // Create link
-        const linkId = generateId("link");
+        const linkId = explicitId || generateId("link");
         const link = {
             id: linkId,
             outputPin: outputPin,
@@ -113,12 +120,12 @@ export class MaterialWiringController {
         this.graph.links.set(linkId, link);
         this.drawWire(link);
 
-        this.app.updateStatus("Connected");
         this.app.updateCounts();
         this.app.triggerLiveUpdate();
 
-        return true;
+        return link;
     }
+
 
     /**
      * Draw a wire for a connection

@@ -7,6 +7,10 @@
  * Extracted from material-app.js for modularity.
  */
 
+import { ActionMenuController } from "../../blueprint/core/ActionMenuController.js";
+import { StatsController } from "../ui/StatsController.js";
+import { LayoutController } from "../ui/LayoutController.js";
+
 import { HotkeyManager } from "../../blueprint/ui/HotkeyManager.js";
 import {
   materialNodeRegistry,
@@ -16,9 +20,20 @@ import {
 import { debounce, generateId } from "../../shared/utils.js";
 import { WireRenderer } from "../../shared/WireRenderer.js";
 import { GridRenderer } from "../../shared/GridRenderer.js";
+import { GraphRenderer } from "./GraphRenderer.js";
 import { MaterialInputController } from "./MaterialInputController.js";
 import { MaterialWiringController } from "./MaterialWiringController.js";
 import { AlignmentGuides } from "../ui/AlignmentGuides.js";
+
+import { CommandStack } from "./CommandStack.js";
+import { 
+  AddNodeCommand, 
+  DeleteNodesCommand, 
+  MoveNodeCommand,
+  CreateLinkCommand,
+  BreakLinkCommand,
+  PropertyChangeCommand
+} from "./GraphCommands.js";
 
 
 export class MaterialGraphController {
@@ -72,6 +87,12 @@ export class MaterialGraphController {
     // Alignment guides for UE5-style visual feedback
     this.alignmentGuides = new AlignmentGuides(this);
 
+    // Renderer subsystem
+    this.renderer = new GraphRenderer(this);
+
+    // Command Stack for Undo/Redo
+    this.commands = new CommandStack(this.app);
+
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
 
@@ -79,7 +100,7 @@ export class MaterialGraphController {
     this.clipboard = [];
 
     this.initEvents();
-    this.resize();
+    this.renderer.resize();
 
     // Defer main node creation until after app is fully initialized
     // This will be called by MaterialEditorApp.init()
@@ -92,7 +113,7 @@ export class MaterialGraphController {
     // Resize handler
     window.addEventListener(
       "resize",
-      debounce(() => this.resize(), 100)
+      debounce(() => this.renderer.resize(), 100)
     );
 
     // Mouse events - delegate to InputController
@@ -149,35 +170,17 @@ export class MaterialGraphController {
   }
 
   /**
-   * Handle window resize
-   */
-  resize() {
-    const rect = this.graphPanel.getBoundingClientRect();
-    this.canvas.width = rect.width;
-    this.canvas.height = rect.height;
-    this.svg.setAttribute("width", rect.width);
-    this.svg.setAttribute("height", rect.height);
-    this.drawGrid();
-    this.wiring.updateAllWires();
-  }
-
-  /**
    * Draw the background grid
    */
   drawGrid() {
-    const { width, height } = this.canvas;
-    
-    GridRenderer.draw(this.ctx, width, height, {
-      panX: this.panX,
-      panY: this.panY,
-      zoom: this.zoom
-    }, {
-      backgroundColor: this.gridColor,
-      minorGridColor: this.gridLineColor,
-      majorGridColor: '#2a2a2a',
-      minorGridSize: this.gridSize,
-      majorGridMultiplier: 5
-    });
+      this.renderer.drawGrid();
+  }
+
+  /**
+   * Update lazy rendering
+   */
+  updateLazyRendering() {
+      this.renderer.updateLazyRendering();
   }
 
   /**
@@ -193,8 +196,8 @@ export class MaterialGraphController {
   /**
    * Add a node to the graph
    */
-  addNode(nodeKey, x, y) {
-    const id = generateId("node");
+  addNode(nodeKey, x, y, explicitId = null) {
+    const id = explicitId || generateId("node");
     const node = materialNodeRegistry.createNode(nodeKey, id, x, y, this.app);
 
     if (!node) {
@@ -221,7 +224,7 @@ export class MaterialGraphController {
     if (this.app && this.app.updateCounts) {
       this.app.updateCounts();
     }
-
+    this.updateLazyRendering();
     return node;
   }
 
@@ -456,38 +459,105 @@ export class MaterialGraphController {
    * Delete selected nodes and links
    */
   deleteSelected() {
-    // Delete selected links first
-    this.selectedLinks.forEach((linkId) => {
-      this.wiring.breakLink(linkId);
+    const nodesToDelete = [];
+    this.selectedNodes.forEach(id => {
+        const node = this.nodes.get(id);
+        if (node && node.type !== 'main-output') {
+            nodesToDelete.push(node);
+        }
     });
 
-    // Delete selected nodes
-    this.selectedNodes.forEach((nodeId) => {
-      const node = this.nodes.get(nodeId);
-      if (!node) return;
+    const linksToDelete = [];
+    this.selectedLinks.forEach(id => {
+        const link = this.links.get(id);
+        if (link) linksToDelete.push(link);
+    });
 
-      // Don't delete main node
-      if (node.type === "main-output") {
-        this.app.updateStatus("Cannot delete main material node");
-        return;
-      }
+    if (nodesToDelete.length > 0 || linksToDelete.length > 0) {
+        this.commands.execute(new DeleteNodesCommand(this, nodesToDelete, linksToDelete));
+    }
+  }
 
-      // Break all connections to this node
-      [...node.inputs, ...node.outputs].forEach((pin) => {
-        if (pin.connectedTo) {
-          this.wiring.breakLink(pin.connectedTo);
+  /**
+   * Serialize the entire graph state
+   */
+  serialize() {
+    const nodes = [];
+    this.nodes.forEach(node => {
+      nodes.push(node.serialize());
+    });
+
+    const links = [];
+    this.links.forEach(link => {
+      links.push({
+        id: link.id,
+        sourceNodeId: link.outputPin.node.id,
+        sourcePinId: link.outputPin.localId,
+        targetNodeId: link.inputPin.node.id,
+        targetPinId: link.inputPin.localId
+      });
+    });
+
+    return {
+      nodes,
+      links,
+      panX: this.panX,
+      panY: this.panY,
+      zoom: this.zoom
+    };
+  }
+
+  /**
+   * Deserialize and rebuild the graph
+   */
+  deserialize(data) {
+    if (!data) return;
+
+    // Clear current graph
+    this.nodes.forEach(node => node.element.remove());
+    this.nodes.clear();
+    this.links.forEach(link => {
+      if (link.element) link.element.remove();
+    });
+    this.links.clear();
+
+    // Restore transform
+    this.panX = data.panX || 0;
+    this.panY = data.panY || 0;
+    this.zoom = data.zoom || 1.0;
+
+    // Restore nodes
+    if (data.nodes) {
+      data.nodes.forEach(nodeData => {
+        const node = this.addNode(nodeData.nodeKey, nodeData.x, nodeData.y, nodeData.id);
+        if (node && nodeData.properties) {
+          node.properties = { ...nodeData.properties };
+          node.updatePreview(node.element.querySelector('.node-preview'));
         }
       });
+    }
 
-      // Remove from DOM
-      node.element.remove();
-      this.nodes.delete(nodeId);
-    });
+    // Restore links
+    if (data.links) {
+      data.links.forEach(linkData => {
+        const sourceNode = this.nodes.get(linkData.sourceNodeId);
+        const targetNode = this.nodes.get(linkData.targetNodeId);
+        if (sourceNode && targetNode) {
+          const sourcePin = sourceNode.findPin(`${linkData.sourceNodeId}-${linkData.sourcePinId}`);
+          const targetPin = targetNode.findPin(`${linkData.targetNodeId}-${linkData.targetPinId}`);
+          if (sourcePin && targetPin) {
+            this.wiring.createConnection(sourcePin, targetPin, linkData.id);
+          }
+        }
+      });
+    }
 
-    this.selectedNodes.clear();
+    this.drawGrid();
     this.app.updateCounts();
-    this.app.details.showMaterialProperties();
+    this.app.triggerLiveUpdate();
+    this.updateLazyRendering();
   }
+
 
 
 

@@ -5,15 +5,21 @@
  * Handles: mouse down/move/up, zoom, context menus, keyboard shortcuts.
  */
 
+import { MoveNodeCommand } from "./GraphCommands.js";
+
 export class MaterialInputController {
     constructor(graphController) {
         this.graph = graphController;
         this.app = graphController.app;
         this.graphPanel = graphController.graphPanel;
         
+        // Drag helper state
+        this.dragStartPositions = null;
+        
         // Alt+drag duplication tracking
         this.altDragDuplicated = false;
     }
+
 
     /**
      * Handle mouse down
@@ -25,77 +31,113 @@ export class MaterialInputController {
             this.graph.dragStartX = e.clientX - this.graph.panX;
             this.graph.dragStartY = e.clientY - this.graph.panY;
             e.preventDefault();
+            return;
+        }
+
+        // Store initial positions for move command
+        if (e.target.closest(".node")) {
+            this.dragStartPositions = new Map();
+            this.graph.selectedNodes.forEach(id => {
+                const node = this.graph.nodes.get(id);
+                if (node) {
+                    this.dragStartPositions.set(id, { x: node.x, y: node.y });
+                }
+            });
         }
     }
+
 
     /**
      * Handle mouse move
      */
     onMouseMove(e) {
         if (this.graph.isPanning) {
-            this.graph.panX = e.clientX - this.graph.dragStartX;
-            this.graph.panY = e.clientY - this.graph.dragStartY;
-            this.graph.drawGrid();
-            this.graph.nodes.forEach((node) => this.graph.updateNodePosition(node));
-            this.graph.wiring.updateAllWires();
+            this.handlePanning(e);
         }
 
+
         if (this.graph.isDragging && this.graph.dragOffsets) {
-            // Alt+drag duplication: duplicate on first move while Alt is held
-            if (e.altKey && !this.altDragDuplicated && this.graph.selectedNodes.size > 0) {
-                this.graph.duplicateSelected();
-                this.altDragDuplicated = true;
-                // Reset drag offsets for new duplicated nodes
-                this.graph.dragStartX = e.clientX;
-                this.graph.dragStartY = e.clientY;
-                this.graph.dragOffsets = new Map();
-                this.graph.selectedNodes.forEach((nodeId) => {
-                    const n = this.graph.nodes.get(nodeId);
-                    if (n) this.graph.dragOffsets.set(nodeId, { x: n.x, y: n.y });
-                });
-                this.app.updateStatus('Duplicated (Alt+drag)');
-            }
-
-            const dx = (e.clientX - this.graph.dragStartX) / this.graph.zoom;
-            const dy = (e.clientY - this.graph.dragStartY) / this.graph.zoom;
-
-            this.graph.selectedNodes.forEach((nodeId) => {
-                const node = this.graph.nodes.get(nodeId);
-                const offset = this.graph.dragOffsets.get(nodeId);
-                if (node && offset) {
-                    node.x = offset.x + dx;
-                    node.y = offset.y + dy;
-                    // Apply snap-to-grid if enabled
-                    this.graph.updateNodePositionWithSnap(node, true);
-                }
-            });
-
-            // Show alignment guides during drag
-            if (this.graph.alignmentGuides) {
-                const alignments = this.graph.alignmentGuides.update(this.graph.selectedNodes);
-                
-                // Apply magnetic snap if not using grid snap
-                if (!this.graph.snapToGrid && alignments && alignments.length > 0) {
-                    const snapOffset = this.graph.alignmentGuides.getSnapOffset(this.graph.selectedNodes);
-                    if (snapOffset.dx !== 0 || snapOffset.dy !== 0) {
-                        this.graph.selectedNodes.forEach((nodeId) => {
-                            const node = this.graph.nodes.get(nodeId);
-                            if (node) {
-                                node.x += snapOffset.dx;
-                                node.y += snapOffset.dy;
-                                this.graph.updateNodePosition(node);
-                            }
-                        });
-                    }
-                }
-            }
-
-            this.graph.wiring.updateAllWires();
+            this.handleDragging(e);
         }
 
         if (this.graph.isWiring) {
-            this.graph.wiring.updateGhostWire(e);
+            this.handleWiring(e);
         }
+    }
+
+    /**
+     * Handle graph panning
+     */
+    handlePanning(e) {
+        this.graph.panX = e.clientX - this.graph.dragStartX;
+        this.graph.panY = e.clientY - this.graph.dragStartY;
+        this.graph.drawGrid();
+        this.graph.updateLazyRendering();
+        this.graph.nodes.forEach((node) => this.graph.updateNodePosition(node));
+        this.graph.wiring.updateAllWires();
+    }
+
+    /**
+     * Handle node dragging
+     */
+    handleDragging(e) {
+        // Alt+drag duplication: duplicate on first move while Alt is held
+        if (e.altKey && !this.altDragDuplicated && this.graph.selectedNodes.size > 0) {
+            this.graph.duplicateSelected();
+            this.altDragDuplicated = true;
+            // Reset drag offsets for new duplicated nodes
+            this.graph.dragStartX = e.clientX;
+            this.graph.dragStartY = e.clientY;
+            this.graph.dragOffsets = new Map();
+            this.graph.selectedNodes.forEach((nodeId) => {
+                const n = this.graph.nodes.get(nodeId);
+                if (n) this.graph.dragOffsets.set(nodeId, { x: n.x, y: n.y });
+            });
+            this.app.updateStatus('Duplicated (Alt+drag)');
+        }
+
+        const dx = (e.clientX - this.graph.dragStartX) / this.graph.zoom;
+        const dy = (e.clientY - this.graph.dragStartY) / this.graph.zoom;
+
+        this.graph.selectedNodes.forEach((nodeId) => {
+            const node = this.graph.nodes.get(nodeId);
+            const offset = this.graph.dragOffsets.get(nodeId);
+            if (node && offset) {
+                node.x = offset.x + dx;
+                node.y = offset.y + dy;
+                // Apply snap-to-grid if enabled
+                this.graph.updateNodePositionWithSnap(node, true);
+            }
+        });
+
+        // Show alignment guides during drag
+        if (this.graph.alignmentGuides) {
+            const alignments = this.graph.alignmentGuides.update(this.graph.selectedNodes);
+            
+            // Apply magnetic snap if not using grid snap
+            if (!this.graph.snapToGrid && alignments && alignments.length > 0) {
+                const snapOffset = this.graph.alignmentGuides.getSnapOffset(this.graph.selectedNodes);
+                if (snapOffset.dx !== 0 || snapOffset.dy !== 0) {
+                    this.graph.selectedNodes.forEach((nodeId) => {
+                        const node = this.graph.nodes.get(nodeId);
+                        if (node) {
+                            node.x += snapOffset.dx;
+                            node.y += snapOffset.dy;
+                            this.graph.updateNodePosition(node);
+                        }
+                    });
+                }
+            }
+        }
+
+        this.graph.wiring.updateAllWires();
+    }
+
+    /**
+     * Handle wiring interaction
+     */
+    handleWiring(e) {
+        this.graph.wiring.updateGhostWire(e);
     }
 
     /**
@@ -108,6 +150,23 @@ export class MaterialInputController {
 
         if (this.graph.isDragging) {
             this.graph.isDragging = false;
+            
+            // Execute move commands if nodes actually moved
+            if (this.dragStartPositions) {
+                this.dragStartPositions.forEach((startPos, id) => {
+                    const node = this.graph.nodes.get(id);
+                    if (node && (node.x !== startPos.x || node.y !== startPos.y)) {
+                        this.graph.commands.execute(new MoveNodeCommand(
+                            this.graph,
+                            id,
+                            startPos,
+                            { x: node.x, y: node.y }
+                        ));
+                    }
+                });
+                this.dragStartPositions = null;
+            }
+
             this.graph.dragOffsets = null;
             this.altDragDuplicated = false; // Reset alt+drag state
             
@@ -116,6 +175,7 @@ export class MaterialInputController {
                 this.graph.alignmentGuides.clear();
             }
         }
+
 
         if (this.graph.isWiring) {
             // Check if we're over a valid target pin
@@ -164,9 +224,11 @@ export class MaterialInputController {
         )}%`;
 
         this.graph.drawGrid();
+        this.graph.updateLazyRendering();
         this.graph.nodes.forEach((node) => this.graph.updateNodePosition(node));
         this.graph.wiring.updateAllWires();
     }
+
 
     /**
      * Handle context menu (right-click)
@@ -197,12 +259,13 @@ export class MaterialInputController {
         if (e.ctrlKey) {
             if (e.key === "z" || e.key === "Z") {
                 e.preventDefault();
-                // TODO: Undo
+                this.graph.commands.undo();
             }
             if (e.key === "y" || e.key === "Y") {
                 e.preventDefault();
-                // TODO: Redo
+                this.graph.commands.redo();
             }
+
             if (e.key === "s" || e.key === "S") {
                 e.preventDefault();
                 this.app.save();

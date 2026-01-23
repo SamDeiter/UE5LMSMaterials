@@ -7,6 +7,7 @@
 
 import { materialNodeRegistry } from "../core/MaterialNodeFramework.js";
 import { debounce } from "../../shared/utils.js";
+import { UI_TIMINGS } from "../../src/constants/EditorConstants.js";
 
 export class PaletteController {
   constructor(app) {
@@ -19,7 +20,7 @@ export class PaletteController {
 
     this.filterInput.addEventListener(
       "input",
-      debounce(() => this.render(), 150)
+      debounce(() => this.render(), UI_TIMINGS.DEBOUNCE_SEARCH)
     );
     
     // Enter key to place first search result

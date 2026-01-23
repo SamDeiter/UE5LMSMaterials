@@ -4,7 +4,7 @@
  * Shared utilities for Material Editor test suite.
  */
 
-import { MaterialNodeRegistry } from "../material/core/MaterialNodeFramework.js";
+import { MaterialNodeRegistry, MaterialNode } from "../material/core/MaterialNodeFramework.js";
 import { MaterialExpressionDefinitions } from "../data/MaterialExpressionDefinitions.js";
 
 // Global registry instance for tests
@@ -16,6 +16,7 @@ let registry = null;
 export function getRegistry() {
   if (!registry) {
     registry = new MaterialNodeRegistry();
+    registry.nodeClass = MaterialNode;
     registry.registerBatch(MaterialExpressionDefinitions);
   }
   return registry;
