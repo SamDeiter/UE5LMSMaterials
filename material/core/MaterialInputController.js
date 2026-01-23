@@ -52,7 +52,14 @@ export class MaterialInputController {
         }
         
         // Left click on empty space - start marquee selection
-        if (e.button === 0 && e.target === this.graphPanel && !e.target.closest('.node')) {
+        // Check if clicking on canvas, SVG, or nodes-container (not on a node)
+        const isGraphArea = e.target.id === 'graph-canvas' || 
+                           e.target.id === 'graph-svg' || 
+                           e.target.id === 'nodes-container' ||
+                           e.target.closest('#graph-panel') === this.graphPanel;
+        const isOnNode = e.target.closest('.node');
+        
+        if (e.button === 0 && isGraphArea && !isOnNode) {
             this.isMarquee = true;
             const rect = this.graphPanel.getBoundingClientRect();
             this.marqueeStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
