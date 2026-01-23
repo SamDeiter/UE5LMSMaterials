@@ -798,6 +798,33 @@ body {
   color: #f87171;
 }
 
+/* Stats Panel - Error/Warning Messages (UE5 Style) */
+.stats-messages {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.stats-error {
+  font-size: 10px;
+  color: #ff6b6b;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  background: rgba(255, 107, 107, 0.1);
+  border-left: 2px solid #ff6b6b;
+  border-radius: 2px;
+}
+
+.stats-warning {
+  font-size: 10px;
+  color: #fbbf24;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 2px solid #fbbf24;
+  border-radius: 2px;
+}
+
 /* ============================================================================
    VIEWPORT PANEL
    ============================================================================ */
