@@ -1,48 +1,36 @@
 /**
- * Main Application Logic for the UE5-style Material Editor.
- * This is the main entry point that imports all other modules
- * and orchestrates the application.
+ * Main Application Logic for the UE5-style Blueprint Editor.
  */
 
-// Import all controllers
-<<<<<<< HEAD:app.js
-import { Pin, Node, WiringController, GraphController } from "./graph.js";
-import {
-  VariableController,
-  PaletteController,
-  ActionMenu,
-  ContextMenu,
-  DetailsController,
-  LayoutController,
-} from "./ui.js";
-import {
-  Compiler,
-  Persistence,
-  GridController,
-  HistoryManager,
-  SimulationEngine,
-} from "./services.js";
-// Cache bust the tests module to ensure latest export is found
-import { TestRunner, registerTests } from "./tests.js?v=2";
-import { BlueprintValidator, SAMPLE_TASK } from "./validator.js";
-import { nodeRegistry } from "./registries/NodeRegistry.js";
-import { NodeDefinitions } from "./data/NodeDefinitions.js";
-=======
-import { Pin, Node, WiringController, GraphController } from './core/graph.js';
-import { VariableController, PaletteController, ActionMenu, ContextMenu, DetailsController, LayoutController } from '../shared/ui.js';
-import { Compiler, Persistence, GridController, HistoryManager, SimulationEngine } from '../services.js';
-// Cache bust the tests module to ensure latest export is found
+// Import all controllers from modular structure
+import { Pin, Node } from './core/Node.js';
+import { WiringController } from './core/WiringController.js';
+import { GraphController } from './core/graph.js';
+import { SelectionController } from './core/SelectionController.js';
+
+import { VariableController } from './ui/VariableController.js';
+import { PaletteController } from './ui/PaletteController.js';
+import { ActionMenu } from './ui/ActionMenu.js';
+import { ContextMenu } from './ui/ContextMenu.js';
+import { DetailsController } from './ui/DetailsController.js';
+import { LayoutController } from './ui/LayoutController.js';
+import { TaskController } from './ui/TaskController.js';
+import { FindResultsController } from './ui/FindResultsController.js';
+
+import { Compiler } from './services/Compiler.js';
+import { Persistence } from './services/Persistence.js';
+import { GridController } from './services/GridController.js';
+import { HistoryManager } from './services/HistoryManager.js';
+import { SimulationEngine } from './services/SimulationEngine.js';
+
 import { TestRunner, registerTests } from '../tests.js?v=2';
-import { BlueprintValidator, SAMPLE_TASK } from '../shared/validator.js';
 import { nodeRegistry } from './registries/NodeRegistry.js';
 import { NodeDefinitions } from '../data/NodeDefinitions.js';
 
->>>>>>> restore/merge-tests:blueprint/app.js
-
 /**
- * Main static application class to initialize and namespace all controllers.
+ * Main application class
  */
-class BlueprintApp {
+export class BlueprintApp {
   /**
    * Initializes all controllers and loads the graph.
    */
@@ -101,6 +89,7 @@ class BlueprintApp {
     BlueprintApp.contextMenu = new ContextMenu(BlueprintApp);
     BlueprintApp.compiler = new Compiler(BlueprintApp);
     BlueprintApp.sim = new SimulationEngine(BlueprintApp);
+    BlueprintApp.findResults = new FindResultsController(BlueprintApp);
 
     // 4. Test Runner
     BlueprintApp.testRunner = new TestRunner(BlueprintApp);
@@ -108,9 +97,7 @@ class BlueprintApp {
     window.runTests = () => BlueprintApp.testRunner.run();
 
     // 5. Blueprint Validator
-    BlueprintApp.validator = new BlueprintValidator(BlueprintApp);
-    window.validateSampleTask = () =>
-      BlueprintApp.validator.validateTask(SAMPLE_TASK);
+    // BlueprintApp.validator = new BlueprintValidator(BlueprintApp); // Placeholder if needed
 
     // --- Bind Events ---
     // Use the local variable 'graphController' to guarantee it exists
@@ -118,6 +105,22 @@ class BlueprintApp {
       graphController.initEvents();
     } else {
       console.error("GraphController failed to initialize.");
+    }
+
+    // Window Menu Handlers
+    const windowMenu = document.querySelector('[data-menu="window"]');
+    if (windowMenu) {
+        windowMenu.addEventListener('click', () => {
+            // Placeholder: Typically this would open a sub-menu, but for now we'll 
+            // handle direct clicks if they are meant for specific actions
+            // Ideally we want to bind to a child menu item like "Find Results"
+        });
+    }
+
+    // Bind Find Results button if it exists in a menu
+    const findBtn = document.getElementById("find-results-btn");
+    if (findBtn) {
+        findBtn.addEventListener("click", () => BlueprintApp.findResults.show());
     }
 
     // Trigger full compilation logic instead of just validation
@@ -196,6 +199,21 @@ class BlueprintApp {
         if (e.key === "s" || e.key === "S") {
           e.preventDefault();
           BlueprintApp.persistence.save();
+          return;
+        }
+        if (e.key === "f" || e.key === "F") {
+          e.preventDefault();
+          BlueprintApp.findResults.show();
+          return;
+        }
+        if (e.key === "c" || e.key === "C") {
+          e.preventDefault();
+          BlueprintApp.graph.clipboard.copy();
+          return;
+        }
+        if (e.key === "v" || e.key === "V") {
+          e.preventDefault();
+          BlueprintApp.graph.clipboard.paste();
           return;
         }
         if (e.key === "w" || e.key === "W") {

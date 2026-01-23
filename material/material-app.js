@@ -36,6 +36,10 @@ import { ModalManager } from "./core/ui/ModalManager.js";
 
 import { debounce, generateId } from "../shared/utils.js";
 import { PersistenceManager } from "./core/PersistenceManager.js";
+import { ReferenceViewerController } from "./ui/ReferenceViewerController.js";
+import { SaveAssetsModal } from "./ui/SaveAssetsModal.js";
+import { FindResultsController } from "./ui/FindResultsController.js";
+import { HLSLCodePanel } from "./ui/HLSLCodePanel.js";
 import { UI_TIMINGS } from "../src/constants/EditorConstants.js";
 
 // ============================================================================
@@ -61,7 +65,7 @@ class MaterialEditorApp {
     this.palette = new PaletteController(this);
     this.details = new DetailsController(this);
     this.viewport = new ViewportController(this);
-    this.actionMenu = new ActionMenuController(this);
+    this.actionMenu = new ActionMenuController(this, materialNodeRegistry);
     this.stats = new StatsController(this);
     this.layout = new LayoutController(this);
 
@@ -73,6 +77,14 @@ class MaterialEditorApp {
 
     // Initialize Persistence
     this.persistence = new PersistenceManager(this);
+    this.referenceViewer = new ReferenceViewerController(this);
+    this.saveAssetsModal = new SaveAssetsModal(this);
+    this.findResults = new FindResultsController(this);
+    this.hlslPanel = new HLSLCodePanel(this);
+    this.hlslPanel.init();
+    
+    // Bind persistence dialog
+    this.persistence.showSaveDialog = () => this.saveAssetsModal.show();
 
     // Bind UI elements through managers
     this.toolbar.bind();
@@ -214,6 +226,8 @@ class MaterialEditorApp {
             console.log("Auto-saved");
         }, UI_TIMINGS.AUTO_SAVE);
     }
+    
+    this.persistence.markDirty();
     this._debouncedSave();
   }
 

@@ -95,3 +95,37 @@
 
 
 
+
+## Phase 6: Structural Alignment ✅ COMPLETE
+
+### Extracted Modules from `MaterialGraphController.js`
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `core/SelectionController.js` | 80 | Centralized selection state |
+| `core/ClipboardController.js` | 90 | Copy/Paste/Duplicate logic |
+
+### API Alignment
+- Standardized selection and clipboard method naming across Material and Blueprint editors.
+- Reduced `MaterialGraphController.js` complexity by delegating state management to modular sub-controllers.
+
+### Success Criteria
+- [x] SelectionController extracted and integrated
+- [x] ClipboardController extracted and integrated
+- [x] MaterialInputController updated to use new selection API
+- [x] MaterialWiringController updated to use new selection API
+
+## Phase 7: Advanced Graph Features ✅ COMPLETE
+
+### New Features & Improvements
+
+| Feature | Component | Purpose |
+|--------|-----------|---------|
+| **Find Results** | `ui/FindResultsController.js` | Full-graph node search (Ctrl+F) |
+| **Comment Enhancements** | `core/BaseNode.js` | Color-coding and visibility bubbles |
+| **HLSL Code Panel** | `ui/HLSLCodePanel.js` | Real-time shader code preview |
+
+### Workflow Refinement
+- Added **Reroute** and **Comment** nodes to common Action Menu spawns for faster graph creation.
+- Standardized **API signatures** for search and selection across systems.
+- Implemented **ShowBubble** property support to ensure comments are visible when zoomed out.

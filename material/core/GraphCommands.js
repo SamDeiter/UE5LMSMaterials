@@ -55,7 +55,7 @@ export class AddNodeCommand extends Command {
  * Delete Selected Nodes Command
  */
 export class DeleteNodesCommand extends Command {
-    constructor(graph, nodes, links) {
+    constructor(graph, nodes, links = []) {
         super();
         this.graph = graph;
         this.nodesData = nodes.map(n => ({
@@ -66,13 +66,21 @@ export class DeleteNodesCommand extends Command {
             properties: { ...n.properties }
         }));
         
-        // Capture links connected to these nodes
-        this.linksData = links.map(l => ({
+        // Capture ALL links connected to these nodes, not just selected ones
+        const nodeIds = new Set(nodes.map(n => n.id));
+        const allConnectedLinks = [...this.graph.links.values()].filter(l => 
+            nodeIds.has(l.sourcePin.node.id) || nodeIds.has(l.targetPin.node.id)
+        );
+
+        // Combine with explicitly passed links (though they should be in the filter above)
+        const finalLinks = new Set([...links, ...allConnectedLinks]);
+
+        this.linksData = Array.from(finalLinks).map(l => ({
             id: l.id,
-            sourceNodeId: l.outputPin.node.id,
-            sourcePinId: l.outputPin.localId,
-            targetNodeId: l.inputPin.node.id,
-            targetPinId: l.inputPin.localId,
+            sourceNodeId: l.sourcePin.node.id,
+            sourcePinId: l.sourcePin.localId,
+            targetNodeId: l.targetPin.node.id,
+            targetPinId: l.targetPin.localId,
             type: l.type
         }));
     }
@@ -183,8 +191,9 @@ export class CreateLinkCommand extends Command {
     }
 
     findPin(fullId) {
-        const parts = fullId.split('-');
-        const nodeId = parts[0] + '-' + parts[1]; // Handle generateId format node-xxxx
+        if (!fullId) return null;
+        const lastDash = fullId.lastIndexOf('-');
+        const nodeId = fullId.substring(0, lastDash);
         const node = this.graph.nodes.get(nodeId);
         return node ? node.findPin(fullId) : null;
     }
@@ -200,8 +209,8 @@ export class BreakLinkCommand extends Command {
         this.linkId = linkId;
         const link = graph.links.get(linkId);
         if (link) {
-            this.sourcePinId = link.outputPin.id;
-            this.targetPinId = link.inputPin.id;
+            this.sourcePinId = link.sourcePin.id;
+            this.targetPinId = link.targetPin.id;
             this.type = link.type;
         }
     }
@@ -219,8 +228,9 @@ export class BreakLinkCommand extends Command {
     }
 
     findPin(fullId) {
-        const parts = fullId.split('-');
-        const nodeId = parts[0] + '-' + parts[1];
+        if (!fullId) return null;
+        const lastDash = fullId.lastIndexOf('-');
+        const nodeId = fullId.substring(0, lastDash);
         const node = this.graph.nodes.get(nodeId);
         return node ? node.findPin(fullId) : null;
     }

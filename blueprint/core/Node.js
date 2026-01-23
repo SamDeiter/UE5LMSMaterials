@@ -99,13 +99,20 @@ export class Node {
             this.nodeKey = 'INVALID_NODE';
         }
 
+        if (this.nodeKey === 'Reroute') {
+            return this.renderRerouteNode();
+        }
+
+        if (this.type === 'comment-node') {
+            return this.renderCommentNode();
+        }
+
         if (this.nodeKey.startsWith('Get_') || this.nodeKey.startsWith('Conv_')) {
             return this.renderCompactNode();
         }
         if (this.nodeKey.startsWith('Set_')) {
             return this.renderSetNode();
         }
-
 
         const element = document.createElement('div');
         element.id = this.id;
@@ -148,7 +155,7 @@ export class Node {
             header.appendChild(delegateIcon);
         }
 
-        if (this.type === 'comment-node' || this.nodeKey === 'CustomEvent') {
+        if (this.nodeKey === 'CustomEvent') {
             header.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
                 header.contentEditable = true;
@@ -162,9 +169,7 @@ export class Node {
                 this.title = header.textContent;
                 header.classList.remove('editing-title');
                 if (this.app.details && this.app.graph.selectedNodes.has(this.id)) {
-                    if (this.nodeKey === 'CustomEvent') {
-                        this.app.details.showNodeDetails(this);
-                    }
+                    this.app.details.showNodeDetails(this);
                 }
                 this.app.persistence.autoSave();
             };
@@ -200,7 +205,6 @@ export class Node {
             this.pinsOut.forEach(pinOut => outCol.appendChild(this.renderPin(pinOut)));
             content.appendChild(outCol);
         } else {
-            // SAFEGUARD: Ensure pins arrays exist and have length before checking
             const inLen = this.pinsIn ? this.pinsIn.length : 0;
             const outLen = this.pinsOut ? this.pinsOut.length : 0;
             const maxRows = Math.max(inLen, outLen);
@@ -224,7 +228,7 @@ export class Node {
                     row.appendChild(this.renderPin(pinOut));
                 } else {
                     const spacer = document.createElement('div');
-                    spacer.minWidth = '10px';
+                    spacer.style.minWidth = '10px';
                     row.appendChild(spacer);
                 }
                 content.appendChild(row);
@@ -248,6 +252,85 @@ export class Node {
             arrowIcon.style.zIndex = '2';
             devBar.appendChild(arrowIcon);
             element.appendChild(devBar);
+        }
+
+        this.element = element;
+        return element;
+    }
+
+    renderCommentNode() {
+        const element = document.createElement('div');
+        element.id = this.id;
+        element.className = 'node comment-node';
+        element.style.left = `${this.x}px`;
+        element.style.top = `${this.y}px`;
+        
+        // Handle resizing if width/height are specified in customData
+        if (this.customData.width) element.style.width = `${this.customData.width}px`;
+        if (this.customData.height) element.style.height = `${this.customData.height}px`;
+
+        const commentColor = this.customData.CommentColor || 'rgba(255, 255, 255, 0.1)';
+        element.style.backgroundColor = commentColor;
+
+        const header = document.createElement('div');
+        header.className = 'node-title comment-title';
+        
+        // Show Bubble if enabled
+        if (this.customData.ShowBubble) {
+            const bubble = document.createElement('div');
+            bubble.className = 'comment-bubble';
+            bubble.textContent = this.title;
+            element.appendChild(bubble);
+        }
+
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.value = this.title;
+        titleInput.className = 'comment-title-input';
+        titleInput.addEventListener('change', (e) => {
+            this.title = e.target.value;
+            this.app.persistence.autoSave();
+        });
+        titleInput.addEventListener('mousedown', (e) => e.stopPropagation());
+
+        header.appendChild(titleInput);
+        element.appendChild(header);
+
+        // Resize handle
+        const resizer = document.createElement('div');
+        resizer.className = 'comment-resize-handle';
+        resizer.innerHTML = '<i class="fas fa-expand-alt"></i>';
+        element.appendChild(resizer);
+
+        this.element = element;
+        return element;
+    }
+
+    renderRerouteNode() {
+        const element = document.createElement('div');
+        element.id = this.id;
+        element.className = 'node reroute-node compact-node';
+        element.style.left = `${this.x}px`;
+        element.style.top = `${this.y}px`;
+
+        const pinIn = this.pinsIn[0];
+        const pinOut = this.pinsOut[0];
+
+        if (pinIn && pinOut) {
+            const container = document.createElement('div');
+            container.className = 'reroute-container';
+
+            // Left Pin
+            const inDot = this.createPinDot(pinIn);
+            pinIn.element = inDot;
+            container.appendChild(inDot);
+
+            // Right Pin
+            const outDot = this.createPinDot(pinOut);
+            pinOut.element = outDot;
+            container.appendChild(outDot);
+
+            element.appendChild(container);
         }
 
         this.element = element;

@@ -285,9 +285,19 @@ export class MaterialNode {
     titleInput.placeholder = "Comment";
     titleInput.addEventListener("change", (e) => {
       this.properties.CommentText = e.target.value;
+      if (this.bubble) this.bubble.textContent = e.target.value;
     });
     titleInput.addEventListener("click", (e) => e.stopPropagation());
     header.appendChild(titleInput);
+
+    // Optional Bubble (UE5 Feature: show text even when zoomed out)
+    if (this.properties.ShowBubble) {
+      const bubble = document.createElement("div");
+      bubble.className = "comment-bubble";
+      bubble.textContent = this.properties.CommentText || "Comment";
+      el.appendChild(bubble);
+      this.bubble = bubble;
+    }
 
     el.appendChild(header);
 

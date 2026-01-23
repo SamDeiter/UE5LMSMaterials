@@ -26,8 +26,9 @@ import { MaterialWiringController } from "./MaterialWiringController.js";
 import { AlignmentGuides } from "../ui/AlignmentGuides.js";
 
 import { CommandStack } from "./CommandStack.js";
+import { SelectionController } from "./SelectionController.js";
+import { ClipboardController } from "./ClipboardController.js";
 import { 
-  AddNodeCommand, 
   DeleteNodesCommand, 
   MoveNodeCommand,
   CreateLinkCommand,
@@ -50,13 +51,25 @@ export class MaterialGraphController {
     // Graph state
     this.nodes = new Map();
     this.links = new Map();
-    this.selectedNodes = new Set();
-    this.selectedLinks = new Set();
+    
+    // Subsystems
+    this.selection = new SelectionController(this.app, this);
+    this.clipboard = new ClipboardController(this.app, this);
 
     // Transform state
     this.panX = 0;
     this.panY = 0;
     this.zoom = 1.0;
+
+    // Backwards compatibility getters
+    Object.defineProperty(this, 'selectedNodes', {
+        get: () => this.selection.selectedNodes,
+        configurable: true
+    });
+    Object.defineProperty(this, 'selectedLinks', {
+        get: () => this.selection.selectedLinks,
+        configurable: true
+    });
 
     // Interaction state
     this.isPanning = false;
@@ -96,14 +109,17 @@ export class MaterialGraphController {
     // Pin marking for Shift+Click long-distance connections
     this.markedPin = null;
 
-    // Clipboard for copy/paste operations
-    this.clipboard = [];
-
     this.initEvents();
-    this.renderer.resize();
+    this.resize();
+  }
 
-    // Defer main node creation until after app is fully initialized
-    // This will be called by MaterialEditorApp.init()
+  /**
+   * Resizes the graph canvas and renderer
+   */
+  resize() {
+    if (this.renderer) {
+      this.renderer.resize();
+    }
   }
 
   /**
@@ -187,7 +203,15 @@ export class MaterialGraphController {
    * Create the main material output node
    */
   createMainNode() {
-    const mainNode = this.addNode("MainMaterialNode", 400, 200);
+    // Position dynamically based on current graph panel size
+    const panelWidth = this.graphPanel?.clientWidth || 800;
+    const panelHeight = this.graphPanel?.clientHeight || 600;
+    
+    // Place node in right-center of visible area
+    const x = Math.max(100, Math.min(panelWidth - 200, panelWidth * 0.6));
+    const y = Math.max(100, panelHeight / 2 - 100);
+    
+    const mainNode = this.addNode("MainMaterialNode", x, y);
     if (mainNode) {
       mainNode.element.classList.add("main-output");
     }
@@ -398,47 +422,21 @@ export class MaterialGraphController {
    * Select a node
    */
   selectNode(node, additive = false) {
-    if (!additive) {
-      this.selectedNodes.forEach((id) => {
-        const n = this.nodes.get(id);
-        if (n) n.element.classList.remove("selected");
-      });
-      this.selectedNodes.clear();
-    }
-
-    this.selectedNodes.add(node.id);
-    node.element.classList.add("selected");
+    this.selection.selectNode(node, additive);
   }
 
   /**
    * Deselect a node
    */
   deselectNode(node) {
-    this.selectedNodes.delete(node.id);
-    node.element.classList.remove("selected");
+    this.selection.deselectNode(node);
   }
 
   /**
    * Deselect all nodes and links
    */
   deselectAll() {
-    this.selectedNodes.forEach((id) => {
-      const node = this.nodes.get(id);
-      if (node) node.element.classList.remove("selected");
-    });
-    this.selectedNodes.clear();
-
-    this.selectedLinks.forEach((id) => {
-      const link = this.links.get(id);
-      if (link && link.element) {
-        link.element.classList.remove("selected");
-      }
-    });
-    this.selectedLinks.clear();
-
-    if (this.app && this.app.details) {
-      this.app.details.showMaterialProperties();
-    }
+    this.selection.deselectAll();
   }
 
   /**
@@ -453,25 +451,12 @@ export class MaterialGraphController {
     node.element.style.transformOrigin = "top left";
   }
 
-
-
   /**
    * Delete selected nodes and links
    */
   deleteSelected() {
-    const nodesToDelete = [];
-    this.selectedNodes.forEach(id => {
-        const node = this.nodes.get(id);
-        if (node && node.type !== 'main-output') {
-            nodesToDelete.push(node);
-        }
-    });
-
-    const linksToDelete = [];
-    this.selectedLinks.forEach(id => {
-        const link = this.links.get(id);
-        if (link) linksToDelete.push(link);
-    });
+    const nodesToDelete = this.selection.getSelectedNodes().filter(n => n.type !== 'main-output');
+    const linksToDelete = this.selection.getSelectedLinks();
 
     if (nodesToDelete.length > 0 || linksToDelete.length > 0) {
         this.commands.execute(new DeleteNodesCommand(this, nodesToDelete, linksToDelete));
@@ -488,13 +473,13 @@ export class MaterialGraphController {
     });
 
     const links = [];
-    this.links.forEach(link => {
+    this.links.forEach((link) => {
       links.push({
         id: link.id,
-        sourceNodeId: link.outputPin.node.id,
-        sourcePinId: link.outputPin.localId,
-        targetNodeId: link.inputPin.node.id,
-        targetPinId: link.inputPin.localId
+        sourceNodeId: link.sourcePin.node.id,
+        sourcePinId: link.sourcePin.localId,
+        targetNodeId: link.targetPin.node.id,
+        targetPinId: link.targetPin.localId,
       });
     });
 
@@ -565,100 +550,21 @@ export class MaterialGraphController {
    * Duplicate selected nodes
    */
   duplicateSelected() {
-    const offset = 50;
-    const newNodes = [];
-
-    this.selectedNodes.forEach((nodeId) => {
-      const node = this.nodes.get(nodeId);
-      if (!node || node.type === "main-output") return;
-
-      const newNode = this.addNode(
-        node.nodeKey,
-        node.x + offset,
-        node.y + offset
-      );
-      if (newNode) {
-        // Copy properties
-        newNode.properties = { ...node.properties };
-        newNodes.push(newNode);
-      }
-    });
-
-    // Select the new nodes
-    this.deselectAll();
-    newNodes.forEach((node) => this.selectNode(node, true));
+    this.clipboard.duplicateSelected();
   }
 
   /**
    * Copy selected nodes to clipboard
    */
   copySelected() {
-    if (this.selectedNodes.size === 0) {
-      this.app.updateStatus("No nodes selected to copy");
-      return;
-    }
-
-    this.clipboard = [];
-    
-    this.selectedNodes.forEach((nodeId) => {
-      const node = this.nodes.get(nodeId);
-      if (!node || node.type === "main-output") return;
-
-      this.clipboard.push({
-        nodeKey: node.nodeKey,
-        x: node.x,
-        y: node.y,
-        properties: { ...node.properties }
-      });
-    });
-
-    this.app.updateStatus(`Copied ${this.clipboard.length} node(s)`);
+    this.clipboard.copySelected();
   }
 
   /**
    * Paste nodes from clipboard
    */
   pasteNodes() {
-    if (this.clipboard.length === 0) {
-      this.app.updateStatus("Clipboard is empty");
-      return;
-    }
-
-    const offset = 50;
-    const newNodes = [];
-
-    // Find the bounding box of copied nodes to calculate relative positions
-    const minX = Math.min(...this.clipboard.map(n => n.x));
-    const minY = Math.min(...this.clipboard.map(n => n.y));
-
-    // Get paste position (center of view or offset from original)
-    const rect = this.graphPanel.getBoundingClientRect();
-    const pasteX = (rect.width / 2 - this.panX) / this.zoom;
-    const pasteY = (rect.height / 2 - this.panY) / this.zoom;
-
-    this.clipboard.forEach((nodeData) => {
-      // Calculate relative position from the copy group's origin
-      const relX = nodeData.x - minX;
-      const relY = nodeData.y - minY;
-
-      const newNode = this.addNode(
-        nodeData.nodeKey,
-        pasteX + relX,
-        pasteY + relY
-      );
-
-      if (newNode) {
-        // Copy properties
-        newNode.properties = { ...nodeData.properties };
-        newNodes.push(newNode);
-      }
-    });
-
-    // Select the pasted nodes
-    this.deselectAll();
-    newNodes.forEach((node) => this.selectNode(node, true));
-
-    this.app.updateStatus(`Pasted ${newNodes.length} node(s)`);
+    this.clipboard.pasteNodes();
   }
 
   /**
@@ -666,12 +572,13 @@ export class MaterialGraphController {
    */
   selectAll() {
     this.deselectAll();
-    
     this.nodes.forEach((node) => {
-      this.selectNode(node, true);
+      this.selection.selectNode(node, true);
     });
 
-    this.app.updateStatus(`Selected ${this.selectedNodes.size} node(s)`);
+    if (this.app && this.app.updateStatus) {
+      this.app.updateStatus(`Selected ${this.selection.selectedNodes.size} node(s)`);
+    }
   }
 
   /**
@@ -738,14 +645,12 @@ export class MaterialGraphController {
    * Focus view on selected nodes
    */
   focusSelected() {
-    if (this.selectedNodes.size === 0) {
+    if (this.selection.selectedNodes.size === 0) {
       this.focusMainNode();
       return;
     }
 
-    const nodes = [...this.selectedNodes]
-      .map((id) => this.nodes.get(id))
-      .filter(Boolean);
+    const nodes = this.selection.getSelectedNodes();
 
     // Calculate bounding box of selected nodes
     const minX = Math.min(...nodes.map((n) => n.x));

@@ -37,6 +37,7 @@ export class ViewportController {
 
   async init() {
     await this.sceneManager.init();
+    this.sceneManager.keyStateProvider = this;
     this.initialized = true;
     this.sceneManager.isRealtime = this.isRealtime;
     window.addEventListener("resize", () => this.sceneManager.resize());
@@ -68,7 +69,7 @@ export class ViewportController {
       this.isRealtime = !this.isRealtime;
       realtimeBtn.classList.toggle("active", this.isRealtime);
       if (this.isRealtime) {
-        this.needsRender = true;
+        this.sceneManager.needsRender = true;
       }
     });
 
@@ -165,184 +166,21 @@ export class ViewportController {
     this.sceneManager.needsRender = true;
   }
 
-  /**
-   * Toggle floor plane visibility
-   */
   toggleFloor() {
-    if (!this.initialized) return;
-    
-    this.floorVisible = !this.floorVisible;
-    
-    if (this.floorVisible && !this.floorPlane) {
-      // Create floor plane on first toggle
-      const floorGeo = new this.THREE.PlaneGeometry(20, 20);
-      const floorMat = new this.THREE.MeshStandardMaterial({
-        color: 0x1a1a1a,
-        roughness: 0.8,
-        metalness: 0,
-      });
-      this.floorPlane = new this.THREE.Mesh(floorGeo, floorMat);
-      this.floorPlane.rotation.x = -Math.PI / 2;
-      this.floorPlane.position.y = 0;
-      this.floorPlane.receiveShadow = true;
-      this.scene.add(this.floorPlane);
-    } else if (this.floorPlane) {
-      this.floorPlane.visible = this.floorVisible;
-    }
-    
-    this.needsRender = true;
+    this.sceneManager.toggleFloor();
   }
 
-  /**
-   * Set environment preset (studio, outdoor, night)
-   */
   setEnvironment(preset) {
     if (!this.initialized) return;
-    
-    this.currentEnvironment = preset;
-    
-    const pmremGenerator = new this.THREE.PMREMGenerator(this.renderer);
-    pmremGenerator.compileEquirectangularShader();
-    
-    const envScene = new this.THREE.Scene();
-    const envGeo = new this.THREE.SphereGeometry(50, 32, 32);
-    
-    let fragmentShader;
-    
-    switch (preset) {
-      case 'outdoor':
-        // Blue sky with sun
-        fragmentShader = `
-          varying vec3 vWorldPosition;
-          void main() {
-            vec3 dir = normalize(vWorldPosition);
-            float y = dir.y;
-            
-            vec3 skyColor = vec3(0.4, 0.6, 1.0);
-            vec3 horizonColor = vec3(0.8, 0.85, 0.9);
-            vec3 groundColor = vec3(0.2, 0.15, 0.1);
-            vec3 sunColor = vec3(3.0, 2.8, 2.2);
-            
-            vec3 color = mix(horizonColor, skyColor, smoothstep(0.0, 0.5, y));
-            color = mix(groundColor, color, smoothstep(-0.1, 0.1, y));
-            
-            // Sun
-            float sunDot = max(0.0, dot(dir, normalize(vec3(0.5, 0.7, 0.3))));
-            color += sunColor * pow(sunDot, 64.0);
-            
-            gl_FragColor = vec4(color, 1.0);
-          }
-        `;
-        break;
-        
-      case 'night':
-        // Dark blue night sky
-        fragmentShader = `
-          varying vec3 vWorldPosition;
-          void main() {
-            vec3 dir = normalize(vWorldPosition);
-            float y = dir.y;
-            
-            vec3 skyColor = vec3(0.02, 0.03, 0.08);
-            vec3 horizonColor = vec3(0.05, 0.05, 0.1);
-            vec3 groundColor = vec3(0.01, 0.01, 0.02);
-            
-            vec3 color = mix(horizonColor, skyColor, smoothstep(0.0, 0.5, y));
-            color = mix(groundColor, color, smoothstep(-0.1, 0.1, y));
-            
-            // Subtle rim light
-            float rim = smoothstep(0.7, 1.0, abs(dir.x)) * step(0.0, y) * 0.1;
-            color += vec3(0.1, 0.15, 0.3) * rim;
-            
-            gl_FragColor = vec4(color, 1.0);
-          }
-        `;
-        break;
-        
-      default: // studio
-        fragmentShader = `
-          varying vec3 vWorldPosition;
-          void main() {
-            vec3 dir = normalize(vWorldPosition);
-            float y = dir.y;
-            float x = dir.x;
-            
-            vec3 topColor = vec3(2.0, 1.9, 1.8);
-            vec3 bottomColor = vec3(0.05, 0.05, 0.08);
-            vec3 sideColor = vec3(0.1, 0.12, 0.15);
-            
-            float topLight = smoothstep(0.3, 0.9, y);
-            float rimLight = smoothstep(0.6, 1.0, abs(x)) * step(0.0, y) * 0.5;
-            
-            vec3 color = mix(sideColor, topColor, topLight);
-            color = mix(color, bottomColor, smoothstep(-0.2, -0.8, y));
-            color += vec3(0.8, 0.9, 1.0) * rimLight;
-            
-            gl_FragColor = vec4(color, 1.0);
-          }
-        `;
-    }
-    
-    const envMat = new this.THREE.ShaderMaterial({
-      side: this.THREE.BackSide,
-      uniforms: {},
-      vertexShader: `
-        varying vec3 vWorldPosition;
-        void main() {
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vWorldPosition = worldPos.xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: fragmentShader
-    });
-    
-    const envMesh = new this.THREE.Mesh(envGeo, envMat);
-    envScene.add(envMesh);
-    
-    // Dispose old env map
-    if (this.envMap) {
-      this.envMap.dispose();
-    }
-    
-    this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
-    this.scene.environment = this.envMap;
-    pmremGenerator.dispose();
-    
-    this.needsRender = true;
+    this.sceneManager.setEnvironment(preset);
   }
 
   setGeometry(type) {
     this.sceneManager.setGeometry(type);
   }
 
-  startRenderLoop() {
-    const animate = () => {
-      this.animationId = requestAnimationFrame(animate);
-      
-      // Update camera position from keyboard input
-      this.updateCameraFromKeys();
-      
-      this.controls.update();
-      
-      // Only render if in realtime mode or if render is needed
-      if (this.isRealtime || this.needsRender) {
-        this.renderer.render(this.scene, this.camera);
-        this.needsRender = false;
-      }
-    };
-    animate();
-  }
-
   resize() {
-    if (!this.initialized || !this.container) return;
-
-    const width = this.container.clientWidth || 300;
-    const height = this.container.clientHeight || 300;
-
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
+    this.sceneManager.resize();
   }
 
   /**
@@ -358,25 +196,72 @@ export class ViewportController {
       mat.color.setRGB(result.baseColor[0], result.baseColor[1], result.baseColor[2]);
     }
 
+    // PBR Properties (Multipliers for maps)
     mat.metalness = result.metallic ?? 0;
     mat.roughness = result.roughness ?? 0.5;
 
-    if (result.emissive) {
+    // Advanced PBR
+    mat.clearcoat = result.clearCoat ?? 0;
+    mat.clearcoatRoughness = result.clearCoatRoughness ?? 0;
+    mat.anisotropy = result.anisotropy ?? 0;
+
+    // Emissive: if texture is connected, set color to white so texture shows
+    if (result.emissiveTexture) {
+      mat.emissive.setRGB(1, 1, 1); // White lets texture color through
+      mat.emissiveIntensity = result.emissiveIntensity ?? 1.0;
+    } else if (result.emissive) {
       mat.emissive.setRGB(result.emissive[0], result.emissive[1], result.emissive[2]);
+      mat.emissiveIntensity = result.emissiveIntensity ?? 1.0;
+    } else {
+      mat.emissive.set(0x000000);
+      mat.emissiveIntensity = 0;
     }
 
     mat.transparent = result.opacity < 1.0;
     mat.opacity = result.opacity ?? 1.0;
 
+    // Base Color
     if (result.baseColorTexture) {
-      this.loadTexture(result.baseColorTexture, (tex) => {
-        tex.repeat.set(result.baseColorUTiling ?? 1, result.baseColorVTiling ?? 1);
-        mat.map = tex;
-        mat.needsUpdate = true;
-        this.sceneManager.needsRender = true;
-      });
+      this.applyTextureMap(mat, 'map', result.baseColorTexture, result.baseColorUTiling, result.baseColorVTiling, true);
     } else {
       mat.map = null;
+    }
+
+    // Normal Map
+    if (result.normalTexture) {
+      this.applyTextureMap(mat, 'normalMap', result.normalTexture, result.normalUTiling, result.normalVTiling, false);
+      mat.normalScale.set(1, 1);
+    } else {
+      mat.normalMap = null;
+    }
+
+    // Roughness Map
+    if (result.roughnessTexture) {
+      this.applyTextureMap(mat, 'roughnessMap', result.roughnessTexture, result.roughnessUTiling, result.roughnessVTiling, false);
+    } else {
+      mat.roughnessMap = null;
+    }
+
+    // Metallic Map
+    if (result.metallicTexture) {
+      this.applyTextureMap(mat, 'metalnessMap', result.metallicTexture, result.metallicUTiling, result.metallicVTiling, false);
+    } else {
+      mat.metalnessMap = null;
+    }
+
+    // Ambient Occlusion
+    if (result.aoTexture) {
+      this.applyTextureMap(mat, 'aoMap', result.aoTexture, result.aoUTiling, result.aoVTiling, false);
+      mat.aoMapIntensity = result.ao ?? 1.0;
+    } else {
+      mat.aoMap = null;
+    }
+
+    // Emissive Map
+    if (result.emissiveTexture) {
+      this.applyTextureMap(mat, 'emissiveMap', result.emissiveTexture, result.emissiveUTiling, result.emissiveVTiling, true);
+    } else {
+      mat.emissiveMap = null;
     }
 
     mat.needsUpdate = true;
@@ -384,17 +269,30 @@ export class ViewportController {
   }
 
   /**
+   * Helper to load and apply a texture map to a material property
+   */
+  applyTextureMap(mat, property, url, uTiling = 1, vTiling = 1, isSRGB = false) {
+    this.loadTexture(url, (tex) => {
+      tex.repeat.set(uTiling, vTiling);
+      mat[property] = tex;
+      mat.needsUpdate = true;
+      this.sceneManager.needsRender = true;
+    }, isSRGB);
+  }
+
+  /**
    * Load a texture from URL/data URL with caching
    */
-  loadTexture(url, callback) {
+  loadTexture(url, callback, isSRGB = false) {
     if (!url || !this.initialized) return;
 
     if (!this.textureCache) {
       this.textureCache = new Map();
     }
 
-    if (this.textureCache.has(url)) {
-      callback(this.textureCache.get(url));
+    const cacheKey = `${url}_${isSRGB ? 'srgb' : 'linear'}`;
+    if (this.textureCache.has(cacheKey)) {
+      callback(this.textureCache.get(cacheKey));
       return;
     }
 
@@ -405,7 +303,11 @@ export class ViewportController {
         const THREE = this.sceneManager.THREE;
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        this.textureCache.set(url, texture);
+        
+        // Colorspace correction
+        texture.colorSpace = isSRGB ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+        
+        this.textureCache.set(cacheKey, texture);
         callback(texture);
         this.sceneManager.needsRender = true;
       },

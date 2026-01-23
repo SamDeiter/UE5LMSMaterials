@@ -5,12 +5,13 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { materialNodeRegistry } from '../../material/core/MaterialNodeFramework.js';
+import { nodeRegistry } from '../registries/NodeRegistry.js';
 import { debounce } from '../../shared/utils.js';
 
 export class ActionMenuController {
-  constructor(app) {
+  constructor(app, registry = null) {
     this.app = app;
+    this.registry = registry || nodeRegistry;
     this.menu = document.getElementById("action-menu");
     this.searchInput = document.getElementById("action-menu-search");
     this.list = document.getElementById("action-menu-list");
@@ -54,10 +55,12 @@ export class ActionMenuController {
     let results = [];
 
     if (filter) {
-      results = materialNodeRegistry.search(filter);
+      results = this.registry.search(filter);
     } else {
-      // Show commonly used nodes
+      // Show commonly used nodes - includes both Blueprint and Material node names
       const common = [
+        // Material nodes
+        "Constant",
         "Constant3Vector",
         "TextureSample",
         "Multiply",
@@ -65,9 +68,19 @@ export class ActionMenuController {
         "Lerp",
         "ScalarParameter",
         "VectorParameter",
+        // Blueprint nodes
+        "Branch",
+        "Delay",
+        "Sequence",
+        "PrintString",
+        "Reroute",
+        "Comment",
       ];
       results = common
-        .map((k) => ({ key: k, ...materialNodeRegistry.get(k) }))
+        .map((k) => {
+          const def = this.registry.get(k);
+          return def ? { key: k, ...def } : null;
+        })
         .filter(Boolean);
     }
 
@@ -77,8 +90,8 @@ export class ActionMenuController {
     let currentCategory = "";
 
     results.forEach((node, idx) => {
-      if (node.category !== currentCategory) {
-        currentCategory = node.category;
+      if ((node.category || "Uncategorized") !== currentCategory) {
+        currentCategory = node.category || "Uncategorized";
         html += `<div class="action-menu-category">${currentCategory}</div>`;
       }
 
@@ -89,7 +102,7 @@ export class ActionMenuController {
                     <span class="action-menu-item-icon">${
                       node.icon || "●"
                     }</span>
-                    <span>${node.title}</span>
+                    <span>${node.title || node.key || "Unknown Node"}</span>
                     ${
                       node.hotkey
                         ? `<span class="action-menu-item-hotkey">${node.hotkey.toUpperCase()}</span>`

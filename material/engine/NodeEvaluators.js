@@ -219,22 +219,6 @@ export function evaluateTextureSample(node, outputPin, pinEvaluator, visited) {
   // Check which output pin is being used
   const pinId = outputPin?.localId?.toLowerCase() || outputPin?.name?.toLowerCase() || 'rgb';
   
-  // For individual channel pins, return a scalar value
-  // In a real implementation, this would sample the texture
-  // For preview, we return mid-gray (0.5) for channels
-  if (pinId === 'r') {
-    return 0.5; // Red channel as scalar
-  }
-  if (pinId === 'g') {
-    return 0.5; // Green channel as scalar
-  }
-  if (pinId === 'b') {
-    return 0.5; // Blue channel as scalar
-  }
-  if (pinId === 'a') {
-    return 1.0; // Alpha channel as scalar (default opaque)
-  }
-
   // Check for connected UV input and extract tiling
   let uvTiling = { uTiling: 1.0, vTiling: 1.0 };
   const uvPin = node.inputs?.find(p => p.localId === 'uv' || p.name?.toLowerCase() === 'uvs');
@@ -245,11 +229,12 @@ export function evaluateTextureSample(node, outputPin, pinEvaluator, visited) {
     }
   }
 
-  // For RGB output, return texture or color array with UV tiling info
+  // Handle texture sample
+  let result = [0.5, 0.5, 0.5];
   if (textureId && textureManager) {
     const texData = textureManager.get(textureId);
     if (texData && texData.dataUrl) {
-      return { 
+      result = { 
         type: "texture", 
         url: texData.dataUrl,
         uTiling: uvTiling.uTiling,
@@ -258,8 +243,16 @@ export function evaluateTextureSample(node, outputPin, pinEvaluator, visited) {
     }
   }
 
-  // Fallback to mid-gray
-  return [0.5, 0.5, 0.5];
+  // If sampling a specific channel, return the texture object with a channel hint
+  if (['r', 'g', 'b', 'a'].includes(pinId)) {
+    if (typeof result === 'object' && result.type === 'texture') {
+      return { ...result, channel: pinId };
+    }
+    // Fallback if no texture map
+    return 0.5;
+  }
+
+  return result;
 }
 
 // ============================================================================

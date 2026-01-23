@@ -11,6 +11,7 @@ import { nodeRegistry } from '../registries/NodeRegistry.js';
 import { WiringController } from './WiringController.js';
 import { SelectionController } from './SelectionController.js';
 import { InputController } from './InputController.js';
+import { ClipboardController } from './ClipboardController.js';
 import { Pin, Node } from './Node.js';
 
 // Re-export for compatibility
@@ -32,6 +33,7 @@ class GraphController {
         // Delegate to extracted controllers
         this.selection = new SelectionController(this);
         this.input = new InputController(this);
+        this.clipboard = new ClipboardController(this);
         
         // Backwards compatibility: expose selectedNodes as a getter
         Object.defineProperty(this, 'selectedNodes', {
@@ -167,84 +169,7 @@ class GraphController {
      * Preserves internal connections between duplicated nodes.
      */
     duplicateSelectedNodes() {
-        if (this.selectedNodes.size === 0) {
-            this.app.wiring.deleteSelectedLinks();
-            return;
-        }
-
-        const oldToNewPinIds = new Map();
-        const newSelection = [];
-        const offset = 20;
-        const originalNodes = Array.from(this.selectedNodes).map(id => this.nodes.get(id)).filter(n => n);
-
-        for (const oldNode of originalNodes) {
-            // Re-create nodeData structure to ensure all properties (like title/type) are included
-            const nodeData = nodeRegistry.get(oldNode.nodeKey);
-            if (!nodeData) continue;
-
-            // Handle custom pin data for dynamic nodes (like CustomEvent)
-            const pinsToUse = oldNode.nodeKey === 'CustomEvent' ? oldNode.getPinsData().map(p => ({
-                id: p.id, name: p.name, type: p.type, dir: p.dir, containerType: p.containerType, isCustom: p.isCustom
-            })) : nodeData.pins;
-
-            const newNodeData = {
-                ...nodeData,
-                title: oldNode.title,
-                variableType: oldNode.variableType,
-                variableId: oldNode.variableId,
-                customData: { ...oldNode.customData },
-                pins: pinsToUse // Use the determined pin structure
-            };
-
-            const id = Utils.uniqueId('node');
-            const newNode = new Node(id, newNodeData, oldNode.x + offset, oldNode.y + offset, oldNode.nodeKey, this.app);
-
-            // Transfer pin literal values
-            oldNode.pinLiterals.forEach((value, pinId) => {
-                const oldPinIdRelative = pinId.replace(`${oldNode.id}-`, '');
-                const newPin = newNode.pins.find(p => p.id.endsWith(oldPinIdRelative));
-                if (newPin) {
-                    newNode.pinLiterals.set(newPin.id, value);
-                }
-            });
-
-            this.nodes.set(id, newNode);
-            this.nodesContainer.appendChild(newNode.render());
-            newSelection.push(newNode.id);
-
-            oldNode.pins.forEach((oldPin, index) => {
-                const newPin = newNode.pins.find(p => p.name === oldPin.name && p.dir === oldPin.dir); // Find by name/dir in case pin order changed
-                if (newPin) {
-                    oldToNewPinIds.set(oldPin.id, newPin.id);
-                }
-            });
-        }
-
-        // Duplicate internal connections
-        for (const link of this.app.wiring.links.values()) {
-            const startNodeIsSelected = this.selectedNodes.has(link.startPin.node.id);
-            const endNodeIsSelected = this.selectedNodes.has(link.endPin.node.id);
-
-            if (startNodeIsSelected && endNodeIsSelected) {
-                const newStartPinId = oldToNewPinIds.get(link.startPin.id);
-                const newEndPinId = oldToNewPinIds.get(link.endPin.id);
-
-                if (newStartPinId && newEndPinId) {
-                    const newStartPin = this.findPinById(newStartPinId);
-                    const newEndPin = this.findPinById(newEndPinId);
-
-                    if (newStartPin && newEndPin && this.canConnect(newStartPin, newEndPin)) {
-                        this.app.wiring.createConnection(newStartPin, newEndPin);
-                    }
-                }
-            }
-        }
-
-        this.app.wiring.clearLinkSelection();
-        this.clearSelection();
-        newSelection.forEach(nodeId => this.selectNode(nodeId, true, 'add'));
-        this.app.persistence.autoSave();
-        this.app.compiler.markDirty();
+        this.clipboard.duplicate();
     }
 
     findPinById(pinId) {

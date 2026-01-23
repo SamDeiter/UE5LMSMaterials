@@ -57,6 +57,7 @@ export class SceneManager {
       });
       this.renderer.setSize(this.canvas.clientWidth || 300, this.canvas.clientHeight || 300);
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.outputColorSpace = THREE.SRGBColorSpace; // sRGB gamma correction
 
       // Controls
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -168,6 +169,12 @@ export class SceneManager {
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
       if (this.controls) this.controls.update();
+
+      // Handle keyboard navigation if a controller is providing key state
+      if (this.keyStateProvider && this.keyStateProvider.keysPressed) {
+        this.updateCameraFromKeys(this.keyStateProvider.keysPressed);
+      }
+
       if (this.renderer && (this.needsRender || this.isRealtime)) {
         this.renderer.render(this.scene, this.camera);
         this.needsRender = false;
@@ -176,14 +183,45 @@ export class SceneManager {
     animate();
   }
 
+  updateCameraFromKeys(keys) {
+    const moveSpeed = 0.05;
+    if (keys['w']) this.camera.translateZ(-moveSpeed);
+    if (keys['s']) this.camera.translateZ(moveSpeed);
+    if (keys['a']) this.camera.translateX(-moveSpeed);
+    if (keys['d']) this.camera.translateX(moveSpeed);
+    
+    if (keys['w'] || keys['s'] || keys['a'] || keys['d']) {
+      this.needsRender = true;
+    }
+  }
+
   resize() {
-    if (!this.initialized) return;
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
+    if (!this.initialized || !this.container || !this.renderer) return;
+    
+    // Get actual dimensions
+    const width = Math.max(1, this.container.clientWidth);
+    const height = Math.max(1, this.container.clientHeight);
+    
+    // Set pixel ratio for sharp rendering on high-DPI screens
+    const pixelRatio = window.devicePixelRatio || 1;
+    this.renderer.setPixelRatio(pixelRatio);
+    
+    // Update camera
+    if (this.camera) {
+      this.camera.aspect = width / height;
+      this.camera.updateProjectionMatrix();
+    }
+    
+    // Update renderer
+    this.renderer.setSize(width, height, true); // true to update style
+    
+    // Update controls if they exist (OrbitControls needs to know new size for interaction)
+    if (this.controls && typeof this.controls.handleResize === 'function') {
+      this.controls.handleResize();
+    }
+    
     this.needsRender = true;
+    console.log(`Viewport Resized: ${width}x${height} @ ${pixelRatio}x`);
   }
 
   setGeometry(type) {
@@ -214,6 +252,153 @@ export class SceneManager {
         this.ambientLight.intensity = 2;
         this.mesh.material = this.wireframeMaterial;
         break;
+    }
+    this.needsRender = true;
+  }
+
+  /**
+   * Set environment preset (studio, outdoor, night)
+   * Studio preset now uses Epic Courtyard HDRI for authentic UE5 lighting
+   */
+  async setEnvironment(preset) {
+    if (!this.initialized) return;
+    
+    const THREE = this.THREE;
+    const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    // Try to load HDRI for studio preset
+    if (preset === 'studio') {
+      try {
+        const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+        const loader = new RGBELoader();
+        
+        const texture = await new Promise((resolve, reject) => {
+          loader.load(
+            '/public/HDRI_Epic_Courtyard_Daylight.HDR',
+            (tex) => resolve(tex),
+            undefined,
+            (err) => reject(err)
+          );
+        });
+        
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        
+        if (this.envMap) this.envMap.dispose();
+        this.envMap = pmremGenerator.fromEquirectangular(texture).texture;
+        this.scene.environment = this.envMap;
+        texture.dispose();
+        pmremGenerator.dispose();
+        this.needsRender = true;
+        console.log('Loaded Epic Courtyard HDRI environment');
+        return;
+      } catch (err) {
+        console.warn('Failed to load HDRI, falling back to procedural:', err);
+        // Fall through to procedural environment
+      }
+    }
+    
+    // Procedural environment fallback
+    const envScene = new THREE.Scene();
+    const envGeo = new THREE.SphereGeometry(50, 32, 32);
+    
+    let fragmentShader;
+    
+    switch (preset) {
+      case 'outdoor':
+        fragmentShader = `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            vec3 skyColor = vec3(0.4, 0.6, 1.0);
+            vec3 horizonColor = vec3(0.8, 0.85, 0.9);
+            vec3 groundColor = vec3(0.2, 0.15, 0.1);
+            vec3 sunColor = vec3(3.0, 2.8, 2.2);
+            vec3 color = mix(horizonColor, skyColor, smoothstep(0.0, 0.5, y));
+            color = mix(groundColor, color, smoothstep(-0.1, 0.1, y));
+            float sunDot = max(0.0, dot(dir, normalize(vec3(0.5, 0.7, 0.3))));
+            color += sunColor * pow(sunDot, 64.0);
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+        break;
+      case 'night':
+        fragmentShader = `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            vec3 skyColor = vec3(0.02, 0.03, 0.08);
+            vec3 horizonColor = vec3(0.05, 0.05, 0.1);
+            vec3 groundColor = vec3(0.01, 0.01, 0.02);
+            vec3 color = mix(horizonColor, skyColor, smoothstep(0.0, 0.5, y));
+            color = mix(groundColor, color, smoothstep(-0.1, 0.1, y));
+            float rim = smoothstep(0.7, 1.0, abs(dir.x)) * step(0.0, y) * 0.1;
+            color += vec3(0.1, 0.15, 0.3) * rim;
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+        break;
+      default: // studio fallback (if HDRI failed)
+        fragmentShader = `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec3 dir = normalize(vWorldPosition);
+            float y = dir.y;
+            float x = dir.x;
+            vec3 topColor = vec3(2.0, 1.9, 1.8);
+            vec3 bottomColor = vec3(0.05, 0.05, 0.08);
+            vec3 sideColor = vec3(0.1, 0.12, 0.15);
+            float topLight = smoothstep(0.3, 0.9, y);
+            float rimLight = smoothstep(0.6, 1.0, abs(x)) * step(0.0, y) * 0.5;
+            vec3 color = mix(sideColor, topColor, topLight);
+            color = mix(color, bottomColor, smoothstep(-0.2, -0.8, y));
+            color += vec3(0.8, 0.9, 1.0) * rimLight;
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+    }
+    
+    const envMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: fragmentShader
+    });
+    
+    envScene.add(new THREE.Mesh(envGeo, envMat));
+    
+    if (this.envMap) this.envMap.dispose();
+    this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
+    this.scene.environment = this.envMap;
+    pmremGenerator.dispose();
+    this.needsRender = true;
+  }
+
+  toggleFloor() {
+    if (!this.initialized) return;
+    
+    if (!this.floorPlane) {
+      const THREE = this.THREE;
+      const floorGeo = new THREE.PlaneGeometry(20, 20);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.8,
+        metalness: 0,
+      });
+      this.floorPlane = new THREE.Mesh(floorGeo, floorMat);
+      this.floorPlane.rotation.x = -Math.PI / 2;
+      this.floorPlane.receiveShadow = true;
+      this.scene.add(this.floorPlane);
+    } else {
+      this.floorPlane.visible = !this.floorPlane.visible;
     }
     this.needsRender = true;
   }

@@ -7,7 +7,13 @@
 
 import { textureManager } from "../engine/TextureManager.js";
 import { PropertyChangeCommand } from "../core/GraphCommands.js";
-import { PropertyEditors } from "./PropertyEditors.js";
+import { 
+  renderBoolean, 
+  renderNumber, 
+  renderColor, 
+  renderTexture, 
+  renderInputPin 
+} from "./PropertyEditors.js";
 
 export class DetailsController {
   constructor(app) {
@@ -349,22 +355,22 @@ export class DetailsController {
 
   renderProperty(key, value, node) {
     if (typeof value === "boolean") {
-      return PropertyEditors.renderBoolean(key, value);
+      return renderBoolean(key, value);
     }
 
     if (typeof value === "number") {
-      return PropertyEditors.renderNumber(key, value);
+      return renderNumber(key, value);
     }
 
     if (typeof value === "object" && value !== null) {
       if ("R" in value) {
-        return PropertyEditors.renderColor(key, value);
+        return renderColor(key, value);
       }
       return "";
     }
 
     if (key === "TextureAsset") {
-      return PropertyEditors.renderTexture(key, value, node.id);
+      return renderTexture(key, value, node.id);
     }
 
     return `
@@ -379,7 +385,7 @@ export class DetailsController {
    * Render an input pin with its default value
    */
   renderInputPin(pin, defaultValue, node) {
-    return PropertyEditors.renderInputPin(pin, defaultValue);
+    return renderInputPin(pin, defaultValue);
   }
 
   /**

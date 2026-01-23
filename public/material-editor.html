@@ -169,116 +169,54 @@
       <!-- MAIN CONTENT AREA -->
       <!-- ============================================= -->
       <div id="main-content">
-        <!-- LEFT COLUMN: Viewport + Palette -->
+        <!-- LEFT COLUMN: Viewport + Stats + Details -->
         <div id="left-column" class="panel-column">
           <!-- 3D VIEWPORT PANEL -->
           <div id="viewport-panel" class="panel">
             <div class="panel-header">
               <span>Viewport</span>
               <div class="panel-header-tools">
-                <!-- Environment Preset Dropdown -->
-                <select
-                  id="viewport-env-select"
-                  class="panel-select"
-                  title="Environment Preset"
-                >
+                <select id="viewport-env-select" class="panel-select" title="Environment Preset">
                   <option value="studio">Studio</option>
                   <option value="outdoor">Outdoor</option>
                   <option value="night">Night</option>
                 </select>
-                <!-- View Mode Dropdown -->
-                <select
-                  id="viewport-view-mode"
-                  class="panel-select"
-                  title="View Mode"
-                >
+                <select id="viewport-view-mode" class="panel-select" title="View Mode">
                   <option value="lit">Lit</option>
                   <option value="unlit">Unlit</option>
                   <option value="wireframe">Wireframe</option>
                 </select>
-                <!-- Mesh Selection -->
-                <select
-                  id="viewport-mesh-select"
-                  class="panel-select"
-                  title="Preview Mesh"
-                >
+                <select id="viewport-mesh-select" class="panel-select" title="Preview Mesh">
                   <option value="sphere">Sphere</option>
                   <option value="cylinder">Cylinder</option>
                   <option value="plane">Plane</option>
                   <option value="cube">Cube</option>
                 </select>
-                <!-- FOV Control -->
                 <label class="fov-label" title="Field of View">
                   FOV
-                  <input
-                    type="range"
-                    id="viewport-fov"
-                    min="30"
-                    max="90"
-                    value="45"
-                    class="fov-slider"
-                  />
+                  <input type="range" id="viewport-fov" min="30" max="90" value="45" class="fov-slider" />
                 </label>
-                <!-- Exposure Control -->
                 <label class="exposure-label" title="Exposure (EV)">
                   EV
-                  <input
-                    type="range"
-                    id="viewport-exposure"
-                    min="-3"
-                    max="3"
-                    value="0"
-                    step="0.1"
-                    class="exposure-slider"
-                  />
+                  <input type="range" id="viewport-exposure" min="-3" max="3" value="0" step="0.1" class="exposure-slider" />
                 </label>
-                <!-- Realtime Toggle -->
-                <button
-                  id="viewport-realtime-btn"
-                  class="panel-tool active"
-                  title="Toggle Realtime Rendering"
-                >
-                  ⏱️
-                </button>
-                <!-- Floor Toggle -->
-                <button
-                  id="viewport-floor-btn"
-                  class="panel-tool"
-                  title="Toggle Floor Plane"
-                >
-                  Floor
-                </button>
-                <!-- Show Flags -->
-                <button
-                  id="viewport-grid-btn"
-                  class="panel-tool active"
-                  title="Toggle Grid"
-                >
-                  Grid
-                </button>
-                <!-- Tone Mapper Toggle -->
-                <button
-                  id="viewport-tonemapper-btn"
-                  class="panel-tool active"
-                  title="Toggle Tone Mapping"
-                >
-                  TM
-                </button>
+                <button id="viewport-realtime-btn" class="panel-tool active" title="Toggle Realtime Rendering">⏱️</button>
+                <button id="viewport-floor-btn" class="panel-tool" title="Toggle Floor Plane">Floor</button>
+                <button id="viewport-grid-btn" class="panel-tool active" title="Toggle Grid">Grid</button>
+                <button id="viewport-tonemapper-btn" class="panel-tool active" title="Toggle Tone Mapping">TM</button>
               </div>
             </div>
             <div id="viewport-container" class="panel-content viewport-content">
               <canvas id="viewport-canvas"></canvas>
               <div id="viewport-overlay">
-                <span class="viewport-hint"
-                  >Hold Shift + Drag to rotate light</span
-                >
+                <span class="viewport-hint">Hold Shift + Drag to rotate light</span>
               </div>
             </div>
           </div>
 
           <div class="resizer-horizontal" id="resizer-viewport"></div>
 
-          <!-- STATS PANEL -->
+          <!-- STATS PANEL (Left column, compact) -->
           <div id="stats-panel" class="panel">
             <div class="panel-header">
               <span>📊 Stats</span>
@@ -307,105 +245,7 @@
 
           <div class="resizer-horizontal" id="resizer-stats"></div>
 
-          <!-- PALETTE PANEL -->
-          <div id="palette-panel" class="panel">
-            <div class="panel-header">
-              <span>Palette</span>
-            </div>
-            <div class="panel-toolbar">
-              <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input
-                  type="text"
-                  id="palette-filter"
-                  placeholder="Search nodes..."
-                />
-              </div>
-            </div>
-            <div id="palette-content" class="panel-content tree-view">
-              <!-- Dynamic content generated by JS -->
-            </div>
-          </div>
-        </div>
-
-        <div class="resizer-vertical" id="resizer-left"></div>
-
-        <!-- CENTER: Material Graph Canvas -->
-        <div id="graph-panel" class="panel">
-          <canvas id="graph-canvas"></canvas>
-          <svg id="graph-svg" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <!-- Gradient definitions for wires -->
-              <linearGradient
-                id="wire-gradient-float"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" style="stop-color: #9e9e9e" />
-                <stop offset="100%" style="stop-color: #9e9e9e" />
-              </linearGradient>
-              <linearGradient
-                id="wire-gradient-float2"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" style="stop-color: #4caf50" />
-                <stop offset="100%" style="stop-color: #4caf50" />
-              </linearGradient>
-              <linearGradient
-                id="wire-gradient-float3"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" style="stop-color: #ffc107" />
-                <stop offset="100%" style="stop-color: #ffc107" />
-              </linearGradient>
-              <linearGradient
-                id="wire-gradient-float4"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" style="stop-color: #e91e63" />
-                <stop offset="100%" style="stop-color: #e91e63" />
-              </linearGradient>
-              <linearGradient
-                id="wire-gradient-texture"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" style="stop-color: #2196f3" />
-                <stop offset="100%" style="stop-color: #2196f3" />
-              </linearGradient>
-            </defs>
-            <g id="wire-group">
-              <path
-                id="ghost-wire"
-                class="wire ghost"
-                style="pointer-events: none; display: none"
-              ></path>
-            </g>
-          </svg>
-          <div id="nodes-container">
-            <!-- Nodes generated by JS -->
-          </div>
-          <div id="selection-marquee" style="display: none"></div>
-        </div>
-
-        <div class="resizer-vertical" id="resizer-right"></div>
-
-        <!-- RIGHT COLUMN: Details Panel -->
-        <div id="right-column" class="panel-column">
-          <!-- DETAILS PANEL -->
+          <!-- DETAILS PANEL (Bottom Left) -->
           <div id="details-panel" class="panel">
             <div class="panel-header">
               <span>Details</span>
@@ -413,15 +253,10 @@
             <div class="panel-toolbar">
               <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input
-                  type="text"
-                  id="details-filter"
-                  placeholder="Search properties..."
-                />
+                <input type="text" id="details-filter" placeholder="Search properties..." />
               </div>
             </div>
             <div id="details-content" class="panel-content">
-              <!-- Material Properties when nothing selected -->
               <div id="material-properties">
                 <div class="property-category">
                   <div class="category-header">
@@ -449,26 +284,13 @@
                         <option value="Translucent">Translucent</option>
                         <option value="Additive">Additive</option>
                         <option value="Modulate">Modulate</option>
-                        <option value="AlphaComposite">
-                          Alpha Composite (Premultiplied)
-                        </option>
+                        <option value="AlphaComposite">Alpha Composite (Premultiplied)</option>
                         <option value="AlphaHoldout">Alpha Holdout</option>
                       </select>
                     </div>
-                    <div
-                      class="property-row"
-                      id="opacity-clip-row"
-                      style="display: none"
-                    >
+                    <div class="property-row" id="opacity-clip-row" style="display: none">
                       <label>Opacity Mask Clip Value</label>
-                      <input
-                        type="number"
-                        id="opacity-mask-clip"
-                        value="0.5"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                      />
+                      <input type="number" id="opacity-mask-clip" value="0.5" min="0" max="1" step="0.01" />
                     </div>
                     <div class="property-row">
                       <label>Shading Model</label>
@@ -476,161 +298,80 @@
                         <option value="DefaultLit">Default Lit</option>
                         <option value="Unlit">Unlit</option>
                         <option value="Subsurface">Subsurface</option>
-                        <option value="PreintegratedSkin">
-                          Preintegrated Skin
-                        </option>
+                        <option value="PreintegratedSkin">Preintegrated Skin</option>
                         <option value="ClearCoat">Clear Coat</option>
-                        <option value="SubsurfaceProfile">
-                          Subsurface Profile
-                        </option>
-                        <option value="TwoSidedFoliage">
-                          Two Sided Foliage
-                        </option>
+                        <option value="SubsurfaceProfile">Subsurface Profile</option>
+                        <option value="TwoSidedFoliage">Two Sided Foliage</option>
                         <option value="Hair">Hair</option>
                         <option value="Cloth">Cloth</option>
                         <option value="Eye">Eye</option>
-                        <option value="SingleLayerWater">
-                          Single Layer Water
-                        </option>
-                        <option value="ThinTranslucent">
-                          Thin Translucent
-                        </option>
+                        <option value="SingleLayerWater">Single Layer Water</option>
+                        <option value="ThinTranslucent">Thin Translucent</option>
                       </select>
                     </div>
                     <div class="property-row">
                       <label>Two Sided</label>
-                      <input
-                        type="checkbox"
-                        id="two-sided"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Dithered LOD Transition</label>
-                      <input
-                        type="checkbox"
-                        id="dithered-lod"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="property-category collapsed">
-                  <div class="category-header">
-                    <i class="fas fa-chevron-right"></i>
-                    <span>Translucency</span>
-                  </div>
-                  <div class="category-content">
-                    <div class="property-row">
-                      <label>Lighting Mode</label>
-                      <select id="translucency-lighting">
-                        <option value="VolumetricNonDirectional">
-                          Volumetric NonDirectional
-                        </option>
-                        <option value="VolumetricDirectional">
-                          Volumetric Directional
-                        </option>
-                        <option value="VolumetricPerVertexNonDirectional">
-                          Volumetric PerVertex NonDirectional
-                        </option>
-                        <option value="VolumetricPerVertexDirectional">
-                          Volumetric PerVertex Directional
-                        </option>
-                        <option value="SurfaceForwardShading">
-                          Surface Forward Shading
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="property-category collapsed">
-                  <div class="category-header">
-                    <i class="fas fa-chevron-right"></i>
-                    <span>Physical Material</span>
-                  </div>
-                  <div class="category-content">
-                    <div class="property-row">
-                      <label>Phys Material Override</label>
-                      <select id="phys-material">
-                        <option value="None">None</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="property-category collapsed">
-                  <div class="category-header">
-                    <i class="fas fa-chevron-right"></i>
-                    <span>Usage</span>
-                  </div>
-                  <div class="category-content">
-                    <div class="property-row">
-                      <label>Used with Skeletal Mesh</label>
-                      <input
-                        type="checkbox"
-                        id="usage-skeletal"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Used with Particle Sprites</label>
-                      <input
-                        type="checkbox"
-                        id="usage-particles"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Used with Niagara Sprites</label>
-                      <input
-                        type="checkbox"
-                        id="usage-niagara"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Used with Spline Mesh</label>
-                      <input
-                        type="checkbox"
-                        id="usage-spline"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Used with Instanced Static Mesh</label>
-                      <input
-                        type="checkbox"
-                        id="usage-instanced"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Used with Geometry Cache</label>
-                      <input
-                        type="checkbox"
-                        id="usage-geocache"
-                        class="ue5-checkbox"
-                      />
-                    </div>
-                    <div class="property-row">
-                      <label>Used with Virtual Heightfield Mesh</label>
-                      <input
-                        type="checkbox"
-                        id="usage-heightfield"
-                        class="ue5-checkbox"
-                      />
+                      <input type="checkbox" id="two-sided" class="ue5-checkbox" />
                     </div>
                   </div>
                 </div>
               </div>
+              <div id="node-properties" style="display: none"></div>
+            </div>
+          </div>
+        </div>
 
-              <!-- Node Properties (shown when a node is selected) -->
-              <div id="node-properties" style="display: none">
-                <!-- Dynamically generated -->
+        <div class="resizer-vertical" id="resizer-left"></div>
+
+        <!-- CENTER: Material Graph Canvas -->
+        <div id="graph-panel" class="panel">
+          <canvas id="graph-canvas"></canvas>
+          <svg id="graph-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="wire-gradient-float" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color: #9e9e9e" />
+                <stop offset="100%" style="stop-color: #9e9e9e" />
+              </linearGradient>
+              <linearGradient id="wire-gradient-float2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color: #4caf50" />
+                <stop offset="100%" style="stop-color: #4caf50" />
+              </linearGradient>
+              <linearGradient id="wire-gradient-float3" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color: #ffc107" />
+                <stop offset="100%" style="stop-color: #ffc107" />
+              </linearGradient>
+              <linearGradient id="wire-gradient-float4" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color: #e91e63" />
+                <stop offset="100%" style="stop-color: #e91e63" />
+              </linearGradient>
+              <linearGradient id="wire-gradient-texture" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color: #2196f3" />
+                <stop offset="100%" style="stop-color: #2196f3" />
+              </linearGradient>
+            </defs>
+            <g id="wire-group">
+              <path id="ghost-wire" class="wire ghost" style="pointer-events: none; display: none"></path>
+            </g>
+          </svg>
+          <div id="nodes-container"></div>
+          <div id="selection-marquee" style="display: none"></div>
+        </div>
+
+        <div class="resizer-vertical" id="resizer-right"></div>
+
+        <!-- RIGHT COLUMN: Palette Panel -->
+        <div id="right-column" class="panel-column">
+          <div id="palette-panel" class="panel">
+            <div class="panel-header">
+              <span>Palette</span>
+            </div>
+            <div class="panel-toolbar">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="palette-filter" placeholder="Search nodes..." />
               </div>
             </div>
+            <div id="palette-content" class="panel-content tree-view"></div>
           </div>
         </div>
       </div>

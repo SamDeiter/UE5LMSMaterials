@@ -40,7 +40,7 @@ export class MaterialWiringController {
         if (!this.graph.isWiring || !this.graph.wiringStartPin) return;
 
         const pin = this.graph.wiringStartPin;
-        const pinDot = pin.element.querySelector(".pin-dot");
+        const pinDot = pin.element.querySelector(".pin-dot") || pin.element;
         const rect = pinDot.getBoundingClientRect();
         const graphRect = this.graphPanel.getBoundingClientRect();
 
@@ -49,12 +49,16 @@ export class MaterialWiringController {
         const endX = e.clientX - graphRect.left;
         const endY = e.clientY - graphRect.top;
 
+        // Account for zoom in path calculation if needed, 
+        // but startX/startY/endX/endY are already in panel pixels.
         const path = WireRenderer.getWirePath(startX, startY, endX, endY, {
             direction: pin.dir
         });
 
         const ghostWire = document.getElementById("ghost-wire");
-        ghostWire.setAttribute("d", path);
+        if (ghostWire) {
+            ghostWire.setAttribute("d", path);
+        }
     }
 
     /**
@@ -103,8 +107,8 @@ export class MaterialWiringController {
         const linkId = explicitId || generateId("link");
         const link = {
             id: linkId,
-            outputPin: outputPin,
-            inputPin: inputPin,
+            sourcePin: outputPin,
+            targetPin: inputPin,
             type: outputPin.type,
             element: null,
         };
@@ -131,8 +135,8 @@ export class MaterialWiringController {
      * Draw a wire for a connection
      */
     drawWire(link) {
-        const outputDot = link.outputPin.element.querySelector(".pin-dot");
-        const inputDot = link.inputPin.element.querySelector(".pin-dot");
+        const outputDot = link.sourcePin.element.querySelector(".pin-dot") || link.sourcePin.element;
+        const inputDot = link.targetPin.element.querySelector(".pin-dot") || link.targetPin.element;
 
         if (!outputDot || !inputDot) return;
 
@@ -161,6 +165,7 @@ export class MaterialWiringController {
                 e.stopPropagation();
                 this.selectLink(link);
             });
+            wire.id = `wire-${link.id}`; // Add ID for renderer lookup
 
             this.wireGroup.appendChild(wire);
             link.element = wire;
@@ -180,9 +185,7 @@ export class MaterialWiringController {
      * Select a link
      */
     selectLink(link) {
-        this.graph.deselectAll();
-        this.graph.selectedLinks.add(link.id);
-        link.element.classList.add("selected");
+        this.graph.selection.selectLink(link);
     }
 
     /**
@@ -193,15 +196,17 @@ export class MaterialWiringController {
         if (!link) return;
 
         // Reset pin states
-        link.outputPin.connectedTo = null;
-        link.inputPin.connectedTo = null;
+        link.sourcePin.connectedTo = null;
+        link.targetPin.connectedTo = null;
 
         // Update visuals
-        if (link.outputPin.element) {
-            link.outputPin.element.querySelector(".pin-dot").classList.add("hollow");
+        if (link.sourcePin.element) {
+            const dot = link.sourcePin.element.querySelector(".pin-dot") || link.sourcePin.element;
+            dot.classList.add("hollow");
         }
-        if (link.inputPin.element) {
-            link.inputPin.element.querySelector(".pin-dot").classList.add("hollow");
+        if (link.targetPin.element) {
+            const dot = link.targetPin.element.querySelector(".pin-dot") || link.targetPin.element;
+            dot.classList.add("hollow");
         }
 
         // Remove wire element
@@ -210,7 +215,7 @@ export class MaterialWiringController {
         }
 
         this.graph.links.delete(linkId);
-        this.graph.selectedLinks.delete(linkId);
+        this.graph.selection.selectedLinks.delete(linkId);
 
         this.app.updateCounts();
         this.app.triggerLiveUpdate();

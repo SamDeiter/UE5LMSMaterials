@@ -12,6 +12,17 @@
   --color-reroute: #ffffff;
   --color-breakpoint: #ff4444;
 
+  /* UE5 Accurate Dashboard Colors */
+  --bg-darkest: #0b0b0b;
+  --bg-panel: #1a1a1a;
+  --border-medium: #222;
+  --border-light: #333;
+  --text-bright: #ffffff;
+  --text-primary: #d4d4d4;
+  --text-secondary: #9a9a9a;
+  --accent-orange: #ff9500;
+  --accent-green: #00c853;
+
   /* Node Header Gradients */
   --header-event-start: #8b0000;
   --header-event-end: #400000;
@@ -2250,4 +2261,251 @@ div .var-eye-icon.active {
 
 #compile-btn.error i {
   color: #ff5555;
+}
+
+/* --- REFERENCE VIEWER --- */
+#reference-viewer-modal .modal-content {
+    width: 850px;
+    height: 700px;
+}
+
+#reference-canvas {
+    background-color: #1a1a1a;
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    border: 1px solid #111;
+    cursor: default;
+    width: 100%;
+}
+
+/* --- SAVE ASSETS DIALOG --- */
+.asset-save-list {
+    background: #111;
+    border: 1px solid #333;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.asset-save-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #222;
+    gap: 10px;
+}
+
+.asset-save-item:hover {
+    background-color: #2a2a2a;
+}
+
+.asset-save-item input[type="checkbox"] {
+    accent-color: var(--color-accent-blue);
+    width: 16px;
+    height: 16px;
+}
+
+.asset-save-item label {
+    cursor: pointer;
+    flex-grow: 1;
+    font-size: 11px;
+    color: #eee;
+}
+
+.shortcut {
+    color: #666;
+    margin-left: 10px;
+    font-size: 9px;
+    font-style: italic;
+}
+
+/* --- FIND RESULTS MODAL --- */
+#find-results-modal .modal-content {
+    width: 600px;
+    height: 500px;
+}
+
+.search-container {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #333;
+}
+
+#find-search-input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 3px;
+    font-size: 13px;
+    outline: none;
+}
+
+#find-search-input:focus {
+    border-color: var(--color-accent-blue);
+}
+
+.find-results-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-top: 10px;
+    background: #111;
+    border: 1px solid #222;
+}
+
+.find-result-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #222;
+    cursor: pointer;
+    gap: 12px;
+}
+
+.find-result-item:hover {
+    background-color: #2a2a2a;
+}
+
+.result-icon {
+    width: 32px;
+    height: 32px;
+    background: #333;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.result-info {
+    flex-grow: 1;
+}
+
+.result-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #eee;
+}
+
+.result-meta {
+    font-size: 10px;
+    color: #777;
+    margin-top: 2px;
+}
+
+/* --- HLSL PANEL --- */
+.hlsl-code-panel {
+    position: fixed;
+    top: 100px;
+    right: 320px;
+    width: 650px;
+    height: 80vh;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.hlsl-panel-header {
+    background-color: #2a2a2a;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+}
+
+.hlsl-panel-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #eee;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hlsl-close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.hlsl-close-btn:hover {
+    color: white;
+}
+
+.hlsl-code-area {
+    flex-grow: 1;
+    margin: 0;
+    padding: 15px;
+    background-color: #111;
+    color: #ce9178;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    overflow: auto;
+    white-space: pre;
+    tab-size: 4;
+}
+
+.hlsl-copy-btn {
+    background-color: #2a2a2a;
+    color: #ccc;
+    border: none;
+    border-top: 1px solid #333;
+    padding: 8px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.hlsl-copy-btn:hover {
+    background-color: #333;
+    color: white;
+}
+
+/* --- COMMENT NODE ENHANCEMENTS --- */
+.comment-bubble {
+    position: absolute;
+    top: -28px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #eee;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.comment-title-input {
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    font-size: 13px !important;
+    font-weight: bold !important;
+    width: 100% !important;
+    outline: none !important;
+    padding: 2px 4px !important;
+}
+
+.comment-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 15px;
+    cursor: nwse-resize;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    user-select: none;
 }

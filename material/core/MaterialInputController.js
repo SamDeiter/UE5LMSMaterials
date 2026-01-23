@@ -37,7 +37,7 @@ export class MaterialInputController {
         // Store initial positions for move command
         if (e.target.closest(".node")) {
             this.dragStartPositions = new Map();
-            this.graph.selectedNodes.forEach(id => {
+            this.graph.selection.selectedNodes.forEach(id => {
                 const node = this.graph.nodes.get(id);
                 if (node) {
                     this.dragStartPositions.set(id, { x: node.x, y: node.y });
@@ -82,14 +82,14 @@ export class MaterialInputController {
      */
     handleDragging(e) {
         // Alt+drag duplication: duplicate on first move while Alt is held
-        if (e.altKey && !this.altDragDuplicated && this.graph.selectedNodes.size > 0) {
+        if (e.altKey && !this.altDragDuplicated && this.graph.selection.selectedNodes.size > 0) {
             this.graph.duplicateSelected();
             this.altDragDuplicated = true;
             // Reset drag offsets for new duplicated nodes
             this.graph.dragStartX = e.clientX;
             this.graph.dragStartY = e.clientY;
             this.graph.dragOffsets = new Map();
-            this.graph.selectedNodes.forEach((nodeId) => {
+            this.graph.selection.selectedNodes.forEach((nodeId) => {
                 const n = this.graph.nodes.get(nodeId);
                 if (n) this.graph.dragOffsets.set(nodeId, { x: n.x, y: n.y });
             });
@@ -99,7 +99,7 @@ export class MaterialInputController {
         const dx = (e.clientX - this.graph.dragStartX) / this.graph.zoom;
         const dy = (e.clientY - this.graph.dragStartY) / this.graph.zoom;
 
-        this.graph.selectedNodes.forEach((nodeId) => {
+        this.graph.selection.selectedNodes.forEach((nodeId) => {
             const node = this.graph.nodes.get(nodeId);
             const offset = this.graph.dragOffsets.get(nodeId);
             if (node && offset) {
@@ -112,13 +112,13 @@ export class MaterialInputController {
 
         // Show alignment guides during drag
         if (this.graph.alignmentGuides) {
-            const alignments = this.graph.alignmentGuides.update(this.graph.selectedNodes);
+            const alignments = this.graph.alignmentGuides.update(this.graph.selection.selectedNodes);
             
             // Apply magnetic snap if not using grid snap
             if (!this.graph.snapToGrid && alignments && alignments.length > 0) {
-                const snapOffset = this.graph.alignmentGuides.getSnapOffset(this.graph.selectedNodes);
+                const snapOffset = this.graph.alignmentGuides.getSnapOffset(this.graph.selection.selectedNodes);
                 if (snapOffset.dx !== 0 || snapOffset.dy !== 0) {
-                    this.graph.selectedNodes.forEach((nodeId) => {
+                    this.graph.selection.selectedNodes.forEach((nodeId) => {
                         const node = this.graph.nodes.get(nodeId);
                         if (node) {
                             node.x += snapOffset.dx;
@@ -281,6 +281,12 @@ export class MaterialInputController {
             if (e.key === "v" || e.key === "V") {
                 e.preventDefault();
                 this.graph.pasteNodes();
+            }
+            if (e.key === "f" || e.key === "F") {
+                e.preventDefault();
+                if (this.app.findResults) {
+                  this.app.findResults.show();
+                }
             }
             if (e.key === "a" || e.key === "A") {
                 e.preventDefault();
