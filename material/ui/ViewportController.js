@@ -194,6 +194,15 @@ export class ViewportController {
         side: THREE.DoubleSide,
       });
 
+      // Create unlit material for Unlit shading model
+      this.unlitMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+      });
+
+      // Track current shading model
+      this.currentShadingModel = "DefaultLit";
+
       // Create initial mesh
       this.mesh = new THREE.Mesh(this.geometries.sphere, this.material);
       this.mesh.position.y = 1;

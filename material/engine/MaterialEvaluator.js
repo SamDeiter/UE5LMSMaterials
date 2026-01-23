@@ -69,12 +69,26 @@ export class MaterialEvaluator {
     );
     if (!mainNode) return null;
 
+    // Read material settings from DOM
+    const shadingModelEl = document.getElementById("shading-model");
+    const blendModeEl = document.getElementById("blend-mode");
+    const shadingModel = shadingModelEl ? shadingModelEl.value : "DefaultLit";
+    const blendMode = blendModeEl ? blendModeEl.value : "Opaque";
+
     const result = {
+      // Material settings
+      shadingModel,
+      blendMode,
+      // PBR properties
       baseColor: [1.0, 1.0, 1.0], // Default white to match UE5 default
       metallic: 0,
       roughness: 0.5,
       emissive: null,
       opacity: 1.0,
+      // Shading model specific
+      subsurfaceColor: null,
+      clearCoat: 0,
+      clearCoatRoughness: 0,
       // Texture maps
       baseColorTexture: null,
       roughnessTexture: null,
@@ -110,6 +124,15 @@ export class MaterialEvaluator {
           break;
         case "opacity":
           result.opacity = this.extractScalar(value, 1.0);
+          break;
+        case "subsurface color":
+          result.subsurfaceColor = this.extractColor(value);
+          break;
+        case "clear coat":
+          result.clearCoat = this.extractScalar(value, 0);
+          break;
+        case "clear coat roughness":
+          result.clearCoatRoughness = this.extractScalar(value, 0);
           break;
       }
     });
