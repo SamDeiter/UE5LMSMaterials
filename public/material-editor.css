@@ -746,11 +746,13 @@ body {
 }
 
 /* ============================================================================
-   STATS PANEL
+   STATS PANEL - Fixed height, not resizable (matches UE5 behavior)
    ============================================================================ */
 #stats-panel {
   flex: 0 0 auto;
-  min-height: 80px;
+  min-height: auto;
+  height: auto !important; /* Override JS-set height - panel auto-sizes to content */
+  max-height: 140px; /* Reasonable max to prevent overflow */
 }
 
 #stats-panel .panel-content {
