@@ -1088,6 +1088,46 @@ body {
     0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
+/* ============================================================================
+   NODE ERROR STATES (UE5 Style - Phase 8)
+   ============================================================================ */
+.node.node-has-error {
+  border-color: #ff4444 !important;
+  box-shadow:
+    0 0 0 1px #ff4444,
+    0 0 8px rgba(255, 68, 68, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.node.node-has-warning {
+  border-color: #fbbf24 !important;
+  box-shadow:
+    0 0 0 1px #fbbf24,
+    0 0 8px rgba(251, 191, 36, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.node-error-banner {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.node-error-banner.error {
+  background: linear-gradient(180deg, #cc0000 0%, #990000 100%);
+  color: #ffffff;
+  border-bottom: 1px solid #660000;
+}
+
+.node-error-banner.warning {
+  background: linear-gradient(180deg, #cc8800 0%, #996600 100%);
+  color: #ffffff;
+  border-bottom: 1px solid #664400;
+}
+
 /* UE5 style header with blue gradient */
 .node-header {
   display: flex;

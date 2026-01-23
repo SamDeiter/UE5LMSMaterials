@@ -1,6 +1,6 @@
 /**
  * BaseNode.js
- * 
+ *
  * Core node base class handling common rendering and property logic.
  */
 
@@ -36,6 +36,105 @@ export class MaterialNode {
     this.selected = false;
     this.collapsed = false;
     this.showPreview = definition.showPreview !== false;
+
+    // Error state (Phase 8: Node Error Handling)
+    this.hasError = false;
+    this.errorMessage = null;
+    this.hasWarning = false;
+    this.warningMessage = null;
+  }
+
+  /**
+   * Set error state on node
+   * @param {string} message - Error message to display
+   */
+  setError(message) {
+    this.hasError = true;
+    this.errorMessage = message;
+    this.updateErrorDisplay();
+
+    // Report to stats panel
+    if (this.app && this.app.stats) {
+      this.app.stats.addError(`[${this.nodeKey}] ${message}`);
+    }
+  }
+
+  /**
+   * Set warning state on node
+   * @param {string} message - Warning message to display
+   */
+  setWarning(message) {
+    this.hasWarning = true;
+    this.warningMessage = message;
+    this.updateErrorDisplay();
+
+    if (this.app && this.app.stats) {
+      this.app.stats.addWarning(`[${this.nodeKey}] ${message}`);
+    }
+  }
+
+  /**
+   * Clear error and warning states
+   */
+  clearErrors() {
+    this.hasError = false;
+    this.errorMessage = null;
+    this.hasWarning = false;
+    this.warningMessage = null;
+    this.updateErrorDisplay();
+  }
+
+  /**
+   * Update the error/warning display on the node element
+   */
+  updateErrorDisplay() {
+    if (!this.element) return;
+
+    // Remove existing error banner
+    const existingBanner = this.element.querySelector(".node-error-banner");
+    if (existingBanner) existingBanner.remove();
+
+    // Update node class for styling
+    this.element.classList.toggle("node-has-error", this.hasError);
+    this.element.classList.toggle(
+      "node-has-warning",
+      this.hasWarning && !this.hasError,
+    );
+
+    // Add error banner if needed
+    if (this.hasError || this.hasWarning) {
+      const banner = document.createElement("div");
+      banner.className = `node-error-banner ${this.hasError ? "error" : "warning"}`;
+      banner.textContent = this.hasError ? "❌ ERROR!" : "⚠️ WARNING";
+      banner.title = this.hasError ? this.errorMessage : this.warningMessage;
+
+      // Insert after header
+      const header = this.element.querySelector(".node-header");
+      if (header && header.nextSibling) {
+        this.element.insertBefore(banner, header.nextSibling);
+      } else {
+        this.element.appendChild(banner);
+      }
+    }
+  }
+
+  /**
+   * Check if node has required inputs connected
+   * @returns {Array} List of missing required input names
+   */
+  getMissingRequiredInputs() {
+    const missing = [];
+    this.inputs.forEach((pin) => {
+      // Inputs without defaults that aren't connected are "required"
+      if (
+        pin.required &&
+        !pin.isConnected() &&
+        pin.defaultValue === undefined
+      ) {
+        missing.push(pin.name);
+      }
+    });
+    return missing;
   }
 
   /**
@@ -63,10 +162,10 @@ export class MaterialNode {
     // e.g., "float3 result = float3({Color.R}, {Color.G}, {Color.B});"
     const propPattern = /\{([\w.]+)\}/g;
     code = code.replace(propPattern, (match, path) => {
-      const parts = path.split('.');
+      const parts = path.split(".");
       let value = this.properties;
       for (const part of parts) {
-        if (value && typeof value === 'object' && part in value) {
+        if (value && typeof value === "object" && part in value) {
           value = value[part];
         } else {
           // Fall back to literal path if not found
@@ -269,7 +368,7 @@ export class MaterialNode {
     if (this.properties.CommentColor) {
       const c = this.properties.CommentColor;
       el.style.borderColor = `rgb(${Math.round(c.R * 255)}, ${Math.round(
-        c.G * 255
+        c.G * 255,
       )}, ${Math.round(c.B * 255)})`;
     }
 
@@ -281,7 +380,7 @@ export class MaterialNode {
     } else if (this.properties.CommentColor) {
       const c = this.properties.CommentColor;
       header.style.background = `rgb(${Math.round(c.R * 255)}, ${Math.round(
-        c.G * 255
+        c.G * 255,
       )}, ${Math.round(c.B * 255)})`;
     }
 
@@ -359,77 +458,85 @@ export class MaterialNode {
    */
   updatePreview(previewEl) {
     // Check for texture-based preview (TextureSample nodes)
-    if (this.properties.TextureAsset && this.properties.TextureAsset !== 'None') {
+    if (
+      this.properties.TextureAsset &&
+      this.properties.TextureAsset !== "None"
+    ) {
       // Find the texture URL from the TextureManager
       const textureUrl = this.getTextureUrl(this.properties.TextureAsset);
       if (textureUrl) {
         previewEl.style.backgroundImage = `url(${textureUrl})`;
-        previewEl.style.backgroundSize = 'cover';
-        previewEl.style.backgroundPosition = 'center';
-        previewEl.style.backgroundColor = 'transparent';
+        previewEl.style.backgroundSize = "cover";
+        previewEl.style.backgroundPosition = "center";
+        previewEl.style.backgroundColor = "transparent";
         return;
       }
     }
-    
+
     // Substrate BSDF preview - show diffuse albedo with specular highlight indicator
-    if (this.type === 'substrate-expression' && this.app && this.app.graph) {
+    if (this.type === "substrate-expression" && this.app && this.app.graph) {
       // Try to evaluate the node to get BSDF properties
-      const outputPin = this.outputs.find(p => p.type === 'substrate' || p.localId === 'out');
+      const outputPin = this.outputs.find(
+        (p) => p.type === "substrate" || p.localId === "out",
+      );
       if (outputPin && this.app.evaluatePin) {
         try {
           const bsdf = this.app.evaluatePin(outputPin);
-          if (bsdf && bsdf.type === 'substrate_bsdf') {
+          if (bsdf && bsdf.type === "substrate_bsdf") {
             // Show diffuse albedo as base color
             const diffuse = bsdf.diffuseAlbedo || [0.5, 0.5, 0.5];
             const r = Math.round(Math.min(1, diffuse[0]) * 255);
             const g = Math.round(Math.min(1, diffuse[1]) * 255);
             const b = Math.round(Math.min(1, diffuse[2]) * 255);
-            
+
             // Create gradient to show specular highlight (F0 influence)
             const f0 = bsdf.f0 || [0.04, 0.04, 0.04];
             const specR = Math.round(Math.min(1, f0[0]) * 255);
             const specG = Math.round(Math.min(1, f0[1]) * 255);
             const specB = Math.round(Math.min(1, f0[2]) * 255);
-            
+
             // Radial gradient simulating sphere lighting
             previewEl.style.background = `radial-gradient(circle at 35% 35%, 
               rgb(${specR}, ${specG}, ${specB}) 0%, 
               rgb(${r}, ${g}, ${b}) 50%, 
               rgb(${Math.round(r * 0.3)}, ${Math.round(g * 0.3)}, ${Math.round(b * 0.3)}) 100%)`;
-            previewEl.style.backgroundImage = 'none';
-            previewEl.style.backgroundSize = '';
-            previewEl.style.backgroundPosition = '';
+            previewEl.style.backgroundImage = "none";
+            previewEl.style.backgroundSize = "";
+            previewEl.style.backgroundPosition = "";
             return;
           }
         } catch (e) {
           // Fallback if evaluation fails
-          console.debug('Substrate preview evaluation skipped:', e.message);
+          console.debug("Substrate preview evaluation skipped:", e.message);
         }
       }
-      
+
       // Fallback for Substrate nodes without evaluation - show default purple
-      previewEl.style.background = 'linear-gradient(135deg, #A30FF5 0%, #5a0a8a 100%)';
+      previewEl.style.background =
+        "linear-gradient(135deg, #A30FF5 0%, #5a0a8a 100%)";
       return;
     }
-    
+
     // Default: show a color based on properties
     // Support both nested Color object and individual R,G,B properties
-    let r = 0, g = 0, b = 0;
-    
-    if (this.properties.Color && typeof this.properties.Color === 'object') {
+    let r = 0,
+      g = 0,
+      b = 0;
+
+    if (this.properties.Color && typeof this.properties.Color === "object") {
       // New style: Color object with R, G, B
       r = Math.round((this.properties.Color.R || 0) * 255);
       g = Math.round((this.properties.Color.G || 0) * 255);
       b = Math.round((this.properties.Color.B || 0) * 255);
       previewEl.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-      previewEl.style.backgroundImage = 'none';
+      previewEl.style.backgroundImage = "none";
     } else if (this.properties.R !== undefined) {
       // Old style: individual R, G, B properties
       r = Math.round((this.properties.R || 0) * 255);
       g = Math.round((this.properties.G || 0) * 255);
       b = Math.round((this.properties.B || 0) * 255);
       previewEl.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-      previewEl.style.backgroundImage = 'none';
+      previewEl.style.backgroundImage = "none";
     }
   }
 
@@ -443,7 +550,7 @@ export class MaterialNode {
         return texture.dataUrl;
       }
     }
-    if (typeof window !== 'undefined' && window.textureManager) {
+    if (typeof window !== "undefined" && window.textureManager) {
       const texture = window.textureManager.get(assetId);
       if (texture && texture.dataUrl) {
         return texture.dataUrl;
