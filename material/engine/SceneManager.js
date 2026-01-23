@@ -1,32 +1,36 @@
 /**
  * SceneManager.js
- * 
+ *
  * Manages the Three.js scene, camera, renderer, and lighting.
  * Extracted from ViewportController.js for modularity.
  */
 
-import { POST_PROCESSING, RENDERING, MATERIAL_DEFAULTS } from '../../src/constants/EditorConstants.js';
+import {
+  POST_PROCESSING,
+  RENDERING,
+  MATERIAL_DEFAULTS,
+} from "../../src/constants/EditorConstants.js";
 
 export class SceneManager {
   constructor(canvas, container) {
     this.canvas = canvas;
     this.container = container;
-    
+
     this.THREE = null;
     this.scene = null;
     this.camera = null;
     this.renderer = null;
     this.controls = null;
-    
+
     this.mesh = null;
     this.material = null;
     this.geometries = {};
     this.envMap = null;
-    
+
     this.initialized = false;
     this.animationId = null;
     this.needsRender = true;
-    
+
     // Default Materials
     this.originalMaterial = null;
     this.wireframeMaterial = null;
@@ -39,9 +43,9 @@ export class SceneManager {
     this.bloomSettings = {
       strength: POST_PROCESSING.BLOOM.STRENGTH,
       radius: POST_PROCESSING.BLOOM.RADIUS,
-      threshold: POST_PROCESSING.BLOOM.THRESHOLD
+      threshold: POST_PROCESSING.BLOOM.THRESHOLD,
     };
-    
+
     // Background settings
     this.showHDRIBackground = false; // Start with solid color, toggle loads HDRI
     this.backgroundColor = 0x0a0a0a; // Fallback solid color
@@ -51,7 +55,8 @@ export class SceneManager {
   async init() {
     try {
       const THREE = await import("three");
-      const { OrbitControls } = await import("three/addons/controls/OrbitControls.js");
+      const { OrbitControls } =
+        await import("three/addons/controls/OrbitControls.js");
       this.THREE = THREE;
 
       this.scene = new THREE.Scene();
@@ -64,15 +69,15 @@ export class SceneManager {
       // Camera
       const aspect = this.canvas.clientWidth / this.canvas.clientHeight || 1;
       this.camera = new THREE.PerspectiveCamera(
-        RENDERING.DEFAULT_CAMERA_FOV, 
-        aspect, 
-        RENDERING.CAMERA_NEAR, 
-        RENDERING.CAMERA_FAR
+        RENDERING.DEFAULT_CAMERA_FOV,
+        aspect,
+        RENDERING.CAMERA_NEAR,
+        RENDERING.CAMERA_FAR,
       );
       this.camera.position.set(
         RENDERING.DEFAULT_CAMERA_POSITION.x,
         RENDERING.DEFAULT_CAMERA_POSITION.y,
-        RENDERING.DEFAULT_CAMERA_POSITION.z
+        RENDERING.DEFAULT_CAMERA_POSITION.z,
       );
 
       // Renderer
@@ -81,7 +86,10 @@ export class SceneManager {
         antialias: true,
         alpha: true,
       });
-      this.renderer.setSize(this.canvas.clientWidth || 300, this.canvas.clientHeight || 300);
+      this.renderer.setSize(
+        this.canvas.clientWidth || 300,
+        this.canvas.clientHeight || 300,
+      );
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
       this.renderer.outputColorSpace = THREE.SRGBColorSpace; // sRGB gamma correction
 
@@ -91,15 +99,36 @@ export class SceneManager {
       this.controls.target.set(
         RENDERING.DEFAULT_CAMERA_TARGET.x,
         RENDERING.DEFAULT_CAMERA_TARGET.y,
-        RENDERING.DEFAULT_CAMERA_TARGET.z
+        RENDERING.DEFAULT_CAMERA_TARGET.z,
       );
 
+      // Limit pan distance to prevent losing the view
+      this.controls.maxDistance = 20;
+      this.controls.minDistance = 1;
+      this.controls.enablePan = true;
+      this.controls.screenSpacePanning = true;
+
+      // Limit panning range (clamped to reasonable bounds around target)
+      this.controls.addEventListener("change", () => {
+        const target = this.controls.target;
+        const maxPan = 5;
+        target.x = Math.max(-maxPan, Math.min(maxPan, target.x));
+        target.y = Math.max(0, Math.min(maxPan * 2, target.y));
+        target.z = Math.max(-maxPan, Math.min(maxPan, target.z));
+      });
+
       // Lighting
-      this.directionalLight = new THREE.DirectionalLight(0xffffff, RENDERING.DIRECTIONAL_LIGHT_INTENSITY);
+      this.directionalLight = new THREE.DirectionalLight(
+        0xffffff,
+        RENDERING.DIRECTIONAL_LIGHT_INTENSITY,
+      );
       this.directionalLight.position.set(3, 10, 5);
       this.scene.add(this.directionalLight);
 
-      this.ambientLight = new THREE.AmbientLight(0xffffff, RENDERING.AMBIENT_LIGHT_INTENSITY);
+      this.ambientLight = new THREE.AmbientLight(
+        0xffffff,
+        RENDERING.AMBIENT_LIGHT_INTENSITY,
+      );
       this.scene.add(this.ambientLight);
 
       // Environment
@@ -135,7 +164,7 @@ export class SceneManager {
     const THREE = this.THREE;
     const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     pmremGenerator.compileEquirectangularShader();
-    
+
     // Create procedural environment for reflections (neutral studio lighting)
     const envScene = new THREE.Scene();
     const envGeo = new THREE.SphereGeometry(50, 32, 32);
@@ -165,15 +194,15 @@ export class SceneManager {
           
           gl_FragColor = vec4(color, 1.0);
         }
-      `
+      `,
     });
     envScene.add(new THREE.Mesh(envGeo, envMat));
     this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
     this.scene.environment = this.envMap;
-    
+
     // Set neutral gray background color
     this.scene.background = new THREE.Color(this.backgroundColor);
-    
+
     pmremGenerator.dispose();
   }
 
@@ -191,7 +220,7 @@ export class SceneManager {
       ior: MATERIAL_DEFAULTS.IOR,
     });
     this.originalMaterial = this.material;
-    
+
     // Wireframe material - DoubleSide for visibility
     this.wireframeMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
@@ -215,13 +244,18 @@ export class SceneManager {
   async setupPostProcessing() {
     try {
       const THREE = this.THREE;
-      
+
       // Import post-processing modules
-      const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
-      const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
-      const { UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js');
-      const { ShaderPass } = await import('three/addons/postprocessing/ShaderPass.js');
-      const { OutputPass } = await import('three/addons/postprocessing/OutputPass.js');
+      const { EffectComposer } =
+        await import("three/addons/postprocessing/EffectComposer.js");
+      const { RenderPass } =
+        await import("three/addons/postprocessing/RenderPass.js");
+      const { UnrealBloomPass } =
+        await import("three/addons/postprocessing/UnrealBloomPass.js");
+      const { ShaderPass } =
+        await import("three/addons/postprocessing/ShaderPass.js");
+      const { OutputPass } =
+        await import("three/addons/postprocessing/OutputPass.js");
 
       // Create composer
       this.composer = new EffectComposer(this.renderer);
@@ -233,13 +267,13 @@ export class SceneManager {
       // Bloom pass (for emissive glow - key UE5 feature)
       const resolution = new THREE.Vector2(
         this.canvas.clientWidth || 800,
-        this.canvas.clientHeight || 600
+        this.canvas.clientHeight || 600,
       );
       this.bloomPass = new UnrealBloomPass(
         resolution,
         this.bloomSettings.strength,
         this.bloomSettings.radius,
-        this.bloomSettings.threshold
+        this.bloomSettings.threshold,
       );
       this.composer.addPass(this.bloomPass);
 
@@ -250,7 +284,7 @@ export class SceneManager {
           vignetteIntensity: { value: POST_PROCESSING.VIGNETTE.INTENSITY },
           vignetteRadius: { value: POST_PROCESSING.VIGNETTE.RADIUS },
           filmGrainIntensity: { value: POST_PROCESSING.FILM_GRAIN.INTENSITY },
-          time: { value: 0 }
+          time: { value: 0 },
         },
         vertexShader: `
           varying vec2 vUv;
@@ -287,9 +321,9 @@ export class SceneManager {
             
             gl_FragColor = color;
           }
-        `
+        `,
       };
-      
+
       this.vignettePass = new ShaderPass(vignetteFilmGrainShader);
       this.composer.addPass(this.vignettePass);
 
@@ -297,9 +331,12 @@ export class SceneManager {
       const outputPass = new OutputPass();
       this.composer.addPass(outputPass);
 
-      console.log('Post-processing initialized: Bloom, Vignette, Film Grain');
+      console.log("Post-processing initialized: Bloom, Vignette, Film Grain");
     } catch (e) {
-      console.warn('Post-processing setup failed, using standard rendering:', e);
+      console.warn(
+        "Post-processing setup failed, using standard rendering:",
+        e,
+      );
       this.postProcessingEnabled = false;
     }
   }
@@ -319,7 +356,7 @@ export class SceneManager {
         if (this.vignettePass) {
           this.vignettePass.uniforms.time.value = performance.now() * 0.001;
         }
-        
+
         // Use post-processing composer or standard renderer
         if (this.postProcessingEnabled && this.composer) {
           this.composer.render();
@@ -334,33 +371,33 @@ export class SceneManager {
 
   updateCameraFromKeys(keys) {
     const moveSpeed = 0.05;
-    if (keys['w']) this.camera.translateZ(-moveSpeed);
-    if (keys['s']) this.camera.translateZ(moveSpeed);
-    if (keys['a']) this.camera.translateX(-moveSpeed);
-    if (keys['d']) this.camera.translateX(moveSpeed);
-    
-    if (keys['w'] || keys['s'] || keys['a'] || keys['d']) {
+    if (keys["w"]) this.camera.translateZ(-moveSpeed);
+    if (keys["s"]) this.camera.translateZ(moveSpeed);
+    if (keys["a"]) this.camera.translateX(-moveSpeed);
+    if (keys["d"]) this.camera.translateX(moveSpeed);
+
+    if (keys["w"] || keys["s"] || keys["a"] || keys["d"]) {
       this.needsRender = true;
     }
   }
 
   resize() {
     if (!this.initialized || !this.container || !this.renderer) return;
-    
+
     // Get actual dimensions
     const width = Math.max(1, this.container.clientWidth);
     const height = Math.max(1, this.container.clientHeight);
-    
+
     // Set pixel ratio for sharp rendering on high-DPI screens
     const pixelRatio = window.devicePixelRatio || 1;
     this.renderer.setPixelRatio(pixelRatio);
-    
+
     // Update camera
     if (this.camera) {
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
     }
-    
+
     // Update renderer
     this.renderer.setSize(width, height, true); // true to update style
 
@@ -371,12 +408,12 @@ export class SceneManager {
     if (this.bloomPass) {
       this.bloomPass.resolution.set(width, height);
     }
-    
+
     // Update controls if they exist (OrbitControls needs to know new size for interaction)
-    if (this.controls && typeof this.controls.handleResize === 'function') {
+    if (this.controls && typeof this.controls.handleResize === "function") {
       this.controls.handleResize();
     }
-    
+
     this.needsRender = true;
   }
 
@@ -386,17 +423,17 @@ export class SceneManager {
    */
   setPostProcessing(mode) {
     switch (mode) {
-      case 'all':
+      case "all":
         this.postProcessingEnabled = true;
         if (this.bloomPass) this.bloomPass.enabled = true;
         if (this.vignettePass) this.vignettePass.enabled = true;
         break;
-      case 'bloom':
+      case "bloom":
         this.postProcessingEnabled = true;
         if (this.bloomPass) this.bloomPass.enabled = true;
         if (this.vignettePass) this.vignettePass.enabled = false;
         break;
-      case 'none':
+      case "none":
         this.postProcessingEnabled = false;
         break;
     }
@@ -417,17 +454,17 @@ export class SceneManager {
   setViewMode(mode) {
     if (!this.initialized) return;
     switch (mode) {
-      case 'lit':
+      case "lit":
         this.directionalLight.intensity = 2.5;
         this.ambientLight.intensity = 0.2;
         this.mesh.material = this.originalMaterial;
         break;
-      case 'unlit':
+      case "unlit":
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 2;
         this.mesh.material = this.originalMaterial;
         break;
-      case 'wireframe':
+      case "wireframe":
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 2;
         this.mesh.material = this.wireframeMaterial;
@@ -442,66 +479,67 @@ export class SceneManager {
    */
   async setEnvironment(preset) {
     if (!this.initialized) return;
-    
+
     const THREE = this.THREE;
     const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     pmremGenerator.compileEquirectangularShader();
-    
+
     // Try to load HDRI for studio preset
-    if (preset === 'studio') {
+    if (preset === "studio") {
       try {
-        const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+        const { RGBELoader } =
+          await import("three/addons/loaders/RGBELoader.js");
         const loader = new RGBELoader();
-        
+
         const texture = await new Promise((resolve, reject) => {
           loader.load(
-            '/HDRI_Epic_Courtyard_Daylight.HDR',
+            "/public/HDRI_Epic_Courtyard_Daylight.HDR",
             (tex) => resolve(tex),
             undefined,
-            (err) => reject(err)
+            (err) => reject(err),
           );
         });
-        
+
         texture.mapping = THREE.EquirectangularReflectionMapping;
-        
+
         if (this.envMap) this.envMap.dispose();
         this.envMap = pmremGenerator.fromEquirectangular(texture).texture;
         this.scene.environment = this.envMap;
-        
+
         // Store HDRI texture for background use (don't dispose if we need it)
         if (this.hdriTexture) this.hdriTexture.dispose();
         this.hdriTexture = texture; // Keep original texture for background
-        
+
         // When using HDRI, hide the procedural skydome and use scene.background
         if (this.skydomeMesh) {
           this.skydomeMesh.visible = false;
         }
-        
+
         // Show HDRI as visible background if enabled
         if (this.showHDRIBackground) {
           this.scene.background = this.hdriTexture;
         } else {
           this.scene.background = new THREE.Color(this.backgroundColor);
         }
-        
+
         pmremGenerator.dispose();
         this.needsRender = true;
-        console.log('Loaded Epic Courtyard HDRI environment');
+        console.log("Loaded Epic Courtyard HDRI environment");
         return;
       } catch (err) {
-        console.warn('Failed to load HDRI, falling back to procedural:', err);
+        console.warn("Failed to load HDRI, falling back to procedural:", err);
         // Fall through to procedural environment
       }
     }
-    
+
     // Procedural environment fallback
     const envScene = new THREE.Scene();
     const envGeo = new THREE.SphereGeometry(50, 32, 32);
-    
+
     let fragmentShader;
-    
+
     switch (preset) {
-      case 'outdoor':
+      case "outdoor":
         fragmentShader = `
           varying vec3 vWorldPosition;
           void main() {
@@ -519,7 +557,7 @@ export class SceneManager {
           }
         `;
         break;
-      case 'night':
+      case "night":
         fragmentShader = `
           varying vec3 vWorldPosition;
           void main() {
@@ -555,7 +593,7 @@ export class SceneManager {
           }
         `;
     }
-    
+
     const envMat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       vertexShader: `
@@ -566,11 +604,11 @@ export class SceneManager {
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
-      fragmentShader: fragmentShader
+      fragmentShader: fragmentShader,
     });
-    
+
     envScene.add(new THREE.Mesh(envGeo, envMat));
-    
+
     if (this.envMap) this.envMap.dispose();
     this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
     this.scene.environment = this.envMap;
@@ -580,7 +618,7 @@ export class SceneManager {
 
   toggleFloor() {
     if (!this.initialized) return;
-    
+
     if (!this.floorPlane) {
       const THREE = this.THREE;
       const floorGeo = new THREE.PlaneGeometry(20, 20);
@@ -604,16 +642,16 @@ export class SceneManager {
    */
   toggleBackground() {
     if (!this.initialized) return;
-    
+
     this.showHDRIBackground = !this.showHDRIBackground;
-    
+
     // Toggle between HDRI texture and solid color
     if (this.showHDRIBackground && this.hdriTexture) {
       this.scene.background = this.hdriTexture;
     } else {
       this.scene.background = new this.THREE.Color(this.backgroundColor);
     }
-    
+
     this.needsRender = true;
     return this.showHDRIBackground;
   }
@@ -624,17 +662,17 @@ export class SceneManager {
    */
   setBackgroundColor(color) {
     if (!this.initialized) return;
-    
+
     this.backgroundColor = color;
-    
+
     // Automatically switch to solid color mode when user picks a color
     this.showHDRIBackground = false;
     this.scene.background = new this.THREE.Color(color);
-    
+
     // Update button state if it exists
-    const bgBtn = document.getElementById('viewport-bg-btn');
-    if (bgBtn) bgBtn.classList.remove('active');
-    
+    const bgBtn = document.getElementById("viewport-bg-btn");
+    if (bgBtn) bgBtn.classList.remove("active");
+
     this.needsRender = true;
   }
 
@@ -645,7 +683,7 @@ export class SceneManager {
   getBackgroundSettings() {
     return {
       showHDRI: this.showHDRIBackground,
-      color: this.backgroundColor
+      color: this.backgroundColor,
     };
   }
 }
