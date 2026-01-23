@@ -114,7 +114,13 @@ export class ViewportController {
 
     // Background toggle (HDRI skybox vs solid color)
     const bgBtn = document.getElementById("viewport-bg-btn");
-    bgBtn?.addEventListener("click", () => {
+    bgBtn?.addEventListener("click", async () => {
+      // If HDRI not loaded yet and we're turning it on, load it first
+      if (!this.sceneManager.hdriTexture && !this.sceneManager.showHDRIBackground) {
+        this.app.updateStatus("Loading HDRI background...");
+        await this.sceneManager.setEnvironment('studio');
+      }
+      
       const showingHDRI = this.sceneManager.toggleBackground();
       bgBtn.classList.toggle("active", showingHDRI);
       this.app.updateStatus(showingHDRI ? "HDRI Background Enabled" : "Solid Background");

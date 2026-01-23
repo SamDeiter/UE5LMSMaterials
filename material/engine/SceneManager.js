@@ -43,7 +43,7 @@ export class SceneManager {
     };
     
     // Background settings
-    this.showHDRIBackground = true; // Show HDRI as skybox
+    this.showHDRIBackground = false; // Start with solid color, toggle loads HDRI
     this.backgroundColor = 0x0a0a0a; // Fallback solid color
     this.hdriTexture = null; // Store raw HDRI texture for background
   }
@@ -136,6 +136,7 @@ export class SceneManager {
     const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     pmremGenerator.compileEquirectangularShader();
     
+    // Create procedural environment for reflections (neutral studio lighting)
     const envScene = new THREE.Scene();
     const envGeo = new THREE.SphereGeometry(50, 32, 32);
     const envMat = new THREE.ShaderMaterial({
@@ -153,15 +154,15 @@ export class SceneManager {
         void main() {
           vec3 dir = normalize(vWorldPosition);
           float y = dir.y;
-          float x = dir.x;
-          vec3 topColor = vec3(2.0, 1.9, 1.8);
-          vec3 bottomColor = vec3(0.05, 0.05, 0.08);
-          vec3 sideColor = vec3(0.1, 0.12, 0.15);
-          float topLight = smoothstep(0.3, 0.9, y);
-          float rimLight = smoothstep(0.6, 1.0, abs(x)) * step(0.0, y) * 0.5;
-          vec3 color = mix(sideColor, topColor, topLight);
+          
+          // Studio lighting for environment reflections
+          vec3 topColor = vec3(2.0, 1.9, 1.8);      // Bright top light
+          vec3 midColor = vec3(0.3, 0.32, 0.35);   // Mid gray
+          vec3 bottomColor = vec3(0.1, 0.1, 0.12); // Dark bottom
+          
+          vec3 color = mix(midColor, topColor, smoothstep(0.3, 0.9, y));
           color = mix(color, bottomColor, smoothstep(-0.2, -0.8, y));
-          color += vec3(0.8, 0.9, 1.0) * rimLight;
+          
           gl_FragColor = vec4(color, 1.0);
         }
       `
@@ -169,6 +170,10 @@ export class SceneManager {
     envScene.add(new THREE.Mesh(envGeo, envMat));
     this.envMap = pmremGenerator.fromScene(envScene, 0, 0.1, 1000).texture;
     this.scene.environment = this.envMap;
+    
+    // Set neutral gray background color
+    this.scene.background = new THREE.Color(this.backgroundColor);
+    
     pmremGenerator.dispose();
   }
 
@@ -450,7 +455,7 @@ export class SceneManager {
         
         const texture = await new Promise((resolve, reject) => {
           loader.load(
-            '/public/HDRI_Epic_Courtyard_Daylight.HDR',
+            '/HDRI_Epic_Courtyard_Daylight.HDR',
             (tex) => resolve(tex),
             undefined,
             (err) => reject(err)
@@ -466,6 +471,11 @@ export class SceneManager {
         // Store HDRI texture for background use (don't dispose if we need it)
         if (this.hdriTexture) this.hdriTexture.dispose();
         this.hdriTexture = texture; // Keep original texture for background
+        
+        // When using HDRI, hide the procedural skydome and use scene.background
+        if (this.skydomeMesh) {
+          this.skydomeMesh.visible = false;
+        }
         
         // Show HDRI as visible background if enabled
         if (this.showHDRIBackground) {
@@ -590,13 +600,14 @@ export class SceneManager {
   }
 
   /**
-   * Toggle HDRI background visibility (skybox vs solid color)
+   * Toggle HDRI background vs solid color
    */
   toggleBackground() {
     if (!this.initialized) return;
     
     this.showHDRIBackground = !this.showHDRIBackground;
     
+    // Toggle between HDRI texture and solid color
     if (this.showHDRIBackground && this.hdriTexture) {
       this.scene.background = this.hdriTexture;
     } else {
