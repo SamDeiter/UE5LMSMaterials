@@ -532,18 +532,21 @@ body {
   flex-wrap: wrap;
 }
 
-/* Viewport panel specific - compact controls that wrap if needed */
+/* Viewport panel specific - compact controls in a single row like UE5 */
 #viewport-panel .panel-header {
   min-height: var(--panel-header-height);
   height: auto;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 6px;
   padding: 4px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 #viewport-panel .panel-header-tools {
-  flex-wrap: wrap;
-  gap: 3px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 /* Compact controls for viewport */
