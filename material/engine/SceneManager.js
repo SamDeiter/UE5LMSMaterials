@@ -461,16 +461,31 @@ export class SceneManager {
         this.directionalLight.intensity = 2.5;
         this.ambientLight.intensity = 0.2;
         this.mesh.material = this.originalMaterial;
+        // Enable post-processing in Lit mode
+        if (this.composer && this.bloomPass) {
+          this.bloomPass.enabled = true;
+          if (this.vignettePass) this.vignettePass.enabled = true;
+        }
         break;
       case "unlit":
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 2;
         this.mesh.material = this.originalMaterial;
+        // Disable post-processing in Unlit mode
+        if (this.composer && this.bloomPass) {
+          this.bloomPass.enabled = false;
+          if (this.vignettePass) this.vignettePass.enabled = false;
+        }
         break;
       case "wireframe":
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 2;
         this.mesh.material = this.wireframeMaterial;
+        // Disable post-processing in Wireframe mode
+        if (this.composer && this.bloomPass) {
+          this.bloomPass.enabled = false;
+          if (this.vignettePass) this.vignettePass.enabled = false;
+        }
         break;
     }
     this.needsRender = true;
