@@ -96,8 +96,8 @@ export class SceneManager {
       // Controls
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
-      this.controls.dampingFactor = 0.05; // Smoother damping
-      this.controls.zoomSpeed = 0.25; // Much slower, smoother zoom
+      this.controls.dampingFactor = 0.1; // Responsive damping
+      this.controls.zoomSpeed = 0.8; // Good responsive zoom
       this.controls.rotateSpeed = 0.8;
       this.controls.target.set(
         RENDERING.DEFAULT_CAMERA_TARGET.x,
@@ -105,9 +105,9 @@ export class SceneManager {
         RENDERING.DEFAULT_CAMERA_TARGET.z,
       );
 
-      // Limit pan distance to prevent losing the view
-      this.controls.maxDistance = 20;
-      this.controls.minDistance = 1;
+      // Zoom limits - keep camera outside the object but allow good range
+      this.controls.maxDistance = 15;
+      this.controls.minDistance = 2.5; // Outside the sphere (radius 1, positioned at y=1)
       this.controls.enablePan = true;
       this.controls.screenSpacePanning = true;
 
