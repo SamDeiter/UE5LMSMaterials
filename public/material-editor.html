@@ -173,9 +173,10 @@
         <div id="left-column" class="panel-column">
           <!-- 3D VIEWPORT PANEL -->
           <div id="viewport-panel" class="panel">
-            <div class="panel-header">
+            <div class="panel-header viewport-header">
               <span>Viewport</span>
-              <div class="panel-header-tools">
+              <!-- Row 1: View Mode Controls -->
+              <div class="viewport-toolbar-row">
                 <select
                   id="viewport-env-select"
                   class="panel-select"
@@ -215,6 +216,9 @@
                     class="fov-slider"
                   />
                 </label>
+              </div>
+              <!-- Row 2: Rendering Controls -->
+              <div class="viewport-toolbar-row">
                 <label class="exposure-label" title="Exposure (EV)">
                   EV
                   <input
@@ -237,13 +241,6 @@
                     title="EV Value"
                   />
                 </label>
-                <button
-                  id="viewport-realtime-btn"
-                  class="panel-tool active"
-                  title="Toggle Realtime Rendering"
-                >
-                  ⏱️
-                </button>
                 <button
                   id="viewport-floor-btn"
                   class="panel-tool"
@@ -271,7 +268,7 @@
                   title="Post-Processing"
                 >
                   <option value="all">PP: All</option>
-                  <option value="bloom">PP: Bloom Only</option>
+                  <option value="bloom">PP: Bloom</option>
                   <option value="none">PP: Off</option>
                 </select>
                 <button

@@ -532,21 +532,26 @@ body {
   flex-wrap: wrap;
 }
 
-/* Viewport panel specific - compact controls in a single row like UE5 */
-#viewport-panel .panel-header {
-  min-height: var(--panel-header-height);
-  height: auto;
-  flex-wrap: nowrap;
-  gap: 6px;
-  padding: 4px 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
+/* Viewport panel specific - two-row toolbar like UE5 */
+.viewport-header {
+  display: flex;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  height: auto !important;
+  min-height: auto !important;
+  padding: 4px 8px !important;
+  gap: 4px !important;
 }
 
-#viewport-panel .panel-header-tools {
+.viewport-header > span {
+  display: none; /* Hide "Viewport" label to save space */
+}
+
+.viewport-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: nowrap;
-  gap: 4px;
-  flex-shrink: 0;
 }
 
 /* Compact controls for viewport */
