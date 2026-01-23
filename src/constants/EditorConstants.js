@@ -1,7 +1,7 @@
 /**
  * EditorConstants.js
- * 
- * Centralized constants for the Material Editor to ensure consistency 
+ *
+ * Centralized constants for the Material Editor to ensure consistency
  * and eliminate magic numbers across the codebase.
  */
 
@@ -41,9 +41,9 @@ export const GRAPH = {
 export const GRID = {
   SIZE: 20,
   MAJOR_MULTIPLIER: 5,
-  BACKGROUND_COLOR: '#161616',
-  LINE_COLOR: '#222222',
-  MAJOR_LINE_COLOR: '#2a2a2a',
+  BACKGROUND_COLOR: "#161616",
+  LINE_COLOR: "#222222",
+  MAJOR_LINE_COLOR: "#2a2a2a",
 };
 
 export const NODE_POSITIONING = {
@@ -75,16 +75,16 @@ export const PIN_COLORS = {
  */
 export const POST_PROCESSING = {
   BLOOM: {
-    STRENGTH: 0.5,      // Bloom intensity
-    RADIUS: 0.4,        // Bloom falloff radius
-    THRESHOLD: 0.8,     // HDR threshold for glow
+    STRENGTH: 0.15, // Reduced bloom intensity (subtle glow)
+    RADIUS: 0.4, // Bloom falloff radius
+    THRESHOLD: 1.0, // Higher threshold - only emissive/HDR glows
   },
   VIGNETTE: {
-    INTENSITY: 0.3,     // Edge darkening amount
-    RADIUS: 0.8,        // Vignette falloff radius
+    INTENSITY: 0.3, // Edge darkening amount
+    RADIUS: 0.8, // Vignette falloff radius
   },
   FILM_GRAIN: {
-    INTENSITY: 0.003,   // Very subtle noise
+    INTENSITY: 0.003, // Very subtle noise
   },
 };
 
@@ -107,6 +107,7 @@ export const RENDERING = {
  * Default Material Properties
  */
 export const MATERIAL_DEFAULTS = {
+  BASE_COLOR: 0x464646, // 18% gray - calibration standard
   METALNESS: 0,
   ROUGHNESS: 0.5,
   ENV_MAP_INTENSITY: 0.5,

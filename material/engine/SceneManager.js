@@ -213,7 +213,7 @@ export class SceneManager {
     const THREE = this.THREE;
     // Main material - FrontSide only (matches UE5 default)
     this.material = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff,
+      color: MATERIAL_DEFAULTS.BASE_COLOR, // 18% gray - calibration standard
       metalness: 0,
       roughness: MATERIAL_DEFAULTS.ROUGHNESS,
       side: THREE.FrontSide, // Single-sided like UE5 default
