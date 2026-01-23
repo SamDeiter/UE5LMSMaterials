@@ -111,6 +111,20 @@ export class ViewportController {
     ppSelect?.addEventListener("change", (e) => {
       this.setPostProcessing(e.target.value);
     });
+
+    // Background toggle (HDRI skybox vs solid color)
+    const bgBtn = document.getElementById("viewport-bg-btn");
+    bgBtn?.addEventListener("click", () => {
+      const showingHDRI = this.sceneManager.toggleBackground();
+      bgBtn.classList.toggle("active", showingHDRI);
+      this.app.updateStatus(showingHDRI ? "HDRI Background Enabled" : "Solid Background");
+    });
+
+    // Background color picker
+    const bgColorPicker = document.getElementById("viewport-bg-color");
+    bgColorPicker?.addEventListener("input", (e) => {
+      this.sceneManager.setBackgroundColor(e.target.value);
+    });
   }
 
   /**

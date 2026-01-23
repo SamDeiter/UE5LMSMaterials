@@ -41,6 +41,11 @@ export class SceneManager {
       radius: POST_PROCESSING.BLOOM.RADIUS,
       threshold: POST_PROCESSING.BLOOM.THRESHOLD
     };
+    
+    // Background settings
+    this.showHDRIBackground = true; // Show HDRI as skybox
+    this.backgroundColor = 0x0a0a0a; // Fallback solid color
+    this.hdriTexture = null; // Store raw HDRI texture for background
   }
 
   async init() {
@@ -169,11 +174,12 @@ export class SceneManager {
 
   setupMaterials() {
     const THREE = this.THREE;
+    // Main material - FrontSide only (matches UE5 default)
     this.material = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       metalness: 0,
       roughness: MATERIAL_DEFAULTS.ROUGHNESS,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide, // Single-sided like UE5 default
       envMapIntensity: MATERIAL_DEFAULTS.ENV_MAP_INTENSITY,
       specularIntensity: MATERIAL_DEFAULTS.SPECULAR_INTENSITY,
       reflectivity: MATERIAL_DEFAULTS.REFLECTIVITY,
@@ -181,12 +187,14 @@ export class SceneManager {
     });
     this.originalMaterial = this.material;
     
+    // Wireframe material - DoubleSide for visibility
     this.wireframeMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
       wireframe: true,
       side: THREE.DoubleSide,
     });
 
+    // Unlit material - DoubleSide for visibility
     this.unlitMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       side: THREE.DoubleSide,
@@ -454,7 +462,18 @@ export class SceneManager {
         if (this.envMap) this.envMap.dispose();
         this.envMap = pmremGenerator.fromEquirectangular(texture).texture;
         this.scene.environment = this.envMap;
-        texture.dispose();
+        
+        // Store HDRI texture for background use (don't dispose if we need it)
+        if (this.hdriTexture) this.hdriTexture.dispose();
+        this.hdriTexture = texture; // Keep original texture for background
+        
+        // Show HDRI as visible background if enabled
+        if (this.showHDRIBackground) {
+          this.scene.background = this.hdriTexture;
+        } else {
+          this.scene.background = new THREE.Color(this.backgroundColor);
+        }
+        
         pmremGenerator.dispose();
         this.needsRender = true;
         console.log('Loaded Epic Courtyard HDRI environment');
@@ -568,5 +587,54 @@ export class SceneManager {
       this.floorPlane.visible = !this.floorPlane.visible;
     }
     this.needsRender = true;
+  }
+
+  /**
+   * Toggle HDRI background visibility (skybox vs solid color)
+   */
+  toggleBackground() {
+    if (!this.initialized) return;
+    
+    this.showHDRIBackground = !this.showHDRIBackground;
+    
+    if (this.showHDRIBackground && this.hdriTexture) {
+      this.scene.background = this.hdriTexture;
+    } else {
+      this.scene.background = new this.THREE.Color(this.backgroundColor);
+    }
+    
+    this.needsRender = true;
+    return this.showHDRIBackground;
+  }
+
+  /**
+   * Set solid background color
+   * @param {number|string} color - Hex color value (0x000000) or CSS string ('#000000')
+   */
+  setBackgroundColor(color) {
+    if (!this.initialized) return;
+    
+    this.backgroundColor = color;
+    
+    // Automatically switch to solid color mode when user picks a color
+    this.showHDRIBackground = false;
+    this.scene.background = new this.THREE.Color(color);
+    
+    // Update button state if it exists
+    const bgBtn = document.getElementById('viewport-bg-btn');
+    if (bgBtn) bgBtn.classList.remove('active');
+    
+    this.needsRender = true;
+  }
+
+  /**
+   * Get current background mode
+   * @returns {Object} { showHDRI: boolean, color: number }
+   */
+  getBackgroundSettings() {
+    return {
+      showHDRI: this.showHDRIBackground,
+      color: this.backgroundColor
+    };
   }
 }

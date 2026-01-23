@@ -595,6 +595,26 @@ body {
   cursor: pointer;
 }
 
+/* Background color picker */
+.bg-color-picker {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+}
+
+.bg-color-picker::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.bg-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
 /* FOV Slider styling */
 .fov-label {
   display: flex;

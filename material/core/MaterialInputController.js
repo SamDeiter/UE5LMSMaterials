@@ -275,11 +275,26 @@ export class MaterialInputController {
 
         if (this.graph.isWiring) {
             // Check if we're over a valid target pin
+            // Allow connection when hovering over the entire pin row (dot OR label)
             const target = document.elementFromPoint(e.clientX, e.clientY);
+            let pinEl = null;
+            let pinId = null;
+            
+            // Check if clicked on pin-dot directly
             if (target && target.classList.contains("pin-dot")) {
-                const pinEl = target.parentElement;
-                const pinId = pinEl.dataset.pinId;
+                pinEl = target.parentElement;
+                pinId = pinEl?.dataset.pinId;
+            } 
+            // Check if clicked on pin row (includes label)
+            else if (target) {
+                const closestPin = target.closest(".pin");
+                if (closestPin) {
+                    pinEl = closestPin;
+                    pinId = closestPin.dataset.pinId;
+                }
+            }
 
+            if (pinId) {
                 // Find the target node and pin
                 for (const [id, node] of this.graph.nodes) {
                     const pin = node.findPin(pinId);
