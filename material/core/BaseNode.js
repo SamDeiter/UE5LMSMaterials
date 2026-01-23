@@ -461,7 +461,7 @@ export class MaterialNode {
       nodeKey: this.nodeKey,
       x: this.x,
       y: this.y,
-      properties: { ...this.properties },
+      properties: JSON.parse(JSON.stringify(this.properties)),
     };
   }
 }
