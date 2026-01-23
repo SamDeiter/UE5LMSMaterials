@@ -1044,6 +1044,21 @@ body {
   color: #a0c0e0;
 }
 
+/* Collapsed node state - hide content, show only header */
+.node.collapsed .node-content,
+.node.collapsed .node-subtitle,
+.node.collapsed .node-preview {
+  display: none;
+}
+
+.node.collapsed {
+  min-width: auto;
+}
+
+.node.collapsed .node-header {
+  border-radius: 3px;
+}
+
 /* Node type header colors - UE5 categories */
 .node.material-parameter .node-header {
   background: linear-gradient(180deg, #2a5a5a 0%, #1a4040 100%);

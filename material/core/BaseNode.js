@@ -34,6 +34,7 @@ export class MaterialNode {
     // UI state
     this.element = null;
     this.selected = false;
+    this.collapsed = false;
     this.showPreview = definition.showPreview !== false;
   }
 
@@ -149,6 +150,12 @@ export class MaterialNode {
     const collapseBtn = document.createElement("span");
     collapseBtn.className = "node-collapse-btn";
     collapseBtn.innerHTML = "▼";
+    collapseBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Don't trigger node selection
+      this.collapsed = !this.collapsed;
+      el.classList.toggle("collapsed", this.collapsed);
+      collapseBtn.innerHTML = this.collapsed ? "▶" : "▼";
+    });
     titleRow.appendChild(collapseBtn);
 
     header.appendChild(titleRow);
