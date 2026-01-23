@@ -10,6 +10,7 @@
 import { ActionMenuController } from "../../shared/ActionMenuController.js";
 import { StatsController } from "../ui/StatsController.js";
 import { LayoutController } from "../ui/LayoutController.js";
+import { GRID, LAYOUT, NODE_POSITIONING, UI_TIMINGS, GRAPH } from "../../src/constants/EditorConstants.js";
 
 import { HotkeyManager } from "../../shared/HotkeyManager.js";
 import {
@@ -80,13 +81,13 @@ export class MaterialGraphController {
     this.wiringStartPin = null;
 
     // Grid settings
-    this.gridSize = 20;
-    this.gridColor = "#1a1a1a";
-    this.gridLineColor = "#222222";
+    this.gridSize = GRID.SIZE;
+    this.gridColor = GRID.BACKGROUND_COLOR;
+    this.gridLineColor = GRID.LINE_COLOR;
 
     // Snap-to-grid settings (UE5 feature)
     this.snapToGrid = false;
-    this.snapGridSize = 20; // Snap increment when enabled
+    this.snapGridSize = GRAPH.SNAP_GRID_SIZE; // Snap increment when enabled
 
     // Hotkey manager for "Hold key + Click" node spawning
     this.hotkeyManager = new HotkeyManager(this, materialNodeRegistry);
@@ -129,7 +130,7 @@ export class MaterialGraphController {
     // Resize handler
     window.addEventListener(
       "resize",
-      debounce(() => this.renderer.resize(), 100)
+      debounce(() => this.renderer.resize(), UI_TIMINGS.DEBOUNCE_RESIZE)
     );
 
     // Mouse events - delegate to InputController
@@ -204,12 +205,12 @@ export class MaterialGraphController {
    */
   createMainNode() {
     // Position dynamically based on current graph panel size
-    const panelWidth = this.graphPanel?.clientWidth || 800;
-    const panelHeight = this.graphPanel?.clientHeight || 600;
+    const panelWidth = this.graphPanel?.clientWidth || LAYOUT.DEFAULT_PANEL_WIDTH;
+    const panelHeight = this.graphPanel?.clientHeight || LAYOUT.DEFAULT_PANEL_HEIGHT;
     
     // Place node in right-center of visible area
-    const x = Math.max(100, Math.min(panelWidth - 200, panelWidth * 0.6));
-    const y = Math.max(100, panelHeight / 2 - 100);
+    const x = Math.max(NODE_POSITIONING.INITIAL_OFFSET_X, Math.min(panelWidth - LAYOUT.MIN_PANEL_WIDTH, panelWidth * NODE_POSITIONING.MAIN_NODE_X_RATIO));
+    const y = Math.max(NODE_POSITIONING.INITIAL_OFFSET_Y, panelHeight / 2 - NODE_POSITIONING.CENTER_OFFSET);
     
     const mainNode = this.addNode("MainMaterialNode", x, y);
     if (mainNode) {
@@ -607,10 +608,10 @@ export class MaterialGraphController {
       }
       case "bottom": {
         const maxY = Math.max(
-          ...nodes.map((n) => n.y + (n.element?.offsetHeight || 100))
+          ...nodes.map((n) => n.y + (n.element?.offsetHeight || NODE_POSITIONING.DEFAULT_NODE_HEIGHT))
         );
         nodes.forEach((n) => {
-          n.y = maxY - (n.element?.offsetHeight || 100);
+          n.y = maxY - (n.element?.offsetHeight || NODE_POSITIONING.DEFAULT_NODE_HEIGHT);
           this.updateNodePosition(n);
         });
         this.app.updateStatus(`Aligned ${nodes.length} nodes to bottom`);
@@ -627,10 +628,10 @@ export class MaterialGraphController {
       }
       case "right": {
         const maxX = Math.max(
-          ...nodes.map((n) => n.x + (n.element?.offsetWidth || 150))
+          ...nodes.map((n) => n.x + (n.element?.offsetWidth || NODE_POSITIONING.DEFAULT_NODE_WIDTH))
         );
         nodes.forEach((n) => {
-          n.x = maxX - (n.element?.offsetWidth || 150);
+          n.x = maxX - (n.element?.offsetWidth || NODE_POSITIONING.DEFAULT_NODE_WIDTH);
           this.updateNodePosition(n);
         });
         this.app.updateStatus(`Aligned ${nodes.length} nodes to right`);
@@ -655,11 +656,11 @@ export class MaterialGraphController {
     // Calculate bounding box of selected nodes
     const minX = Math.min(...nodes.map((n) => n.x));
     const maxX = Math.max(
-      ...nodes.map((n) => n.x + (n.element?.offsetWidth || 150))
+      ...nodes.map((n) => n.x + (n.element?.offsetWidth || NODE_POSITIONING.DEFAULT_NODE_WIDTH))
     );
     const minY = Math.min(...nodes.map((n) => n.y));
     const maxY = Math.max(
-      ...nodes.map((n) => n.y + (n.element?.offsetHeight || 100))
+      ...nodes.map((n) => n.y + (n.element?.offsetHeight || NODE_POSITIONING.DEFAULT_NODE_HEIGHT))
     );
 
     const centerX = (minX + maxX) / 2;
@@ -686,8 +687,8 @@ export class MaterialGraphController {
     if (!mainNode) return;
 
     const rect = this.graphPanel.getBoundingClientRect();
-    this.panX = rect.width / 2 - mainNode.x * this.zoom - 100;
-    this.panY = rect.height / 2 - mainNode.y * this.zoom - 100;
+    this.panX = rect.width / 2 - mainNode.x * this.zoom - NODE_POSITIONING.CENTER_OFFSET;
+    this.panY = rect.height / 2 - mainNode.y * this.zoom - NODE_POSITIONING.CENTER_OFFSET;
 
     this.drawGrid();
     this.nodes.forEach((node) => this.updateNodePosition(node));

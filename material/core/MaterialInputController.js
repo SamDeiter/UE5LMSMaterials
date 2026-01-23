@@ -6,6 +6,7 @@
  */
 
 import { MoveNodeCommand } from "./GraphCommands.js";
+import { GRAPH } from "../../src/constants/EditorConstants.js";
 
 export class MaterialInputController {
     constructor(graphController) {
@@ -209,8 +210,8 @@ export class MaterialInputController {
         const mouseY = e.clientY - rect.top;
 
         // Calculate zoom
-        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.max(0.25, Math.min(2, this.graph.zoom * zoomFactor));
+        const zoomFactor = e.deltaY > 0 ? GRAPH.ZOOM_OUT_FACTOR : GRAPH.ZOOM_IN_FACTOR;
+        const newZoom = Math.max(GRAPH.ZOOM_MIN, Math.min(GRAPH.ZOOM_MAX, this.graph.zoom * zoomFactor));
 
         // Zoom toward mouse position
         const zoomRatio = newZoom / this.graph.zoom;

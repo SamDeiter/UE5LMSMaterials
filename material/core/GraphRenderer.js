@@ -5,6 +5,7 @@
  */
 
 import { GridRenderer } from "../../shared/GridRenderer.js";
+import { GRAPH } from "../../src/constants/EditorConstants.js";
 
 export class GraphRenderer {
   constructor(controller) {
@@ -60,7 +61,7 @@ export class GraphRenderer {
    */
   getViewportBounds() {
     const rect = this.graphPanel.getBoundingClientRect();
-    const padding = 200;
+    const padding = GRAPH.VIEWPORT_CULLING_PADDING;
 
     return {
       left: (-this.controller.panX - padding) / this.controller.zoom,

@@ -4,8 +4,10 @@
  * Manages the undo/redo history for the Material Editor.
  */
 
+import { COMMAND_STACK } from "../../src/constants/EditorConstants.js";
+
 export class CommandStack {
-    constructor(app, maxHistory = 50) {
+    constructor(app, maxHistory = COMMAND_STACK.MAX_HISTORY) {
         this.app = app;
         this.maxHistory = maxHistory;
         this.undoStack = [];
