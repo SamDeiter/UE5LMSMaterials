@@ -5,13 +5,12 @@
  * Extracted from material-app.js for modularity.
  */
 
-import { nodeRegistry } from '../registries/NodeRegistry.js';
-import { debounce } from '../../shared/utils.js';
+import { debounce } from './utils.js';
 
 export class ActionMenuController {
   constructor(app, registry = null) {
     this.app = app;
-    this.registry = registry || nodeRegistry;
+    this.registry = registry; // Registry must be passed in
     this.menu = document.getElementById("action-menu");
     this.searchInput = document.getElementById("action-menu-search");
     this.list = document.getElementById("action-menu-list");
