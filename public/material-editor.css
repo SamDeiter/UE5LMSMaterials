@@ -456,14 +456,16 @@ body {
 }
 
 .resizer-horizontal {
-  height: var(--resizer-size);
-  background-color: var(--border-dark);
+  height: 6px;
+  background-color: var(--accent-blue);
   cursor: row-resize;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, height 0.1s;
+  flex-shrink: 0;
 }
 
 .resizer-horizontal:hover {
-  background-color: var(--accent-blue);
+  background-color: #5599ff;
+  height: 8px;
 }
 
 /* ============================================================================
