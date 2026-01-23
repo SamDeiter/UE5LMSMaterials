@@ -364,6 +364,47 @@ export class MaterialNode {
       }
     }
     
+    // Substrate BSDF preview - show diffuse albedo with specular highlight indicator
+    if (this.type === 'substrate-expression' && this.app && this.app.graph) {
+      // Try to evaluate the node to get BSDF properties
+      const outputPin = this.outputs.find(p => p.type === 'substrate' || p.localId === 'out');
+      if (outputPin && this.app.evaluatePin) {
+        try {
+          const bsdf = this.app.evaluatePin(outputPin);
+          if (bsdf && bsdf.type === 'substrate_bsdf') {
+            // Show diffuse albedo as base color
+            const diffuse = bsdf.diffuseAlbedo || [0.5, 0.5, 0.5];
+            const r = Math.round(Math.min(1, diffuse[0]) * 255);
+            const g = Math.round(Math.min(1, diffuse[1]) * 255);
+            const b = Math.round(Math.min(1, diffuse[2]) * 255);
+            
+            // Create gradient to show specular highlight (F0 influence)
+            const f0 = bsdf.f0 || [0.04, 0.04, 0.04];
+            const specR = Math.round(Math.min(1, f0[0]) * 255);
+            const specG = Math.round(Math.min(1, f0[1]) * 255);
+            const specB = Math.round(Math.min(1, f0[2]) * 255);
+            
+            // Radial gradient simulating sphere lighting
+            previewEl.style.background = `radial-gradient(circle at 35% 35%, 
+              rgb(${specR}, ${specG}, ${specB}) 0%, 
+              rgb(${r}, ${g}, ${b}) 50%, 
+              rgb(${Math.round(r * 0.3)}, ${Math.round(g * 0.3)}, ${Math.round(b * 0.3)}) 100%)`;
+            previewEl.style.backgroundImage = 'none';
+            previewEl.style.backgroundSize = '';
+            previewEl.style.backgroundPosition = '';
+            return;
+          }
+        } catch (e) {
+          // Fallback if evaluation fails
+          console.debug('Substrate preview evaluation skipped:', e.message);
+        }
+      }
+      
+      // Fallback for Substrate nodes without evaluation - show default purple
+      previewEl.style.background = 'linear-gradient(135deg, #A30FF5 0%, #5a0a8a 100%)';
+      return;
+    }
+    
     // Default: show a color based on properties
     // Support both nested Color object and individual R,G,B properties
     let r = 0, g = 0, b = 0;
