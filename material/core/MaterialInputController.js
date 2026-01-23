@@ -19,6 +19,11 @@ export class MaterialInputController {
         
         // Alt+drag duplication tracking
         this.altDragDuplicated = false;
+        
+        // Marquee selection state
+        this.isMarquee = false;
+        this.marqueeStart = { x: 0, y: 0 };
+        this.marqueeEl = document.getElementById('selection-marquee');
     }
 
 
@@ -45,6 +50,26 @@ export class MaterialInputController {
                 }
             });
         }
+        
+        // Left click on empty space - start marquee selection
+        if (e.button === 0 && e.target === this.graphPanel && !e.target.closest('.node')) {
+            this.isMarquee = true;
+            const rect = this.graphPanel.getBoundingClientRect();
+            this.marqueeStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            
+            if (this.marqueeEl) {
+                this.marqueeEl.style.left = `${this.marqueeStart.x}px`;
+                this.marqueeEl.style.top = `${this.marqueeStart.y}px`;
+                this.marqueeEl.style.width = '0px';
+                this.marqueeEl.style.height = '0px';
+                this.marqueeEl.style.display = 'block';
+            }
+            
+            // Clear selection unless Ctrl is held
+            if (!e.ctrlKey && !e.metaKey) {
+                this.graph.deselectAll();
+            }
+        }
     }
 
 
@@ -63,6 +88,10 @@ export class MaterialInputController {
 
         if (this.graph.isWiring) {
             this.handleWiring(e);
+        }
+        
+        if (this.isMarquee) {
+            this.handleMarquee(e);
         }
     }
 
@@ -140,6 +169,56 @@ export class MaterialInputController {
     handleWiring(e) {
         this.graph.wiring.updateGhostWire(e);
     }
+    
+    /**
+     * Handle marquee selection drag
+     */
+    handleMarquee(e) {
+        if (!this.marqueeEl) return;
+        
+        const rect = this.graphPanel.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        // Calculate marquee bounds
+        const x = Math.min(this.marqueeStart.x, currentX);
+        const y = Math.min(this.marqueeStart.y, currentY);
+        const width = Math.abs(currentX - this.marqueeStart.x);
+        const height = Math.abs(currentY - this.marqueeStart.y);
+        
+        // Update marquee element
+        this.marqueeEl.style.left = `${x}px`;
+        this.marqueeEl.style.top = `${y}px`;
+        this.marqueeEl.style.width = `${width}px`;
+        this.marqueeEl.style.height = `${height}px`;
+        
+        // Convert to graph coordinates for node intersection
+        const graphX = (x - this.graph.panX) / this.graph.zoom;
+        const graphY = (y - this.graph.panY) / this.graph.zoom;
+        const graphW = width / this.graph.zoom;
+        const graphH = height / this.graph.zoom;
+        
+        // Check which nodes intersect the marquee
+        this.graph.nodes.forEach((node, id) => {
+            const nodeEl = node.element;
+            if (!nodeEl) return;
+            
+            const nodeW = nodeEl.offsetWidth;
+            const nodeH = nodeEl.offsetHeight;
+            
+            // Check intersection
+            const intersects = (
+                node.x < graphX + graphW &&
+                node.x + nodeW > graphX &&
+                node.y < graphY + graphH &&
+                node.y + nodeH > graphY
+            );
+            
+            if (intersects) {
+                this.graph.selectNode(node, true); // Additive selection
+            }
+        });
+    }
 
     /**
      * Handle mouse up
@@ -196,6 +275,14 @@ export class MaterialInputController {
             }
 
             this.graph.wiring.endWiring();
+        }
+        
+        // End marquee selection
+        if (this.isMarquee) {
+            this.isMarquee = false;
+            if (this.marqueeEl) {
+                this.marqueeEl.style.display = 'none';
+            }
         }
     }
 
