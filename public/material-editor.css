@@ -1174,7 +1174,8 @@ body {
 }
 
 .pin.pin-out {
-  flex-direction: row-reverse;
+  flex-direction: row;
+  justify-content: flex-end;
 }
 
 .pin-dot {
@@ -1210,6 +1211,34 @@ body {
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.5),
     inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Flow direction arrow OUTSIDE output pins (right side) */
+.pin-out .pin-dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -7px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transform: translateY(-50%);
+}
+
+/* Flow direction arrow OUTSIDE input pins (left side) */
+.pin-in .pin-dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid currentColor;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transform: translateY(-50%);
 }
 
 .pin:hover .pin-dot {
@@ -1256,6 +1285,12 @@ body {
 
 .pin[data-type="bool"] .pin-dot {
   color: #e57373; /* Red for bool */
+}
+
+/* Material Output Node - all pins are grey like UE5 */
+.node.material-output .pin .pin-dot,
+.node[data-type="output"] .pin .pin-dot {
+  color: #a0a0a0 !important;
 }
 
 .pin[data-type="material"] .pin-dot {
