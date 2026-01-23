@@ -1,13 +1,13 @@
 /**
  * ViewportController.js
- * 
+ *
  * Manages the 3D viewport with Three.js for material preview.
  * Extracted from material-app.js for modularity.
  */
 
-import { debounce } from '../../shared/utils.js';
-import { SceneManager } from '../engine/SceneManager.js';
-import { VIEWPORT } from '../../src/constants/EditorConstants.js';
+import { debounce } from "../../shared/utils.js";
+import { SceneManager } from "../engine/SceneManager.js";
+import { VIEWPORT } from "../../src/constants/EditorConstants.js";
 
 export class ViewportController {
   constructor(app) {
@@ -17,7 +17,7 @@ export class ViewportController {
 
     this.sceneManager = new SceneManager(this.canvas, this.container);
     this.initialized = false;
-    
+
     // Realtime rendering toggle
     this.isRealtime = true;
 
@@ -30,7 +30,7 @@ export class ViewportController {
 
     // Bind UI controls
     this.bindControls();
-    
+
     // Bind keyboard controls
     this.bindKeyboardControls();
   }
@@ -100,10 +100,21 @@ export class ViewportController {
       floorBtn.classList.toggle("active");
     });
 
-    // Exposure slider
+    // Exposure slider and number input (synced)
     const exposureSlider = document.getElementById("viewport-exposure");
+    const exposureInput = document.getElementById("viewport-exposure-value");
+
     exposureSlider?.addEventListener("input", (e) => {
-      this.setExposure(parseFloat(e.target.value));
+      const value = parseFloat(e.target.value);
+      if (exposureInput) exposureInput.value = value.toFixed(1);
+      this.setExposure(value);
+    });
+
+    exposureInput?.addEventListener("input", (e) => {
+      let value = parseFloat(e.target.value) || 0;
+      value = Math.max(-3, Math.min(3, value)); // Clamp to valid range
+      if (exposureSlider) exposureSlider.value = value;
+      this.setExposure(value);
     });
 
     // Post-processing dropdown
@@ -116,14 +127,19 @@ export class ViewportController {
     const bgBtn = document.getElementById("viewport-bg-btn");
     bgBtn?.addEventListener("click", async () => {
       // If HDRI not loaded yet and we're turning it on, load it first
-      if (!this.sceneManager.hdriTexture && !this.sceneManager.showHDRIBackground) {
+      if (
+        !this.sceneManager.hdriTexture &&
+        !this.sceneManager.showHDRIBackground
+      ) {
         this.app.updateStatus("Loading HDRI background...");
-        await this.sceneManager.setEnvironment('studio');
+        await this.sceneManager.setEnvironment("studio");
       }
-      
+
       const showingHDRI = this.sceneManager.toggleBackground();
       bgBtn.classList.toggle("active", showingHDRI);
-      this.app.updateStatus(showingHDRI ? "HDRI Background Enabled" : "Solid Background");
+      this.app.updateStatus(
+        showingHDRI ? "HDRI Background Enabled" : "Solid Background",
+      );
     });
 
     // Background color picker
@@ -167,7 +183,8 @@ export class ViewportController {
    */
   toggleGrid() {
     if (!this.sceneManager.gridHelper) return;
-    this.sceneManager.gridHelper.visible = !this.sceneManager.gridHelper.visible;
+    this.sceneManager.gridHelper.visible =
+      !this.sceneManager.gridHelper.visible;
     this.sceneManager.needsRender = true;
   }
 
@@ -177,9 +194,10 @@ export class ViewportController {
   toggleToneMapping() {
     if (!this.sceneManager.renderer) return;
     const current = this.sceneManager.renderer.toneMapping;
-    this.sceneManager.renderer.toneMapping = current === this.sceneManager.THREE.NoToneMapping 
-      ? this.sceneManager.THREE.ACESFilmicToneMapping 
-      : this.sceneManager.THREE.NoToneMapping;
+    this.sceneManager.renderer.toneMapping =
+      current === this.sceneManager.THREE.NoToneMapping
+        ? this.sceneManager.THREE.ACESFilmicToneMapping
+        : this.sceneManager.THREE.NoToneMapping;
     this.sceneManager.needsRender = true;
   }
 
@@ -221,12 +239,16 @@ export class ViewportController {
    */
   updateMaterial(result) {
     if (!this.initialized || !result) return;
-    
+
     const mat = this.sceneManager.material;
     if (!mat) return;
 
     if (result.baseColor) {
-      mat.color.setRGB(result.baseColor[0], result.baseColor[1], result.baseColor[2]);
+      mat.color.setRGB(
+        result.baseColor[0],
+        result.baseColor[1],
+        result.baseColor[2],
+      );
     }
 
     // PBR Properties (Multipliers for maps)
@@ -243,7 +265,11 @@ export class ViewportController {
       mat.emissive.setRGB(1, 1, 1); // White lets texture color through
       mat.emissiveIntensity = result.emissiveIntensity ?? 1.0;
     } else if (result.emissive) {
-      mat.emissive.setRGB(result.emissive[0], result.emissive[1], result.emissive[2]);
+      mat.emissive.setRGB(
+        result.emissive[0],
+        result.emissive[1],
+        result.emissive[2],
+      );
       mat.emissiveIntensity = result.emissiveIntensity ?? 1.0;
     } else {
       mat.emissive.set(0x000000);
@@ -255,14 +281,28 @@ export class ViewportController {
 
     // Base Color
     if (result.baseColorTexture) {
-      this.applyTextureMap(mat, 'map', result.baseColorTexture, result.baseColorUTiling, result.baseColorVTiling, true);
+      this.applyTextureMap(
+        mat,
+        "map",
+        result.baseColorTexture,
+        result.baseColorUTiling,
+        result.baseColorVTiling,
+        true,
+      );
     } else {
       mat.map = null;
     }
 
     // Normal Map
     if (result.normalTexture) {
-      this.applyTextureMap(mat, 'normalMap', result.normalTexture, result.normalUTiling, result.normalVTiling, false);
+      this.applyTextureMap(
+        mat,
+        "normalMap",
+        result.normalTexture,
+        result.normalUTiling,
+        result.normalVTiling,
+        false,
+      );
       mat.normalScale.set(1, 1);
     } else {
       mat.normalMap = null;
@@ -270,21 +310,42 @@ export class ViewportController {
 
     // Roughness Map
     if (result.roughnessTexture) {
-      this.applyTextureMap(mat, 'roughnessMap', result.roughnessTexture, result.roughnessUTiling, result.roughnessVTiling, false);
+      this.applyTextureMap(
+        mat,
+        "roughnessMap",
+        result.roughnessTexture,
+        result.roughnessUTiling,
+        result.roughnessVTiling,
+        false,
+      );
     } else {
       mat.roughnessMap = null;
     }
 
     // Metallic Map
     if (result.metallicTexture) {
-      this.applyTextureMap(mat, 'metalnessMap', result.metallicTexture, result.metallicUTiling, result.metallicVTiling, false);
+      this.applyTextureMap(
+        mat,
+        "metalnessMap",
+        result.metallicTexture,
+        result.metallicUTiling,
+        result.metallicVTiling,
+        false,
+      );
     } else {
       mat.metalnessMap = null;
     }
 
     // Ambient Occlusion
     if (result.aoTexture) {
-      this.applyTextureMap(mat, 'aoMap', result.aoTexture, result.aoUTiling, result.aoVTiling, false);
+      this.applyTextureMap(
+        mat,
+        "aoMap",
+        result.aoTexture,
+        result.aoUTiling,
+        result.aoVTiling,
+        false,
+      );
       mat.aoMapIntensity = result.ao ?? 1.0;
     } else {
       mat.aoMap = null;
@@ -292,7 +353,14 @@ export class ViewportController {
 
     // Emissive Map
     if (result.emissiveTexture) {
-      this.applyTextureMap(mat, 'emissiveMap', result.emissiveTexture, result.emissiveUTiling, result.emissiveVTiling, true);
+      this.applyTextureMap(
+        mat,
+        "emissiveMap",
+        result.emissiveTexture,
+        result.emissiveUTiling,
+        result.emissiveVTiling,
+        true,
+      );
     } else {
       mat.emissiveMap = null;
     }
@@ -304,13 +372,24 @@ export class ViewportController {
   /**
    * Helper to load and apply a texture map to a material property
    */
-  applyTextureMap(mat, property, url, uTiling = 1, vTiling = 1, isSRGB = false) {
-    this.loadTexture(url, (tex) => {
-      tex.repeat.set(uTiling, vTiling);
-      mat[property] = tex;
-      mat.needsUpdate = true;
-      this.sceneManager.needsRender = true;
-    }, isSRGB);
+  applyTextureMap(
+    mat,
+    property,
+    url,
+    uTiling = 1,
+    vTiling = 1,
+    isSRGB = false,
+  ) {
+    this.loadTexture(
+      url,
+      (tex) => {
+        tex.repeat.set(uTiling, vTiling);
+        mat[property] = tex;
+        mat.needsUpdate = true;
+        this.sceneManager.needsRender = true;
+      },
+      isSRGB,
+    );
   }
 
   /**
@@ -323,7 +402,7 @@ export class ViewportController {
       this.textureCache = new Map();
     }
 
-    const cacheKey = `${url}_${isSRGB ? 'srgb' : 'linear'}`;
+    const cacheKey = `${url}_${isSRGB ? "srgb" : "linear"}`;
     if (this.textureCache.has(cacheKey)) {
       callback(this.textureCache.get(cacheKey));
       return;
@@ -336,10 +415,10 @@ export class ViewportController {
         const THREE = this.sceneManager.THREE;
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        
+
         // Colorspace correction
         texture.colorSpace = isSRGB ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-        
+
         this.textureCache.set(cacheKey, texture);
         callback(texture);
         this.sceneManager.needsRender = true;
@@ -347,8 +426,7 @@ export class ViewportController {
       undefined,
       (error) => {
         console.warn("Failed to load texture:", error);
-      }
+      },
     );
   }
 }
-
