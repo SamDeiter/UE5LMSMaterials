@@ -466,17 +466,25 @@ export class SceneManager {
 
   setViewMode(mode) {
     if (!this.initialized) return;
+    const THREE = this.THREE;
+
+    // Reset to original material first
+    const resetMaterial = () => {
+      this.mesh.material = this.originalMaterial;
+      this.directionalLight.intensity = 2.5;
+      this.ambientLight.intensity = 0.2;
+    };
+
     switch (mode) {
       case "lit":
-        this.directionalLight.intensity = 2.5;
-        this.ambientLight.intensity = 0.2;
-        this.mesh.material = this.originalMaterial;
+        resetMaterial();
         // Enable post-processing in Lit mode
         if (this.composer && this.bloomPass) {
           this.bloomPass.enabled = true;
           if (this.vignettePass) this.vignettePass.enabled = true;
         }
         break;
+
       case "unlit":
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 2;
@@ -487,16 +495,62 @@ export class SceneManager {
           if (this.vignettePass) this.vignettePass.enabled = false;
         }
         break;
+
       case "wireframe":
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 2;
         this.mesh.material = this.wireframeMaterial;
-        // Disable post-processing in Wireframe mode
         if (this.composer && this.bloomPass) {
           this.bloomPass.enabled = false;
           if (this.vignettePass) this.vignettePass.enabled = false;
         }
         break;
+
+      case "basecolor":
+        // Show only base color as unlit
+        this.directionalLight.intensity = 0;
+        this.ambientLight.intensity = 1;
+        this.mesh.material = new THREE.MeshBasicMaterial({
+          color: this.originalMaterial.color,
+          map: this.originalMaterial.map,
+        });
+        if (this.bloomPass) this.bloomPass.enabled = false;
+        break;
+
+      case "roughness":
+        // Visualize roughness as grayscale
+        this.directionalLight.intensity = 0;
+        this.ambientLight.intensity = 1;
+        const roughnessVal = this.originalMaterial.roughness || 0.5;
+        this.mesh.material = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(roughnessVal, roughnessVal, roughnessVal),
+          map: this.originalMaterial.roughnessMap,
+        });
+        if (this.bloomPass) this.bloomPass.enabled = false;
+        break;
+
+      case "metallic":
+        // Visualize metalness as grayscale
+        this.directionalLight.intensity = 0;
+        this.ambientLight.intensity = 1;
+        const metallicVal = this.originalMaterial.metalness || 0;
+        this.mesh.material = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(metallicVal, metallicVal, metallicVal),
+          map: this.originalMaterial.metalnessMap,
+        });
+        if (this.bloomPass) this.bloomPass.enabled = false;
+        break;
+
+      case "normal":
+        // Visualize normals using a normal visualization material
+        this.directionalLight.intensity = 0;
+        this.ambientLight.intensity = 1;
+        this.mesh.material = new THREE.MeshNormalMaterial();
+        if (this.bloomPass) this.bloomPass.enabled = false;
+        break;
+
+      default:
+        resetMaterial();
     }
     this.needsRender = true;
   }
