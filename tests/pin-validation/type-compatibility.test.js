@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { TypeCompatibility, PinTypes } from "../../material/core/MaterialNodeFramework.js";
+import {
+  TypeCompatibility,
+  PinTypes,
+} from "../../material/core/MaterialNodeFramework.js";
 import { getRegistry } from "../setup.js";
 
 // Alias for cleaner test code
@@ -122,23 +125,23 @@ describe("Pin Type Compatibility", () => {
   // DATA TYPE COLORS (Visual Identification)
   // =========================================================================
   describe("Data Type Colors", () => {
-    // From Spec: Pin Type Color System table
-    // Grey: float, Green: float2, Yellow: float3, Pink: float4, Blue: texture, Red: bool
+    // UE5 Material Editor uses white (#FFFFFF) for all active float pins
+    // See GraphEditorSettings.cpp - ActivePinColor = White
+    // The legacy spec colors (Grey, Green, Yellow, Pink) were from older versions
 
-    it("float should have a color defined", () => {
+    it("float should have white color (UE5 active pin style)", () => {
       expect(DataTypes.FLOAT.color).toBeDefined();
-      expect(typeof DataTypes.FLOAT.color).toBe("string");
+      expect(DataTypes.FLOAT.color).toBe("#FFFFFF");
     });
 
-    it("float2 should have a distinct color", () => {
+    it("float2 should have white color (UE5 active pin style)", () => {
       expect(DataTypes.FLOAT2.color).toBeDefined();
-      expect(DataTypes.FLOAT2.color).not.toBe(DataTypes.FLOAT.color);
+      expect(DataTypes.FLOAT2.color).toBe("#FFFFFF");
     });
 
-    it("float3 should have a distinct color", () => {
+    it("float3 should have white color (UE5 active pin style)", () => {
       expect(DataTypes.FLOAT3.color).toBeDefined();
-      expect(DataTypes.FLOAT3.color).not.toBe(DataTypes.FLOAT.color);
-      expect(DataTypes.FLOAT3.color).not.toBe(DataTypes.FLOAT2.color);
+      expect(DataTypes.FLOAT3.color).toBe("#FFFFFF");
     });
 
     it("texture should have blue color", () => {
@@ -146,8 +149,9 @@ describe("Pin Type Compatibility", () => {
       expect(DataTypes.TEXTURE.color).toBe("#0066E8");
     });
 
-    it("bool should have a color defined", () => {
-      expect(DataTypes.BOOL.color).toBeDefined();
+    it("bool should have maroon color", () => {
+      // UE5-accurate color from GraphEditorSettings.cpp:40
+      expect(DataTypes.BOOL.color).toBe("#4C0000");
     });
   });
 });
