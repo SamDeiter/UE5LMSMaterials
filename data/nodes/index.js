@@ -32,6 +32,7 @@ import { ControlFlowNodes } from "./ControlFlowNodes.js";
 import { SubstrateNodes } from "./SubstrateNodes.js";
 import { DebugNodes } from "./DebugNodes.js";
 import { LayerNodes } from "./LayerNodes.js";
+import { FunctionNodes } from "./FunctionNodes.js";
 
 // Combine all node modules into a single export
 export const MaterialExpressionDefinitions = {
@@ -48,6 +49,7 @@ export const MaterialExpressionDefinitions = {
   ...SubstrateNodes,
   ...DebugNodes,
   ...LayerNodes,
+  ...FunctionNodes,
 };
 
 // Also export individual modules for direct imports
@@ -65,4 +67,5 @@ export {
   SubstrateNodes,
   DebugNodes,
   LayerNodes,
+  FunctionNodes,
 };
