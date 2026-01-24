@@ -182,6 +182,7 @@
 /* Toolbar Dropdown (UE5 Live Update Style) */
 .toolbar-dropdown {
   position: relative;
+  z-index: 100; /* Ensure toolbar dropdown is above main content */
 }
 
 .toolbar-dropdown .dropdown-toggle {
