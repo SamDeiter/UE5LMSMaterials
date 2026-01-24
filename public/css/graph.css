@@ -1,0 +1,603 @@
+/* ============================================================================
+   GRAPH PANEL
+   ============================================================================ */
+#graph-panel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-graph);
+  /* UE5-style grid with major and minor lines */
+  background-image:
+    /* Major grid lines (every 100px) */
+    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    /* Minor grid lines (every 20px) */
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
+  background-position: center center;
+}
+
+#graph-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+#graph-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+#nodes-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#nodes-container > * {
+  pointer-events: all;
+}
+
+#selection-marquee {
+  position: absolute;
+  border: 1px solid var(--accent-blue);
+  background-color: rgba(0, 119, 216, 0.1);
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ============================================================================
+   PERFORMANCE: VIEWPORT CULLING
+   ============================================================================ */
+.node.culled {
+  visibility: hidden;
+  pointer-events: none;
+  content-visibility: hidden; /* Skip rendering entirely */
+}
+
+.wire.culled {
+  visibility: hidden;
+}
+
+/* ============================================================================
+   MATERIAL NODES - UE5 Style (Pixel-Perfect Replica)
+   ============================================================================ */
+.node {
+  position: absolute;
+  min-width: 160px;
+  background: #262626;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  cursor: move;
+  z-index: 10;
+  contain: layout;
+  overflow: visible;
+}
+
+.node:hover {
+  border-color: #4a4a4a;
+}
+
+.node.selected {
+  border-color: var(--accent-orange);
+  border-width: 2px;
+  box-shadow:
+    0 0 0 1px var(--accent-orange),
+    0 0 12px rgba(255, 149, 0, 0.5),
+    0 0 24px rgba(255, 149, 0, 0.25),
+    0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================================
+   NODE ERROR STATES (UE5 Style - Phase 8)
+   ============================================================================ */
+.node.node-has-error {
+  border-color: #ff4444 !important;
+  box-shadow:
+    0 0 0 1px #ff4444,
+    0 0 8px rgba(255, 68, 68, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.node.node-has-warning {
+  border-color: #fbbf24 !important;
+  box-shadow:
+    0 0 0 1px #fbbf24,
+    0 0 8px rgba(251, 191, 36, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.node-error-banner {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.node-error-banner.error {
+  background: linear-gradient(180deg, #cc0000 0%, #990000 100%);
+  color: #ffffff;
+  border-bottom: 1px solid #660000;
+}
+
+.node-error-banner.warning {
+  background: linear-gradient(180deg, #cc8800 0%, #996600 100%);
+  color: #ffffff;
+  border-bottom: 1px solid #664400;
+}
+
+/* UE5 style header with blue gradient */
+.node-header {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 8px 12px 6px;
+  background: linear-gradient(180deg, #2a4a6a 0%, #1a3050 100%);
+  border-bottom: 1px solid #0a1520;
+  border-radius: 3px 3px 0 0;
+  position: relative;
+  min-height: 32px;
+}
+
+/* Title row with collapse arrow */
+.node-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.node-icon {
+  margin-right: 6px;
+  font-size: 11px;
+  opacity: 0.8;
+  color: #8ab4d8;
+}
+
+.node-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8f0f8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.node-subtitle {
+  font-size: 10px;
+  color: #6090b0;
+  font-weight: 400;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.node-collapse-btn {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6090b0;
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.15s;
+}
+
+.node-collapse-btn:hover {
+  color: #a0c0e0;
+}
+
+/* Collapsed node state - hide content, show only header */
+.node.collapsed .node-content,
+.node.collapsed .node-subtitle,
+.node.collapsed .node-preview {
+  display: none;
+}
+
+.node.collapsed {
+  min-width: auto;
+}
+
+.node.collapsed .node-header {
+  border-radius: 3px;
+}
+
+/* Node type header colors - UE5 categories */
+.node.material-parameter .node-header {
+  background: linear-gradient(180deg, #2a5a5a 0%, #1a4040 100%);
+}
+
+.node.material-function .node-header {
+  background: linear-gradient(180deg, #3a4a6a 0%, #2a3a50 100%);
+}
+
+.node.material-texture .node-header,
+.node[data-category="Texture"] .node-header {
+  background: linear-gradient(180deg, #2a4a6a 0%, #1a3050 100%);
+}
+
+.node.material-math .node-header,
+.node[data-category="Math"] .node-header {
+  background: linear-gradient(180deg, #3a5a4a 0%, #2a4030 100%);
+}
+
+/* Utility/Time nodes - Red/Orange header */
+.node[data-category="Utility"] .node-header,
+.node[data-category="Time"] .node-header {
+  background: linear-gradient(180deg, #6a2a2a 0%, #501a1a 100%);
+}
+
+/* Constants - Dark header */
+.node[data-category="Constants"] .node-header,
+.node[data-category="Constant"] .node-header {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+}
+
+/* Coordinates - Teal header */
+.node[data-category="Coordinates"] .node-header {
+  background: linear-gradient(180deg, #2a5a5a 0%, #1a4040 100%);
+}
+
+/* Vector Operations - Purple */
+.node[data-category="VectorOps"] .node-header {
+  background: linear-gradient(180deg, #4a3a6a 0%, #3a2a50 100%);
+}
+
+.node.comment-node .node-header {
+  background: linear-gradient(180deg, #4a5a3a 0%, #3a4a2a 100%);
+}
+
+.node.main-output .node-header {
+  background: linear-gradient(180deg, #4a4a5a 0%, #3a3a4a 100%);
+}
+
+.node-content {
+  display: flex;
+  padding: 4px 0 6px;
+  background: #262626;
+  min-height: 40px;
+}
+
+.node-inputs,
+.node-outputs {
+  display: flex;
+  flex-direction: column;
+  min-width: 50px;
+  gap: 1px;
+}
+
+.node-inputs {
+  align-items: flex-start;
+}
+
+.node-outputs {
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+/* Node preview thumbnail - UE5 style */
+.node-preview {
+  width: 64px;
+  height: 64px;
+  margin: 4px 8px;
+  border: 1px solid #1a1a1a;
+  border-radius: 2px;
+  background: #1e1e1e;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.node-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* WebGL-rendered preview enhancements */
+.node-preview.webgl-preview {
+  border-color: #2a4a6a;
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(42, 74, 106, 0.3);
+}
+
+.node-preview.webgl-preview::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================================
+   PINS - UE5 Style (Accurate Channel Colors)
+   ============================================================================ */
+.pin {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  min-height: 18px;
+}
+
+.pin:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.pin.pin-in {
+  flex-direction: row;
+}
+
+.pin.pin-out {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.pin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: currentColor;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+/* Larger invisible hitbox for easier wire connections */
+.pin-dot::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+}
+
+.pin-dot.hollow {
+  background-color: #262626;
+  border: 2px solid currentColor;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Flow direction arrow OUTSIDE output pins (right side) */
+.pin-out .pin-dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -7px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transform: translateY(-50%);
+}
+
+/* Flow direction arrow OUTSIDE input pins (left side) */
+.pin-in .pin-dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid currentColor;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transform: translateY(-50%);
+}
+
+.pin:hover .pin-dot {
+  transform: scale(1.3);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 8px currentColor,
+    0 0 16px currentColor;
+}
+
+.pin-label {
+  font-size: 10px;
+  color: #a0a0a0;
+  margin: 0 6px;
+  white-space: nowrap;
+}
+
+.pin:hover .pin-label {
+  color: #d0d0d0;
+}
+
+/* Pin type colors - UE5 accurate */
+.pin[data-type="float"] .pin-dot,
+.pin[data-type="scalar"] .pin-dot {
+  color: #a0a0a0; /* Grey for scalar */
+}
+
+.pin[data-type="float2"] .pin-dot {
+  color: #a0a0a0; /* Grey for float2/UV - same as scalar in UE5 */
+}
+
+.pin[data-type="float3"] .pin-dot {
+  color: #e0e0e0; /* Light grey/white for RGB */
+}
+
+.pin[data-type="float4"] .pin-dot {
+  color: #e0e0e0; /* Light grey/white for RGBA */
+}
+
+.pin[data-type="texture"] .pin-dot,
+.pin[data-type="sampler"] .pin-dot {
+  color: #64b5f6; /* Blue for texture */
+}
+
+.pin[data-type="bool"] .pin-dot {
+  color: #e57373; /* Red for bool */
+}
+
+/* Material Output Node - all pins are grey like UE5 */
+.node.material-output .pin .pin-dot,
+.node[data-type="output"] .pin .pin-dot {
+  color: #a0a0a0 !important;
+}
+
+.pin[data-type="material"] .pin-dot {
+  color: #ffb74d; /* Orange for material */
+}
+
+/* Channel-specific pin colors (R, G, B, A) - UE5 Exact */
+.pin[data-channel="r"] .pin-dot {
+  color: #ff4040 !important;
+} /* Red channel */
+.pin[data-channel="g"] .pin-dot {
+  color: #40ff40 !important;
+} /* Green channel */
+.pin[data-channel="b"] .pin-dot {
+  color: #4080ff !important;
+} /* Blue channel */
+.pin[data-channel="a"] .pin-dot {
+  color: #a0a0a0 !important;
+} /* Alpha channel - grey */
+.pin[data-channel="rgb"] .pin-dot {
+  color: #e0e0e0 !important;
+} /* RGB output - white */
+.pin[data-channel="rgba"] .pin-dot {
+  color: #e0e0e0 !important;
+} /* RGBA output - white */
+
+/* Inactive pins (grayed out for wrong blend mode) */
+.pin.inactive {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Marked pin for Shift+Click long-distance wiring */
+.pin-dot.marked {
+  box-shadow: 0 0 8px 2px #00ff88;
+  animation: pulse-mark 1s infinite;
+  transform: scale(1.3);
+}
+
+@keyframes pulse-mark {
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px #00ff88;
+  }
+  50% {
+    box-shadow: 0 0 16px 4px #00ff88;
+  }
+}
+
+/* ============================================================================
+   WIRES - UE5 Style (Thicker, Glowing)
+   ============================================================================ */
+.wire {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: stroke;
+  transition:
+    stroke-width 0.1s,
+    filter 0.15s;
+}
+
+.wire:hover {
+  stroke-width: 4;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.wire.selected {
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px var(--accent-orange));
+}
+
+.wire.ghost {
+  stroke-dasharray: 8, 4;
+  opacity: 0.7;
+  stroke-width: 3;
+}
+
+/* Exec wires - animated flow */
+.wire[data-type="exec"] {
+  stroke-dasharray: 6, 3;
+  animation: wire-flow 0.8s linear infinite;
+}
+
+@keyframes wire-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -18;
+  }
+}
+
+/* Wire type colors - UE5 accurate */
+.wire[data-type="float"] {
+  stroke: #5bff0f; /* Bright green - from GraphEditorSettings.cpp */
+}
+.wire[data-type="float2"] {
+  stroke: #ff970a; /* Orange-yellow */
+}
+.wire[data-type="float3"] {
+  stroke: #ffd800; /* Golden yellow - VectorPinTypeColor */
+}
+.wire[data-type="float4"] {
+  stroke: #ffaaff; /* Light pink - UE5 exact */
+}
+.wire[data-type="texture"],
+.wire[data-type="texture2d"] {
+  stroke: #0066e8; /* Sharp blue */
+}
+.wire[data-type="bool"] {
+  stroke: #ff3333; /* Bright red */
+}
+.wire[data-type="substrate"],
+.wire[data-type="materialattributes"] {
+  stroke: #a30ff5; /* Purple/Magenta - Substrate */
+}
+.wire[data-type="exec"] {
+  stroke: #ffffff; /* White - Execution */
+}
+.wire[data-type="int"] {
+  stroke: #03c46d; /* Green-blue */
+}

@@ -1,0 +1,342 @@
+/* ============================================================================
+   DETAILS PANEL
+   ============================================================================ */
+#details-panel {
+  flex: 1;
+}
+
+#details-content {
+  padding: 0;
+}
+
+.property-category {
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: var(--bg-medium);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.category-header:hover {
+  background-color: var(--bg-light);
+}
+
+.category-header i {
+  font-size: 8px;
+  margin-right: 6px;
+  color: var(--text-muted);
+}
+
+.property-category.collapsed .category-content {
+  display: none;
+}
+
+.property-category.collapsed .category-header i {
+  transform: rotate(-90deg);
+}
+
+.category-content {
+  padding: 4px 0;
+}
+
+.property-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  padding: 3px 4px 3px 8px;
+  font-size: 11px;
+  min-height: 26px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.property-row:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.property-row label {
+  color: var(--text-secondary);
+  padding-right: 12px;
+  border-right: 1px solid var(--border-medium);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.property-row > *:nth-child(2) {
+  padding-left: 12px;
+}
+
+.property-row select,
+.property-row input[type="text"],
+.property-row input[type="number"] {
+  width: 100%;
+  padding: 3px 6px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.property-row select:focus,
+.property-row input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+/* Color picker and input group */
+.color-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.color-picker {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.color-picker::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
+.color-component {
+  width: 50px !important;
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  flex-shrink: 0;
+  padding: 3px 4px !important;
+  font-size: 10px;
+}
+
+/* Input Defaults Section for unconnected pins */
+.input-defaults-section {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-medium);
+}
+
+.input-defaults-section .section-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-left: 8px;
+}
+
+.input-pin-row {
+  background-color: rgba(0, 100, 200, 0.05);
+}
+
+.input-pin-row label {
+  color: var(--accent-blue);
+}
+
+.vec3-input {
+  display: flex;
+  gap: 4px;
+}
+
+.vec3-input input {
+  width: 50px;
+  flex: 1;
+}
+
+.pin-input {
+  width: 100%;
+  padding: 3px 6px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+/* UE5-style Checkbox */
+.ue5-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.ue5-checkbox:checked {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.ue5-checkbox:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* UE5-style Slider Input Group */
+.slider-row {
+  flex-wrap: wrap;
+}
+
+.slider-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Slider + Number input combo for pin defaults */
+.slider-number-combo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.slider-number-combo .pin-slider {
+  flex: 1;
+  min-width: 60px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider-number-combo .pin-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: 1px solid var(--bg-darkest);
+}
+
+.slider-number-combo .pin-input {
+  width: 50px;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+/* Standalone number input (no slider) */
+.ue5-number-input {
+  width: 100%;
+  max-width: 120px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.ue5-number-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.vec3-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.vec3-input-group .slider-number-combo {
+  gap: 4px;
+}
+
+.vec3-input-group .pin-input {
+  width: 40px;
+}
+
+.ue5-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ue5-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: 2px solid var(--bg-darkest);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+}
+
+.ue5-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 8px var(--accent-blue);
+}
+
+.ue5-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: 2px solid var(--bg-darkest);
+}
+
+.slider-number {
+  width: 50px;
+  padding: 3px 6px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 10px;
+  text-align: center;
+}
+
+/* STATUS BAR styles are defined near end of file */

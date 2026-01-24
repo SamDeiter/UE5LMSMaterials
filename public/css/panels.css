@@ -1,0 +1,547 @@
+/* ============================================================================
+   MAIN CONTENT AREA
+   ============================================================================ */
+#main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background-color: var(--bg-darkest);
+  min-height: 0;
+}
+
+.panel-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Allow grid to shrink columns */
+}
+
+#left-column {
+  /* Width controlled by CSS Grid in LayoutController.js */
+  background-color: var(--bg-panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 100%;
+}
+
+#right-column {
+  /* Width controlled by CSS Grid in LayoutController.js */
+  min-width: 0; /* Allow grid to shrink */
+  background-color: var(--bg-panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* ============================================================================
+   RESIZERS
+   ============================================================================ */
+.resizer-vertical {
+  width: var(--resizer-size);
+  background-color: var(--border-dark);
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.resizer-vertical:hover {
+  background-color: var(--accent-blue);
+}
+
+.resizer-horizontal {
+  height: 6px;
+  background-color: var(--accent-blue);
+  cursor: row-resize;
+  transition:
+    background-color 0.2s,
+    height 0.1s;
+  flex-shrink: 0;
+}
+
+.resizer-horizontal:hover {
+  background-color: #5599ff;
+  height: 8px;
+}
+
+/* ============================================================================
+   PANELS
+   ============================================================================ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-dark);
+}
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  min-height: 0; /* Allow flex shrinking */
+}
+
+/* Viewport styles moved to VIEWPORT PANEL section below */
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--panel-header-height);
+  padding: 0 8px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #222 100%);
+  border-bottom: 1px solid var(--border-dark);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.panel-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Viewport panel specific - two-row toolbar like UE5 */
+.viewport-header {
+  display: flex;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  height: auto !important;
+  min-height: auto !important;
+  padding: 4px 8px !important;
+  gap: 4px !important;
+}
+
+.viewport-header > span {
+  display: none; /* Hide "Viewport" label to save space */
+}
+
+.viewport-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+/* Compact controls for viewport */
+#viewport-panel .panel-select {
+  font-size: 9px;
+  padding: 2px 3px;
+}
+
+#viewport-panel .panel-tool {
+  font-size: 9px;
+  padding: 2px 4px;
+}
+
+#viewport-panel .fov-label {
+  font-size: 8px;
+}
+
+#viewport-panel .fov-slider {
+  width: 40px;
+}
+
+.panel-tool {
+  padding: 2px 6px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.panel-tool:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-lighter);
+}
+
+.panel-tool.active {
+  color: var(--text-bright);
+  background-color: var(--accent-blue);
+}
+
+.panel-select {
+  padding: 2px 4px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* Background color picker */
+.bg-color-picker {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+}
+
+.bg-color-picker::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.bg-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
+/* FOV Slider styling */
+.fov-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.fov-slider {
+  width: 50px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.fov-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+}
+
+.fov-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: none;
+}
+
+/* Exposure (EV) Controls - UE5 Style */
+.exposure-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.exposure-slider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.exposure-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.exposure-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.exposure-input {
+  width: 44px;
+  height: 20px;
+  padding: 2px 4px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-size: 10px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.exposure-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background-color: var(--bg-medium);
+}
+
+.exposure-input::-webkit-inner-spin-button,
+.exposure-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.exposure-input {
+  -moz-appearance: textfield;
+}
+
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: var(--bg-medium);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+}
+
+/* ============================================================================
+   STATS PANEL - Fixed height, not resizable (matches UE5 behavior)
+   ============================================================================ */
+#stats-panel {
+  flex: 0 0 auto;
+  min-height: auto;
+  height: auto !important; /* Override JS-set height - panel auto-sizes to content */
+  max-height: 140px; /* Reasonable max to prevent overflow */
+}
+
+#stats-panel .panel-content {
+  padding: 6px 8px;
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.stat-row.warning .stat-value {
+  color: #ff6b6b;
+}
+
+.stat-row.budget-low .stat-value {
+  color: #4ade80;
+}
+
+.stat-row.budget-medium .stat-value {
+  color: #fbbf24;
+}
+
+.stat-row.budget-high .stat-value {
+  color: #f87171;
+}
+
+/* Stats Panel - Error/Warning Messages (UE5 Style) */
+.stats-messages {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.stats-error {
+  font-size: 10px;
+  color: #ff6b6b;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  background: rgba(255, 107, 107, 0.1);
+  border-left: 2px solid #ff6b6b;
+  border-radius: 2px;
+}
+
+.stats-warning {
+  font-size: 10px;
+  color: #fbbf24;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 2px solid #fbbf24;
+  border-radius: 2px;
+}
+
+/* ============================================================================
+   VIEWPORT PANEL
+   ============================================================================ */
+#viewport-panel {
+  flex-shrink: 0;
+  min-height: 150px;
+  overflow: hidden;
+}
+
+.viewport-content {
+  position: relative;
+  padding: 0;
+  background-color: #1a1a1a;
+}
+
+#viewport-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#viewport-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  pointer-events: none;
+}
+
+.viewport-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* ============================================================================
+   PALETTE PANEL
+   ============================================================================ */
+#palette-panel {
+  flex: 1;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+
+.search-box i {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-right: 6px;
+}
+
+.search-box input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Tree View (Palette categories) */
+.tree-view {
+  padding: 0;
+}
+
+.tree-category {
+  margin-bottom: 1px;
+}
+
+.tree-category-header {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  background-color: var(--bg-medium);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-left: 2px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.tree-category-header:hover {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+  border-left-color: var(--accent-blue);
+}
+
+/* Chevron icon */
+.tree-category-header::before {
+  content: "▼";
+  font-size: 7px;
+  margin-right: 8px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.tree-category.collapsed .tree-category-header::before {
+  transform: rotate(-90deg);
+}
+
+.tree-category-header i {
+  display: none; /* Hide old icon, using ::before instead */
+}
+
+.tree-category.collapsed .tree-category-content {
+  display: none;
+}
+
+.tree-category-content {
+  padding-left: 12px;
+  border-left: 1px solid var(--border-medium);
+  margin-left: 6px;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-radius: 2px;
+}
+
+.tree-item:hover {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.tree-item-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: bold;
+}

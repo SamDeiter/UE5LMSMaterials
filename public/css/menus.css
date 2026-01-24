@@ -1,0 +1,375 @@
+/* ============================================================================
+   ACTION MENU (Node Search/Spawn)
+   ============================================================================ */
+.action-menu {
+  position: absolute;
+  min-width: 280px;
+  max-height: 400px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-dark);
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-menu-header {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.action-menu-header input {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.action-menu-header input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.action-menu-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.action-menu-category {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.action-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.action-menu-item:hover {
+  background-color: var(--accent-blue);
+}
+
+.action-menu-item.selected {
+  background-color: var(--accent-blue);
+}
+
+.action-menu-item-icon {
+  width: 20px;
+  text-align: center;
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.action-menu-item-hotkey {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+   CONTEXT MENU
+   ============================================================================ */
+.context-menu {
+  position: absolute;
+  min-width: 180px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-dark);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.context-menu-item:hover {
+  background-color: var(--accent-blue);
+}
+
+.context-menu-item i {
+  width: 16px;
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.context-menu-item:hover i {
+  color: var(--text-primary);
+}
+
+.context-menu-divider {
+  height: 1px;
+  background-color: var(--border-dark);
+  margin: 4px 0;
+}
+
+/* Note: Base .modal and .modal-content styles are in the main MODALS section below */
+
+/* Help Modal specific styles */
+.help-section {
+  margin-bottom: 16px;
+}
+
+.help-section h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.help-section ul {
+  list-style: none;
+  padding-left: 8px;
+}
+
+.help-section li {
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.help-section strong {
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   COMMENT NODES
+   ============================================================================ */
+.node.comment-node {
+  border-radius: 4px;
+  min-width: 200px;
+  min-height: 100px;
+  background: rgba(46, 125, 50, 0.15);
+  border: 2px solid var(--header-comment);
+  z-index: 1; /* Behind other nodes */
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+
+.node.comment-node:hover {
+  border-color: #4caf50;
+}
+
+.node.comment-node.selected {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--accent-blue);
+}
+
+.node.comment-node .node-header {
+  border-radius: 2px 2px 0 0;
+  padding: 6px 10px;
+  cursor: move;
+}
+
+.node.comment-node .node-header.comment-header {
+  display: flex;
+  align-items: center;
+}
+
+.comment-title-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-bright);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.comment-title-input::placeholder {
+  color: var(--text-muted);
+}
+
+.comment-title-input:focus {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 2px;
+}
+
+.node.comment-node .node-content.comment-body {
+  flex: 1;
+  padding: 8px;
+  min-height: 50px;
+}
+
+.comment-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  user-select: none;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.comment-resize-handle:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   REROUTE NODES
+   ============================================================================ */
+.node.reroute-node {
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  z-index: 15;
+  cursor: move;
+  transform-origin: center center !important;
+}
+
+.node.reroute-node.selected {
+  filter: drop-shadow(0 0 4px var(--accent-blue));
+}
+
+.reroute-connector {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* The main diamond/dot - using CSS to create a diamond shape */
+.reroute-connector::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--bg-medium);
+  border: 2px solid #5bff0f;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.reroute-connector .pin-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border-width: 2px;
+  z-index: 1;
+}
+
+.reroute-connector .pin-dot.reroute-in {
+  left: -6px;
+}
+
+.reroute-connector .pin-dot.reroute-out {
+  right: -6px;
+}
+
+.reroute-connector .pin-dot:hover {
+  transform: scale(1.3);
+}
+
+/* ============================================================================
+   ERROR STATES
+   ============================================================================ */
+.node.error {
+  border-color: var(--accent-red);
+}
+
+.node.error::after {
+  content: "!";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: var(--accent-red);
+  border-radius: 50%;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================================
+   DROPDOWN MENUS
+   ============================================================================ */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  background-color: var(--bg-medium);
+  border: 1px solid var(--border-dark);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: none;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: var(--accent-blue);
+  color: var(--text-bright);
+}
+
+.dropdown-item i {
+  margin-right: 8px;
+  font-size: 10px;
+  width: 14px;
+  text-align: center;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-medium);
+  margin: 4px 0;
+}
+
+.dropdown-shortcut {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-left: 20px;
+}

@@ -1,0 +1,267 @@
+/* ============================================================================
+   MENU BAR
+   ============================================================================ */
+.menubar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+  border-bottom: 1px solid var(--border-dark);
+  padding: 0 8px;
+}
+
+.menu-left {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ue-logo-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  filter: brightness(0.9);
+}
+
+.menu-item {
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.menu-item:hover {
+  background-color: var(--bg-lighter);
+  color: var(--text-bright);
+}
+
+.menu-right {
+  display: flex;
+  align-items: center;
+}
+
+.window-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.window-controls i {
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 10px;
+}
+
+.window-controls i:hover {
+  color: var(--text-primary);
+}
+
+/* ============================================================================
+   TAB BAR
+   ============================================================================ */
+.tabbar {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-medium);
+  border-bottom: 1px solid var(--border-dark);
+  padding: 0 4px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-dark);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  margin-right: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tab.active {
+  background-color: var(--bg-panel);
+  color: var(--text-bright);
+  border-bottom: 1px solid var(--bg-panel);
+  margin-bottom: -1px;
+}
+
+.tab-close {
+  margin-left: 8px;
+  font-size: 9px;
+  opacity: 0.5;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  color: var(--accent-red);
+}
+
+.tab-spacer {
+  flex: 1;
+}
+
+/* ============================================================================
+   TOOLBAR
+   ============================================================================ */
+.toolbar {
+  display: flex;
+  flex-direction: row !important; /* Override .panel's column direction */
+  align-items: center;
+  background: linear-gradient(180deg, #2a2a2a 0%, #222 100%);
+  border-bottom: 1px solid var(--border-dark);
+  padding: 0 8px;
+  gap: 8px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border-medium);
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.15s ease;
+}
+
+.toolbar-btn:hover {
+  background-color: var(--bg-lighter);
+  color: var(--text-bright);
+  border-color: var(--border-light);
+}
+
+.toolbar-btn:active {
+  background-color: var(--bg-medium);
+}
+
+.toolbar-btn.btn-primary {
+  background-color: #1a5f1a;
+  border-color: #2a7f2a;
+  color: var(--text-bright);
+}
+
+.toolbar-btn.btn-primary:hover {
+  background-color: #2a7f2a;
+}
+
+.toolbar-btn.toggle-btn.active {
+  background-color: var(--accent-blue);
+  border-color: #0088ee;
+  color: var(--text-bright);
+}
+
+.toolbar-btn i {
+  font-size: 11px;
+}
+
+.toolbar-status {
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 80px;
+  flex-shrink: 1;
+}
+
+#zoom-readout {
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   TOOLBAR RESPONSIVE STYLES
+   ============================================================================ */
+
+/* Prevent toolbar overflow - allow horizontal scroll if needed */
+.toolbar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  min-height: var(--toolbar-height);
+  scrollbar-width: thin;
+}
+
+/* Hide scrollbar but keep functionality */
+.toolbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.toolbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-medium);
+  border-radius: 2px;
+}
+
+/* Prevent button text wrapping */
+.toolbar-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Allow status to shrink but not disappear */
+.toolbar-group {
+  flex-shrink: 0;
+}
+
+/* Responsive: Narrow viewports */
+@media (max-width: 900px) {
+  /* Hide text labels, keep icons */
+  .toolbar-btn span:not(.sr-only) {
+    display: none;
+  }
+
+  .toolbar-btn {
+    padding: 4px 6px;
+  }
+
+  /* Reduce status area */
+  .toolbar-status {
+    min-width: 60px;
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Further reduce toolbar for very narrow screens */
+  .toolbar-group {
+    gap: 2px;
+    padding-right: 4px;
+  }
+
+  .toolbar {
+    gap: 4px;
+    padding: 0 4px;
+  }
+
+  .toolbar-btn {
+    padding: 3px 5px;
+  }
+
+  .toolbar-btn i {
+    font-size: 10px;
+  }
+
+  /* Hide status completely on very small screens */
+  .toolbar-status {
+    display: none;
+  }
+}

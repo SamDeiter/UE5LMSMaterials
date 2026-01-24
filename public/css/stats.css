@@ -1,0 +1,37 @@
+/* ============================================================================
+   STATS STRIP (Bottom horizontal bar)
+   ============================================================================ */
+.stats-strip {
+  display: flex;
+  flex-direction: row !important; /* Override .panel's column direction */
+  align-items: center;
+  padding: 4px 12px;
+  background: linear-gradient(180deg, #1e1e1e 0%, #171717 100%);
+  border-top: 1px solid var(--border-dark);
+  border-bottom: 1px solid var(--border-dark);
+  height: auto;
+  min-height: 24px;
+}
+
+.stats-grid.horizontal {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.stats-grid .stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-grid .stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.stats-grid .stat-value {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
