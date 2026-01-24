@@ -238,31 +238,107 @@
         <div id="left-column" class="panel-column">
           <!-- 3D VIEWPORT PANEL -->
           <div id="viewport-panel" class="panel">
-            <div class="panel-header viewport-header">
-              <span>Viewport</span>
-              <!-- Row 1: View Mode Controls -->
-              <div class="viewport-toolbar-row">
-                <select
-                  id="viewport-env-select"
-                  class="panel-select"
-                  title="Environment Preset"
-                >
-                  <option value="studio">Studio</option>
-                  <option value="outdoor">Outdoor</option>
-                  <option value="night">Night</option>
-                </select>
-                <select
-                  id="viewport-view-mode"
-                  class="panel-select"
-                  title="View Mode"
-                >
-                  <option value="lit">Lit</option>
-                  <option value="unlit">Unlit</option>
-                  <option value="wireframe">Wireframe</option>
-                </select>
+            <!-- UE5-style Viewport Header Bar -->
+            <div class="viewport-header-bar">
+              <!-- Left tabs: Perspective, Lit, Show -->
+              <div class="viewport-tabs">
+                <!-- Perspective dropdown -->
+                <div class="viewport-tab dropdown-trigger" id="perspective-tab">
+                  <i class="fas fa-video"></i>
+                  <span>Perspective</span>
+                  <i class="fas fa-caret-down"></i>
+                  <div class="viewport-dropdown" id="perspective-dropdown">
+                    <button
+                      class="dropdown-item active"
+                      data-value="perspective"
+                    >
+                      Perspective
+                    </button>
+                    <button class="dropdown-item" data-value="front">
+                      Front
+                    </button>
+                    <button class="dropdown-item" data-value="back">
+                      Back
+                    </button>
+                    <button class="dropdown-item" data-value="top">Top</button>
+                    <button class="dropdown-item" data-value="bottom">
+                      Bottom
+                    </button>
+                    <button class="dropdown-item" data-value="left">
+                      Left
+                    </button>
+                    <button class="dropdown-item" data-value="right">
+                      Right
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Lit dropdown (view modes) -->
+                <div class="viewport-tab dropdown-trigger" id="lit-tab">
+                  <i class="fas fa-sun"></i>
+                  <span>Lit</span>
+                  <i class="fas fa-caret-down"></i>
+                  <div class="viewport-dropdown" id="lit-dropdown">
+                    <button class="dropdown-item active" data-value="lit">
+                      Lit
+                    </button>
+                    <button class="dropdown-item" data-value="unlit">
+                      Unlit
+                    </button>
+                    <button class="dropdown-item" data-value="wireframe">
+                      Wireframe
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item" data-value="basecolor">
+                      Base Color
+                    </button>
+                    <button class="dropdown-item" data-value="roughness">
+                      Roughness
+                    </button>
+                    <button class="dropdown-item" data-value="metallic">
+                      Metallic
+                    </button>
+                    <button class="dropdown-item" data-value="normal">
+                      Normal
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Show dropdown -->
+                <div class="viewport-tab dropdown-trigger" id="show-tab">
+                  <span>Show</span>
+                  <i class="fas fa-caret-down"></i>
+                  <div class="viewport-dropdown" id="show-dropdown">
+                    <label class="dropdown-checkbox">
+                      <input type="checkbox" id="show-grid" checked />
+                      <span>Grid</span>
+                    </label>
+                    <label class="dropdown-checkbox">
+                      <input type="checkbox" id="show-floor" />
+                      <span>Floor</span>
+                    </label>
+                    <label class="dropdown-checkbox">
+                      <input type="checkbox" id="show-background" checked />
+                      <span>Background</span>
+                    </label>
+                    <div class="dropdown-divider"></div>
+                    <label class="dropdown-checkbox">
+                      <input type="checkbox" id="show-postprocess" checked />
+                      <span>Post Process</span>
+                    </label>
+                    <label class="dropdown-checkbox">
+                      <input type="checkbox" id="show-bloom" checked />
+                      <span>Bloom</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right controls: Mesh, Environment, FOV -->
+              <div class="viewport-controls">
                 <select
                   id="viewport-mesh-select"
-                  class="panel-select"
+                  class="viewport-mini-select"
                   title="Preview Mesh"
                 >
                   <option value="sphere">Sphere</option>
@@ -270,7 +346,16 @@
                   <option value="plane">Plane</option>
                   <option value="cube">Cube</option>
                 </select>
-                <label class="fov-label" title="Field of View">
+                <select
+                  id="viewport-env-select"
+                  class="viewport-mini-select"
+                  title="Environment"
+                >
+                  <option value="studio">Studio</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="night">Night</option>
+                </select>
+                <label class="viewport-slider-label" title="Field of View">
                   FOV
                   <input
                     type="range"
@@ -278,13 +363,10 @@
                     min="30"
                     max="90"
                     value="45"
-                    class="fov-slider"
+                    class="viewport-slider"
                   />
                 </label>
-              </div>
-              <!-- Row 2: Rendering Controls -->
-              <div class="viewport-toolbar-row">
-                <label class="exposure-label" title="Exposure (EV)">
+                <label class="viewport-slider-label" title="Exposure (EV)">
                   EV
                   <input
                     type="range"
@@ -293,56 +375,9 @@
                     max="3"
                     value="0"
                     step="0.1"
-                    class="exposure-slider"
-                  />
-                  <input
-                    type="number"
-                    id="viewport-exposure-value"
-                    min="-3"
-                    max="3"
-                    value="0"
-                    step="0.1"
-                    class="exposure-input"
-                    title="EV Value"
+                    class="viewport-slider"
                   />
                 </label>
-                <button
-                  id="viewport-floor-btn"
-                  class="panel-tool"
-                  title="Toggle Floor Plane"
-                >
-                  Floor
-                </button>
-                <button
-                  id="viewport-grid-btn"
-                  class="panel-tool active"
-                  title="Toggle Grid"
-                >
-                  Grid
-                </button>
-                <button
-                  id="viewport-tonemapper-btn"
-                  class="panel-tool active"
-                  title="Toggle Tone Mapping"
-                >
-                  TM
-                </button>
-                <select
-                  id="viewport-pp-select"
-                  class="panel-select"
-                  title="Post-Processing"
-                >
-                  <option value="all">PP: All</option>
-                  <option value="bloom">PP: Bloom</option>
-                  <option value="none">PP: Off</option>
-                </select>
-                <button
-                  id="viewport-bg-btn"
-                  class="panel-tool active"
-                  title="Toggle HDRI Background"
-                >
-                  BG
-                </button>
                 <input
                   type="color"
                   id="viewport-bg-color"

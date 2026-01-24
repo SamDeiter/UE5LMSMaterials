@@ -45,10 +45,63 @@ export class ViewportController {
   }
 
   bindControls() {
-    // View Mode dropdown (replaces old Lit/Unlit buttons)
-    const viewModeSelect = document.getElementById("viewport-view-mode");
-    viewModeSelect?.addEventListener("change", (e) => {
-      this.setViewMode(e.target.value);
+    // === UE5-STYLE DROPDOWN TABS ===
+
+    // Lit dropdown (view modes)
+    const litDropdown = document.getElementById("lit-dropdown");
+    const litTab = document.getElementById("lit-tab");
+    litDropdown?.querySelectorAll(".dropdown-item").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        const mode = e.target.dataset.value;
+        this.setViewMode(mode);
+        // Update tab label and active states
+        litTab.querySelector("span").textContent = e.target.textContent;
+        litDropdown
+          .querySelectorAll(".dropdown-item")
+          .forEach((i) => i.classList.remove("active"));
+        e.target.classList.add("active");
+      });
+    });
+
+    // Show dropdown checkboxes
+    document.getElementById("show-grid")?.addEventListener("change", (e) => {
+      this.gridVisible = e.target.checked;
+      if (this.sceneManager?.gridHelper) {
+        this.sceneManager.gridHelper.visible = this.gridVisible;
+        this.sceneManager.needsRender = true;
+      }
+    });
+
+    document.getElementById("show-floor")?.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        this.sceneManager?.toggleFloor();
+      } else if (this.sceneManager?.floorPlane) {
+        this.sceneManager.floorPlane.visible = false;
+        this.sceneManager.needsRender = true;
+      }
+    });
+
+    document
+      .getElementById("show-background")
+      ?.addEventListener("change", (e) => {
+        if (e.target.checked && !this.sceneManager?.showHDRIBackground) {
+          this.sceneManager?.toggleBackground();
+        } else if (!e.target.checked && this.sceneManager?.showHDRIBackground) {
+          this.sceneManager?.toggleBackground();
+        }
+      });
+
+    document
+      .getElementById("show-postprocess")
+      ?.addEventListener("change", (e) => {
+        this.setPostProcessing(e.target.checked ? "all" : "none");
+      });
+
+    document.getElementById("show-bloom")?.addEventListener("change", (e) => {
+      if (this.sceneManager?.bloomPass) {
+        this.sceneManager.bloomPass.enabled = e.target.checked;
+        this.sceneManager.needsRender = true;
+      }
     });
 
     // Mesh select
@@ -155,15 +208,34 @@ export class ViewportController {
   bindKeyboardControls() {
     this.canvas.tabIndex = 0;
 
-    // Track L key state for light rotation
+    // Track L key state for light rotation - use document listener for better coverage
     this.isLightDragging = false;
     this.lastMousePos = { x: 0, y: 0 };
 
-    this.canvas?.addEventListener("keydown", (e) => {
-      this.keysPressed[e.key.toLowerCase()] = true;
+    // IMPORTANT: Listen on document for L key to work even when canvas doesn't have focus
+    document.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      this.keysPressed[key] = true;
+
+      // If L is pressed, disable OrbitControls to prevent camera movement
+      if (key === "l" && this.sceneManager?.controls) {
+        this.sceneManager.controls.enabled = false;
+      }
     });
-    this.canvas?.addEventListener("keyup", (e) => {
-      this.keysPressed[e.key.toLowerCase()] = false;
+
+    document.addEventListener("keyup", (e) => {
+      const key = e.key.toLowerCase();
+      this.keysPressed[key] = false;
+
+      // Re-enable OrbitControls when L is released
+      if (key === "l" && this.sceneManager?.controls) {
+        this.sceneManager.controls.enabled = true;
+        // Also end any light dragging
+        if (this.isLightDragging) {
+          this.isLightDragging = false;
+          this.sceneManager.showLightHelper?.(false);
+        }
+      }
     });
 
     // L + Left Click + Drag to rotate light (UE5 style)
