@@ -255,6 +255,14 @@ export class MaterialNode {
       this.collapsed = !this.collapsed;
       el.classList.toggle("collapsed", this.collapsed);
       collapseBtn.innerHTML = this.collapsed ? "▶" : "▼";
+
+      // Update wire positions after collapse/expand (fixes wires pointing to old positions)
+      if (this.app?.graph?.wiring) {
+        // Small delay to allow CSS transition to complete
+        requestAnimationFrame(() => {
+          this.app.graph.wiring.updateAllWires();
+        });
+      }
     });
     titleRow.appendChild(collapseBtn);
 
