@@ -2959,3 +2959,44 @@ body {
   border-color: var(--accent-blue);
   box-shadow: 0 0 4px rgba(42, 74, 106, 0.3);
 }
+
+/* Drag and Drop States */
+.layer-item.dragging {
+  opacity: 0.5;
+  border: 1px dashed var(--accent-blue);
+  background: rgba(42, 74, 106, 0.2);
+}
+
+.layer-item.drag-over {
+  border-color: var(--accent-green);
+  box-shadow: 0 0 8px rgba(106, 176, 76, 0.4);
+}
+
+.layer-item.drag-over::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent-green);
+  border-radius: 1px;
+}
+
+/* Inline Rename Input */
+.layer-rename-input {
+  width: 100%;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-input);
+  border: 1px solid var(--accent-blue);
+  border-radius: 2px;
+  color: var(--text-bright);
+  outline: none;
+}
+
+.layer-rename-input:focus {
+  box-shadow: 0 0 4px rgba(42, 74, 106, 0.5);
+}
+

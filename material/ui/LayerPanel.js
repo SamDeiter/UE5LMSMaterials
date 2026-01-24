@@ -25,8 +25,98 @@ export class LayerPanel {
     }
 
     this.render();
+    this.bindKeyboardShortcuts();
     this.initialized = true;
     return true;
+  }
+
+  /**
+   * Bind keyboard shortcuts for layer operations
+   */
+  bindKeyboardShortcuts() {
+    document.addEventListener("keydown", (e) => {
+      // Only handle if layers panel is focused or no input is active
+      const activeEl = document.activeElement;
+      const isInputActive =
+        activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.tagName === "SELECT";
+
+      if (isInputActive) return;
+
+      // Check if Ctrl key is held
+      const isCtrl = e.ctrlKey || e.metaKey;
+
+      // Ctrl+Shift+N: Add new layer
+      if (isCtrl && e.shiftKey && e.key === "N") {
+        e.preventDefault();
+        this.addLayer();
+        this.app?.updateStatus("Layer added");
+      }
+
+      // Ctrl+Shift+D: Duplicate selected layer
+      if (isCtrl && e.shiftKey && e.key === "D") {
+        e.preventDefault();
+        this.duplicateLayer(this.selectedLayerIndex);
+      }
+
+      // Delete: Remove selected layer
+      if (e.key === "Delete" && this.layers.length > 1) {
+        // Only if layer panel might be focused (not when graph is active)
+        const layerPanel = document.getElementById("layers-panel");
+        if (layerPanel && layerPanel.contains(activeEl)) {
+          e.preventDefault();
+          this.removeLayer(this.selectedLayerIndex);
+        }
+      }
+
+      // Alt+Up: Move layer up
+      if (e.altKey && e.key === "ArrowUp") {
+        e.preventDefault();
+        this.moveLayerUp(this.selectedLayerIndex);
+      }
+
+      // Alt+Down: Move layer down
+      if (e.altKey && e.key === "ArrowDown") {
+        e.preventDefault();
+        this.moveLayerDown(this.selectedLayerIndex);
+      }
+    });
+  }
+
+  /**
+   * Duplicate a layer by index
+   */
+  duplicateLayer(index) {
+    if (index < 0 || index >= this.layers.length) return null;
+
+    const sourceLaye = this.layers[index];
+    const newLayer = {
+      ...sourceLaye,
+      id: `layer_${Date.now()}_${this.layers.length}`,
+      name: `${sourceLaye.name} Copy`,
+    };
+
+    // Insert after the source layer
+    this.layers.splice(index + 1, 0, newLayer);
+    this.selectedLayerIndex = index + 1;
+    this.render();
+    this.emitChange();
+    this.app?.updateStatus(`Duplicated: ${sourceLaye.name}`);
+
+    return newLayer;
+  }
+
+  /**
+   * Rename a layer by index
+   */
+  renameLayer(index, newName) {
+    if (index < 0 || index >= this.layers.length) return;
+    if (!newName || newName.trim() === "") return;
+
+    this.layers[index].name = newName.trim();
+    this.render();
+    this.emitChange();
   }
 
   /**
@@ -340,12 +430,139 @@ export class LayerPanel {
         });
       } else if (action === "select") {
         el.addEventListener("click", () => this.selectLayer(index));
+        // Double-click to rename
+        el.addEventListener("dblclick", () => this.startRename(index));
       } else if (action === "set-weight") {
         el.addEventListener("input", (e) => {
           this.setLayerWeight(index, parseInt(e.target.value, 10) / 100);
         });
       }
     });
+
+    // Bind drag-and-drop for layer reordering
+    this.bindDragAndDrop();
+  }
+
+  /**
+   * Start inline rename for a layer
+   */
+  startRename(index) {
+    if (index < 0 || index >= this.layers.length) return;
+
+    const layer = this.layers[index];
+    const layerItems = this.container.querySelectorAll(".layer-item");
+
+    // Find the layer item (rendered in reverse order)
+    const layerItem = Array.from(layerItems).find(
+      (item) => parseInt(item.dataset.index, 10) === index,
+    );
+    if (!layerItem) return;
+
+    const nameEl = layerItem.querySelector(".layer-name");
+    if (!nameEl) return;
+
+    // Replace text with input
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = layer.name;
+    input.className = "layer-rename-input";
+
+    const finishRename = () => {
+      const newName = input.value.trim();
+      if (newName && newName !== layer.name) {
+        this.renameLayer(index, newName);
+      } else {
+        this.render();
+      }
+    };
+
+    input.addEventListener("blur", finishRename);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        input.blur();
+      } else if (e.key === "Escape") {
+        input.value = layer.name;
+        input.blur();
+      }
+    });
+
+    nameEl.innerHTML = "";
+    nameEl.appendChild(input);
+    input.focus();
+    input.select();
+  }
+
+  /**
+   * Bind drag-and-drop for layer reordering
+   */
+  bindDragAndDrop() {
+    const layerItems = this.container.querySelectorAll(".layer-item");
+
+    layerItems.forEach((item) => {
+      item.setAttribute("draggable", "true");
+
+      item.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", item.dataset.index);
+        item.classList.add("dragging");
+      });
+
+      item.addEventListener("dragend", () => {
+        item.classList.remove("dragging");
+      });
+
+      item.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        item.classList.add("drag-over");
+      });
+
+      item.addEventListener("dragleave", () => {
+        item.classList.remove("drag-over");
+      });
+
+      item.addEventListener("drop", (e) => {
+        e.preventDefault();
+        item.classList.remove("drag-over");
+
+        const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+        const toIndex = parseInt(item.dataset.index, 10);
+
+        if (fromIndex !== toIndex) {
+          this.moveLayerTo(fromIndex, toIndex);
+        }
+      });
+    });
+  }
+
+  /**
+   * Move a layer from one index to another
+   */
+  moveLayerTo(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= this.layers.length) return;
+    if (toIndex < 0 || toIndex >= this.layers.length) return;
+    if (fromIndex === toIndex) return;
+
+    const layer = this.layers.splice(fromIndex, 1)[0];
+    this.layers.splice(toIndex, 0, layer);
+
+    // Update selection if needed
+    if (this.selectedLayerIndex === fromIndex) {
+      this.selectedLayerIndex = toIndex;
+    } else if (
+      fromIndex < toIndex &&
+      this.selectedLayerIndex > fromIndex &&
+      this.selectedLayerIndex <= toIndex
+    ) {
+      this.selectedLayerIndex--;
+    } else if (
+      fromIndex > toIndex &&
+      this.selectedLayerIndex >= toIndex &&
+      this.selectedLayerIndex < fromIndex
+    ) {
+      this.selectedLayerIndex++;
+    }
+
+    this.render();
+    this.emitChange();
   }
 
   /**
