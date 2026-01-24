@@ -6,6 +6,7 @@
 
 import { MaterialPin } from "./MaterialPin.js";
 import { materialNodeRegistry } from "./NodeRegistry.js";
+import { nodePreviewRenderer } from "../engine/NodePreviewRenderer.js";
 
 export class MaterialNode {
   constructor(id, definition, x, y, app) {
@@ -455,8 +456,95 @@ export class MaterialNode {
 
   /**
    * Update the preview thumbnail (override in subclasses)
+   * Uses WebGL-based NodePreviewRenderer when available for live 3D previews
    */
   updatePreview(previewEl) {
+    // Try WebGL-based preview first
+    if (nodePreviewRenderer && nodePreviewRenderer.initialized) {
+      const previewResult = this.renderWebGLPreview(previewEl);
+      if (previewResult) return;
+    }
+
+    // Fallback to CSS-based preview
+    this.renderCSSPreview(previewEl);
+  }
+
+  /**
+   * Render a WebGL-based 3D preview using NodePreviewRenderer
+   */
+  renderWebGLPreview(previewEl) {
+    if (!nodePreviewRenderer || !this.app) return false;
+
+    try {
+      // Evaluate the node output
+      let evaluatedValue = null;
+      let previewType = "sphere";
+
+      // Try to get evaluated output from the node
+      if (this.outputs.length > 0 && this.app.evaluatePin) {
+        const mainOutput = this.outputs[0];
+        evaluatedValue = this.app.evaluatePin(mainOutput);
+
+        // Determine preview type based on output type
+        if (mainOutput.type === "float") {
+          previewType = "mask";
+        } else if (
+          mainOutput.type === "float3" &&
+          this.category?.includes("Normal")
+        ) {
+          previewType = "normal";
+        } else if (
+          mainOutput.type === "texture" ||
+          mainOutput.type === "texture2d"
+        ) {
+          // Textures use their own preview
+          return false;
+        }
+      }
+
+      // Use properties if no evaluated value
+      if (evaluatedValue === null) {
+        if (this.properties.Color) {
+          evaluatedValue = this.properties.Color;
+        } else if (this.properties.R !== undefined) {
+          evaluatedValue = {
+            R: this.properties.R || 0,
+            G: this.properties.G || 0,
+            B: this.properties.B || 0,
+          };
+        } else if (this.properties.Value !== undefined) {
+          evaluatedValue = this.properties.Value;
+          previewType = "mask";
+        }
+      }
+
+      if (evaluatedValue === null) return false;
+
+      // Render the preview
+      const dataUrl = nodePreviewRenderer.renderPreview(
+        this,
+        evaluatedValue,
+        previewType,
+      );
+      if (dataUrl) {
+        previewEl.style.backgroundImage = `url(${dataUrl})`;
+        previewEl.style.backgroundSize = "cover";
+        previewEl.style.backgroundPosition = "center";
+        previewEl.style.backgroundColor = "transparent";
+        previewEl.classList.add("webgl-preview");
+        return true;
+      }
+    } catch (e) {
+      console.debug("WebGL preview fallback:", e.message);
+    }
+
+    return false;
+  }
+
+  /**
+   * Render a CSS-based preview (fallback when WebGL not available)
+   */
+  renderCSSPreview(previewEl) {
     // Check for texture-based preview (TextureSample nodes)
     if (
       this.properties.TextureAsset &&

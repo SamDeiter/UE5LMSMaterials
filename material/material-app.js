@@ -20,6 +20,7 @@ import { HotkeyManager } from "../shared/HotkeyManager.js";
 // Engine modules
 import { MaterialEvaluator } from "./engine/MaterialEvaluator.js";
 import { TextureManager, textureManager } from "./engine/TextureManager.js";
+import { initNodePreviewRenderer } from "./engine/NodePreviewRenderer.js";
 
 // UI Controllers
 import { MaterialGraphController } from "./core/MaterialGraphController.js";
@@ -52,7 +53,7 @@ class MaterialEditorApp {
     // Register all node definitions
     materialNodeRegistry.registerBatch(MaterialExpressionDefinitions);
     console.log(
-      `Registered ${materialNodeRegistry.definitions.size} node types`
+      `Registered ${materialNodeRegistry.definitions.size} node types`,
     );
 
     // Initialize UI Managers
@@ -82,7 +83,7 @@ class MaterialEditorApp {
     this.findResults = new FindResultsController(this);
     this.hlslPanel = new HLSLCodePanel(this);
     this.hlslPanel.init();
-    
+
     // Bind persistence dialog
     this.persistence.showSaveDialog = () => this.saveAssetsModal.show();
 
@@ -90,7 +91,7 @@ class MaterialEditorApp {
     this.toolbar.bind();
     this.menu.bind();
     this.modals.bind();
-    
+
     // Bind shared handlers
     this.bindBlendModeHandler();
 
@@ -108,9 +109,23 @@ class MaterialEditorApp {
     // Load saved graph if it exists
     this.load();
 
+    // Initialize NodePreviewRenderer after viewport is ready (async)
+    this.initNodePreviews();
+
     console.log("Material Editor initialized");
   }
 
+  /**
+   * Initialize the NodePreviewRenderer for WebGL-based node thumbnails
+   */
+  async initNodePreviews() {
+    // Wait for the viewport/scene to be ready
+    if (this.viewport && this.viewport.sceneManager) {
+      const renderer = initNodePreviewRenderer(this.viewport.sceneManager);
+      await renderer.init();
+      console.log("NodePreviewRenderer initialized for live node previews");
+    }
+  }
 
   // ==========================================================================
   // SHARED HANDLERS
@@ -163,22 +178,21 @@ class MaterialEditorApp {
   save() {
     const graphData = this.graph.serialize();
     if (this.persistence.save(graphData)) {
-        this.updateStatus("Saved to local storage");
-        console.log("Material saved");
+      this.updateStatus("Saved to local storage");
+      console.log("Material saved");
     }
   }
 
   load() {
     if (this.persistence.hasData()) {
-        const data = this.persistence.load();
-        if (data) {
-            this.graph.deserialize(data);
-            this.updateStatus("Restored from local storage");
-            console.log("Material graph restored");
-        }
+      const data = this.persistence.load();
+      if (data) {
+        this.graph.deserialize(data);
+        this.updateStatus("Restored from local storage");
+        console.log("Material graph restored");
+      }
     }
   }
-
 
   /**
    * Apply button handler - compiles material and updates preview
@@ -187,27 +201,27 @@ class MaterialEditorApp {
   apply() {
     // Show compiling status (like UE5's shader compilation)
     this.updateStatus("⏳ Compiling Shaders...");
-    
+
     // Use setTimeout to allow UI to update before heavy computation
     setTimeout(() => {
       try {
         // Evaluate graph and update viewport
         this.evaluateGraphAndUpdatePreview();
-        
+
         // Mark material as successfully compiled
         this.materialCompiled = true;
         this.materialDirty = false;
-        
+
         // Update status to show success
         this.updateStatus("✅ Applied");
-        
+
         // Clear success message after 2 seconds
         setTimeout(() => {
           if (this.statusMessage === "✅ Applied") {
             this.updateStatus("Ready");
           }
         }, 2000);
-        
+
         console.log("Material compiled and applied successfully");
       } catch (e) {
         this.updateStatus("❌ Compilation Failed");
@@ -248,17 +262,16 @@ class MaterialEditorApp {
   triggerAutoSave() {
     // Debounce auto-save to avoid excessive writes
     if (!this._debouncedSave) {
-        this._debouncedSave = debounce(() => {
-            const graphData = this.graph.serialize();
-            this.persistence.save(graphData);
-            console.log("Auto-saved");
-        }, UI_TIMINGS.AUTO_SAVE);
+      this._debouncedSave = debounce(() => {
+        const graphData = this.graph.serialize();
+        this.persistence.save(graphData);
+        console.log("Auto-saved");
+      }, UI_TIMINGS.AUTO_SAVE);
     }
-    
+
     this.persistence.markDirty();
     this._debouncedSave();
   }
-
 }
 
 // ============================================================================
