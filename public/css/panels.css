@@ -502,32 +502,48 @@
   overflow: auto;
   padding: 8px;
 }
-
 /* ============================================================================
-   STATS PANEL - Fixed height, not resizable (matches UE5 behavior)
+   STATS PANEL - Compact, non-resizable (matches UE5 Material Stats)
    ============================================================================ */
 #stats-panel {
-  flex: 0 0 auto;
+  flex: 0 0 auto !important;
   min-height: auto;
-  height: auto !important; /* Override JS-set height - panel auto-sizes to content */
-  max-height: 140px; /* Reasonable max to prevent overflow */
+  height: auto !important;
+  max-height: none;
+  resize: none !important;
+  border-top: 1px solid #333;
+  background: #1a1a1a;
+}
+
+#stats-panel .panel-header {
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #222 100%);
+  border-bottom: 1px solid #333;
+  min-height: 22px;
+}
+
+#stats-panel .panel-header span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
 }
 
 #stats-panel .panel-content {
-  padding: 6px 8px;
+  padding: 8px 10px;
 }
 
 .stats-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px 16px;
 }
 
 .stat-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  font-size: 10px;
   padding: 2px 0;
 }
 
@@ -719,26 +735,46 @@
 }
 
 /* ============================================================================
-   PALETTE PANEL
+   PALETTE PANEL (UE5 Style)
    ============================================================================ */
 #palette-panel {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
+#palette-panel .panel-header {
+  padding: 6px 8px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #242424 100%);
+  border-bottom: 1px solid #333;
+}
+
+#palette-panel .panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* UE5-style search box */
 .search-box {
   display: flex;
   align-items: center;
-  flex: 1;
-  background-color: var(--bg-dark);
-  border: 1px solid var(--border-medium);
-  border-radius: 3px;
-  padding: 4px 8px;
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 5px 10px;
+  margin: 8px;
+}
+
+.search-box:focus-within {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 1px rgba(0, 120, 212, 0.3);
 }
 
 .search-box i {
-  color: var(--text-muted);
-  font-size: 10px;
-  margin-right: 6px;
+  color: #666;
+  font-size: 11px;
+  margin-right: 8px;
 }
 
 .search-box input {
@@ -746,93 +782,120 @@
   background: none;
   border: none;
   outline: none;
-  color: var(--text-primary);
+  color: #e0e0e0;
   font-size: 11px;
 }
 
 .search-box input::placeholder {
-  color: var(--text-muted);
+  color: #555;
+  font-style: italic;
 }
 
-/* Tree View (Palette categories) */
+/* UE5-style tree view */
 .tree-view {
-  padding: 0;
+  padding: 4px 0;
 }
 
+/* UE5-style category headers */
 .tree-category {
-  margin-bottom: 1px;
+  margin-bottom: 0;
 }
 
 .tree-category-header {
   display: flex;
   align-items: center;
-  padding: 5px 10px;
-  background-color: var(--bg-medium);
+  padding: 6px 10px;
+  background: #252525;
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #aaa;
   border-left: 2px solid transparent;
-  transition: all 0.15s ease;
+  border-bottom: 1px solid #1a1a1a;
+  transition: all 0.1s ease;
+  user-select: none;
 }
 
 .tree-category-header:hover {
-  background-color: var(--bg-light);
-  color: var(--text-primary);
-  border-left-color: var(--accent-blue);
+  background: #2d2d2d;
+  color: #fff;
+  border-left-color: #0078d4;
 }
 
-/* Chevron icon */
+/* Triangle arrow chevron */
 .tree-category-header::before {
-  content: "▼";
-  font-size: 7px;
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid #666;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
   margin-right: 8px;
-  color: var(--text-muted);
-  transition: transform 0.2s ease;
+  transition: transform 0.15s ease;
 }
 
-.tree-category.collapsed .tree-category-header::before {
-  transform: rotate(-90deg);
+.tree-category-header:hover::before {
+  border-left-color: #aaa;
+}
+
+.tree-category.expanded .tree-category-header::before {
+  transform: rotate(90deg);
 }
 
 .tree-category-header i {
-  display: none; /* Hide old icon, using ::before instead */
+  display: none;
 }
 
-.tree-category.collapsed .tree-category-content {
+.tree-category:not(.expanded) .tree-category-content {
   display: none;
 }
 
 .tree-category-content {
-  padding-left: 12px;
-  border-left: 1px solid var(--border-medium);
-  margin-left: 6px;
+  padding-left: 16px;
+  background: #1e1e1e;
+  border-left: 1px solid #333;
+  margin-left: 10px;
 }
 
+/* UE5-style tree items */
 .tree-item {
   display: flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 4px 10px;
   cursor: pointer;
   font-size: 11px;
-  color: var(--text-secondary);
-  border-radius: 2px;
+  color: #aaa;
+  border-radius: 0;
+  transition: all 0.1s ease;
 }
 
 .tree-item:hover {
-  background-color: var(--bg-light);
-  color: var(--text-primary);
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.tree-item:active {
+  background: #0078d4;
 }
 
 .tree-item-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 6px;
+  margin-right: 8px;
   font-size: 10px;
   font-weight: bold;
+  color: #888;
+  background: #333;
+  border-radius: 2px;
+}
+
+.tree-item:hover .tree-item-icon {
+  background: #444;
+  color: #fff;
 }
 
 /* ============================================================================
