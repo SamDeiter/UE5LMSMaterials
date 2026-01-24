@@ -35,3 +35,52 @@
   color: var(--text-primary);
   font-weight: 500;
 }
+
+/* Stats Error/Warning Messages (UE5 Style) */
+.stats-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.stats-message.warning {
+  background-color: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.stats-message.warning::before {
+  content: "⚠";
+  font-size: 12px;
+}
+
+.stats-message.error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.stats-message.error::before {
+  content: "✕";
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Stats panel collapsible sections */
+.stats-section {
+  margin-bottom: 8px;
+}
+
+.stats-section-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
