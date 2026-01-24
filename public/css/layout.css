@@ -173,6 +173,63 @@
   font-size: 11px;
 }
 
+/* Toolbar Spacer */
+.toolbar-spacer {
+  flex: 1;
+  min-width: 20px;
+}
+
+/* Toolbar Dropdown (UE5 Live Update Style) */
+.toolbar-dropdown {
+  position: relative;
+}
+
+.toolbar-dropdown .dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-dropdown .dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  background-color: #2a2a2a;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  padding: 4px 0;
+  margin-top: 2px;
+}
+
+.toolbar-dropdown:hover .dropdown-menu,
+.toolbar-dropdown.open .dropdown-menu {
+  display: block;
+}
+
+.toolbar-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.toolbar-dropdown .dropdown-item:hover {
+  background-color: var(--bg-lighter);
+}
+
+.toolbar-dropdown .dropdown-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-blue);
+}
+
 .toolbar-status {
   color: var(--text-muted);
   font-size: 10px;
