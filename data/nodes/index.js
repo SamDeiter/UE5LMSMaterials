@@ -19,18 +19,19 @@
  * - DebugNodes.js: BRDF Visualizer, Fresnel Debug, GGX/Smith debug nodes
  */
 
-import { OutputNodes } from './OutputNodes.js';
-import { ConstantNodes } from './ConstantNodes.js';
-import { ParameterNodes } from './ParameterNodes.js';
-import { TextureNodes } from './TextureNodes.js';
-import { MathNodes } from './MathNodes.js';
-import { VectorNodes } from './VectorNodes.js';
-import { CoordinateNodes } from './CoordinateNodes.js';
-import { UtilityNodes } from './UtilityNodes.js';
-import { DepthNodes } from './DepthNodes.js';
-import { ControlFlowNodes } from './ControlFlowNodes.js';
-import { SubstrateNodes } from './SubstrateNodes.js';
-import { DebugNodes } from './DebugNodes.js';
+import { OutputNodes } from "./OutputNodes.js";
+import { ConstantNodes } from "./ConstantNodes.js";
+import { ParameterNodes } from "./ParameterNodes.js";
+import { TextureNodes } from "./TextureNodes.js";
+import { MathNodes } from "./MathNodes.js";
+import { VectorNodes } from "./VectorNodes.js";
+import { CoordinateNodes } from "./CoordinateNodes.js";
+import { UtilityNodes } from "./UtilityNodes.js";
+import { DepthNodes } from "./DepthNodes.js";
+import { ControlFlowNodes } from "./ControlFlowNodes.js";
+import { SubstrateNodes } from "./SubstrateNodes.js";
+import { DebugNodes } from "./DebugNodes.js";
+import { LayerNodes } from "./LayerNodes.js";
 
 // Combine all node modules into a single export
 export const MaterialExpressionDefinitions = {
@@ -46,6 +47,7 @@ export const MaterialExpressionDefinitions = {
   ...ControlFlowNodes,
   ...SubstrateNodes,
   ...DebugNodes,
+  ...LayerNodes,
 };
 
 // Also export individual modules for direct imports
@@ -62,5 +64,5 @@ export {
   ControlFlowNodes,
   SubstrateNodes,
   DebugNodes,
+  LayerNodes,
 };
-
