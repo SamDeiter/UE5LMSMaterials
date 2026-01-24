@@ -25,26 +25,14 @@ export class HLSLCodePanel {
     this.panel.className = "hlsl-code-panel";
     this.panel.style.display = "none";
 
-    // Header with platform selector
+    // Header with title and close button
     const header = document.createElement("div");
     header.className = "hlsl-panel-header";
     header.innerHTML = `
       <span class="hlsl-panel-title">HLSL Generated Code</span>
-      <select class="hlsl-platform-select" title="Target Platform">
-        <option value="SM5">DirectX SM5 (DX11)</option>
-        <option value="SM6">DirectX SM6 (DX12)</option>
-        <option value="Vulkan">Vulkan (SPIR-V)</option>
-        <option value="OpenGL">OpenGL ES 3.1</option>
-        <option value="Metal">Metal (iOS/macOS)</option>
-      </select>
       <button class="hlsl-close-btn" title="Close">×</button>
     `;
     this.panel.appendChild(header);
-
-    // Platform selector change handler
-    this.platformSelect = header.querySelector(".hlsl-platform-select");
-    this.platformSelect.addEventListener("change", () => this.updateCode());
-    this.currentPlatform = "SM5";
 
     // Code area
     this.codeArea = document.createElement("pre");
@@ -126,8 +114,7 @@ export class HLSLCodePanel {
 
     let hlsl = "";
     hlsl += "// ============================================\n";
-    hlsl += `// UE5 Material Editor - Generated ${platformInfo.language} Code\n`;
-    hlsl += `// Target: ${platformInfo.name}\n`;
+    hlsl += `// UE5 Material Editor - Generated HLSL Code\n`;
     hlsl += "// ============================================\n\n";
 
     // Material properties header
@@ -135,8 +122,7 @@ export class HLSLCodePanel {
     hlsl += "// ===================\n";
     hlsl += `// Material Domain: Surface\n`;
     hlsl += `// Blend Mode: Opaque\n`;
-    hlsl += `// Shading Model: Default Lit\n`;
-    hlsl += `// Platform: ${platformInfo.name}\n\n`;
+    hlsl += `// Shading Model: Default Lit\n\n`;
 
     // Include standard UE5 headers
     hlsl += "// Standard Includes\n";
