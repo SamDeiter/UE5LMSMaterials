@@ -429,6 +429,105 @@
   border-radius: 2px;
 }
 
+/* UE5-style Viewport Header Bar */
+.viewport-header-bar {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #2a2a2a 0%, #222 100%);
+  border-bottom: 1px solid var(--border-dark);
+  padding: 4px 8px;
+  gap: 4px;
+}
+
+.viewport-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewport-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.viewport-tab:hover {
+  background-color: var(--bg-lighter);
+  color: var(--text-bright);
+}
+
+.viewport-tab.active {
+  background-color: var(--accent-blue);
+  border-color: #0088ee;
+  color: var(--text-bright);
+}
+
+.viewport-tab i {
+  font-size: 10px;
+}
+
+.viewport-mode-select {
+  padding: 4px 6px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.viewport-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewport-select {
+  padding: 2px 4px;
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.viewport-slider-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.viewport-slider {
+  width: 50px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-dark);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.viewport-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+}
+
 /* ============================================================================
    PALETTE PANEL
    ============================================================================ */

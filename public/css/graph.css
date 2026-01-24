@@ -297,17 +297,7 @@
     0 0 8px rgba(255, 0, 255, 0.4);
 }
 
-/* Main output pins layout - single column on right */
-.node.main-output .node-content {
-  flex-direction: column;
-}
-
-.node.main-output .node-inputs {
-  width: 100%;
-  align-items: flex-end;
-  padding-right: 0;
-}
-
+/* Main output node - keep default layout, just widen for inputs list */
 .node.main-output .node-outputs {
   display: none; /* Main output has no outputs */
 }
