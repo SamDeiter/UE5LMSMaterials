@@ -307,10 +307,14 @@
   align-items: center;
   justify-content: space-between;
   height: 28px;
+  min-height: 28px;
+  flex-shrink: 0; /* CRITICAL: Prevent header from shrinking/overlapping viewport */
   padding: 0 4px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1e1e1e 100%);
   border-bottom: 1px solid #111;
   gap: 8px;
+  z-index: 10;
+  position: relative;
 }
 
 .viewport-tabs {

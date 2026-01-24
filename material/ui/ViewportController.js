@@ -45,6 +45,46 @@ export class ViewportController {
   }
 
   bindControls() {
+    // === DROPDOWN CLICK-TOGGLE SETUP ===
+    // Make dropdowns toggle on click instead of hover-only
+    document
+      .querySelectorAll(".viewport-tab.dropdown-trigger")
+      .forEach((tab) => {
+        tab.addEventListener("click", (e) => {
+          // Don't toggle if clicking on a dropdown item
+          if (e.target.closest(".viewport-dropdown")) return;
+
+          // Close all other dropdowns first
+          document.querySelectorAll(".viewport-tab.open").forEach((t) => {
+            if (t !== tab) t.classList.remove("open");
+          });
+
+          // Toggle this dropdown
+          tab.classList.toggle("open");
+          e.stopPropagation();
+        });
+      });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".viewport-tab")) {
+        document.querySelectorAll(".viewport-tab.open").forEach((t) => {
+          t.classList.remove("open");
+        });
+      }
+    });
+
+    // Close dropdown after selecting an item
+    document
+      .querySelectorAll(".viewport-dropdown .dropdown-item")
+      .forEach((item) => {
+        item.addEventListener("click", () => {
+          document.querySelectorAll(".viewport-tab.open").forEach((t) => {
+            t.classList.remove("open");
+          });
+        });
+      });
+
     // === UE5-STYLE DROPDOWN TABS ===
 
     // Lit dropdown (view modes)
@@ -57,6 +97,22 @@ export class ViewportController {
         // Update tab label and active states
         litTab.querySelector("span").textContent = e.target.textContent;
         litDropdown
+          .querySelectorAll(".dropdown-item")
+          .forEach((i) => i.classList.remove("active"));
+        e.target.classList.add("active");
+      });
+    });
+
+    // Perspective dropdown (camera presets)
+    const perspectiveDropdown = document.getElementById("perspective-dropdown");
+    const perspectiveTab = document.getElementById("perspective-tab");
+    perspectiveDropdown?.querySelectorAll(".dropdown-item").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        const preset = e.target.dataset.value;
+        this.setCameraPreset(preset);
+        // Update tab label and active states
+        perspectiveTab.querySelector("span").textContent = e.target.textContent;
+        perspectiveDropdown
           .querySelectorAll(".dropdown-item")
           .forEach((i) => i.classList.remove("active"));
         e.target.classList.add("active");
@@ -332,6 +388,35 @@ export class ViewportController {
   setFOV(degrees) {
     this.sceneManager.camera.fov = degrees;
     this.sceneManager.camera.updateProjectionMatrix();
+    this.sceneManager.needsRender = true;
+  }
+
+  /**
+   * Set camera to a preset position/angle
+   * @param {string} preset - 'perspective', 'front', 'back', 'top', 'bottom', 'left', 'right'
+   */
+  setCameraPreset(preset) {
+    if (!this.sceneManager?.camera || !this.sceneManager?.controls) return;
+
+    const camera = this.sceneManager.camera;
+    const controls = this.sceneManager.controls;
+    const distance = 5;
+    const targetY = 1; // Object center height
+
+    const presets = {
+      perspective: { pos: [3, 4, 5], target: [0, targetY, 0] },
+      front: { pos: [0, targetY, distance], target: [0, targetY, 0] },
+      back: { pos: [0, targetY, -distance], target: [0, targetY, 0] },
+      top: { pos: [0, distance + targetY, 0.01], target: [0, targetY, 0] },
+      bottom: { pos: [0, -distance + targetY, 0.01], target: [0, targetY, 0] },
+      left: { pos: [-distance, targetY, 0], target: [0, targetY, 0] },
+      right: { pos: [distance, targetY, 0], target: [0, targetY, 0] },
+    };
+
+    const config = presets[preset] || presets.perspective;
+    camera.position.set(...config.pos);
+    controls.target.set(...config.target);
+    controls.update();
     this.sceneManager.needsRender = true;
   }
 
