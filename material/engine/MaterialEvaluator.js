@@ -42,7 +42,7 @@ export class MaterialEvaluator {
     if (!link || !link.sourcePin) return null;
 
     const sourceNode = [...this.graph.nodes.values()].find((n) =>
-      n.outputs.some((p) => p.id === link.sourcePin.id)
+      n.outputs.some((p) => p.id === link.sourcePin.id),
     );
     if (!sourceNode) return null;
 
@@ -51,7 +51,7 @@ export class MaterialEvaluator {
       this.evaluatePin.bind(this),
       sourceNode,
       link.outputPin,
-      visited
+      visited,
     );
   }
 
@@ -65,13 +65,19 @@ export class MaterialEvaluator {
    */
   evaluate() {
     const mainNode = [...this.graph.nodes.values()].find(
-      (n) => n.type === "main-output"
+      (n) => n.type === "main-output",
     );
     if (!mainNode) return null;
 
     // Read material settings from DOM
-    const shadingModelEl = typeof document !== "undefined" ? document.getElementById("shading-model") : null;
-    const blendModeEl = typeof document !== "undefined" ? document.getElementById("blend-mode") : null;
+    const shadingModelEl =
+      typeof document !== "undefined"
+        ? document.getElementById("shading-model")
+        : null;
+    const blendModeEl =
+      typeof document !== "undefined"
+        ? document.getElementById("blend-mode")
+        : null;
     const shadingModel = shadingModelEl ? shadingModelEl.value : "DefaultLit";
     const blendMode = blendModeEl ? blendModeEl.value : "Opaque";
 
@@ -81,7 +87,7 @@ export class MaterialEvaluator {
       blendMode,
       // PBR properties
       // PBR properties
-      baseColor: [1.0, 1.0, 1.0], // Default white to match UE5 default
+      baseColor: [0.0, 0.0, 0.0], // Default BLACK when nothing connected (UE5 behavior)
       metallic: 0,
       specular: 0.5,
       roughness: 0.5,
@@ -103,13 +109,20 @@ export class MaterialEvaluator {
       aoTexture: null,
       emissiveTexture: null,
       // Tiling info
-      baseColorUTiling: 1, baseColorVTiling: 1,
-      roughnessUTiling: 1, roughnessVTiling: 1,
-      metallicUTiling: 1, metallicVTiling: 1,
-      specularUTiling: 1, specularVTiling: 1,
-      normalUTiling: 1, normalVTiling: 1,
-      aoUTiling: 1, aoVTiling: 1,
-      emissiveUTiling: 1, emissiveVTiling: 1,
+      baseColorUTiling: 1,
+      baseColorVTiling: 1,
+      roughnessUTiling: 1,
+      roughnessVTiling: 1,
+      metallicUTiling: 1,
+      metallicVTiling: 1,
+      specularUTiling: 1,
+      specularVTiling: 1,
+      normalUTiling: 1,
+      normalVTiling: 1,
+      aoUTiling: 1,
+      aoVTiling: 1,
+      emissiveUTiling: 1,
+      emissiveVTiling: 1,
     };
 
     // Evaluate each main node input
@@ -124,13 +137,31 @@ export class MaterialEvaluator {
           this.processBaseColor(value, result);
           break;
         case "metallic":
-          this.processScalarOrTexture(value, result, 'metallic', 'metallicTexture', 0);
+          this.processScalarOrTexture(
+            value,
+            result,
+            "metallic",
+            "metallicTexture",
+            0,
+          );
           break;
         case "specular":
-          this.processScalarOrTexture(value, result, 'specular', 'specularTexture', 0.5);
+          this.processScalarOrTexture(
+            value,
+            result,
+            "specular",
+            "specularTexture",
+            0.5,
+          );
           break;
         case "roughness":
-          this.processScalarOrTexture(value, result, 'roughness', 'roughnessTexture', 0.5);
+          this.processScalarOrTexture(
+            value,
+            result,
+            "roughness",
+            "roughnessTexture",
+            0.5,
+          );
           break;
         case "anisotropy":
           result.anisotropy = this.extractScalar(value, 0);
@@ -139,10 +170,16 @@ export class MaterialEvaluator {
           this.processEmissive(value, result);
           break;
         case "normal":
-          this.processScalarOrTexture(value, result, null, 'normalTexture', null);
+          this.processScalarOrTexture(
+            value,
+            result,
+            null,
+            "normalTexture",
+            null,
+          );
           break;
         case "ambient occlusion":
-          this.processScalarOrTexture(value, result, 'ao', 'aoTexture', 1.0);
+          this.processScalarOrTexture(value, result, "ao", "aoTexture", 1.0);
           break;
         case "opacity":
           result.opacity = this.extractScalar(value, 1.0);
@@ -178,9 +215,9 @@ export class MaterialEvaluator {
     if (value && typeof value === "object" && value.type === "texture") {
       result[textureKey] = value.url;
       if (scalarKey) result[scalarKey] = 1.0;
-      
+
       // Extract tiling
-      const tilingPrefix = textureKey.replace('Texture', '');
+      const tilingPrefix = textureKey.replace("Texture", "");
       result[`${tilingPrefix}UTiling`] = value.uTiling ?? 1.0;
       result[`${tilingPrefix}VTiling`] = value.vTiling ?? 1.0;
     } else {
@@ -201,7 +238,7 @@ export class MaterialEvaluator {
       if (value.operation === "multiply") {
         result.pendingBaseColor = shaderEvaluator.multiplyTextureByColor(
           value.texture,
-          value.color
+          value.color,
         );
         // Preserve UV tiling from texture
         if (value.texture.uTiling !== undefined) {
@@ -213,7 +250,7 @@ export class MaterialEvaluator {
         result.pendingBaseColor = shaderEvaluator.lerpColorsWithTextureAlpha(
           value.colorA,
           value.colorB,
-          value.alphaTexture
+          value.alphaTexture,
         );
       }
     } else if (value && typeof value === "object" && value.type === "texture") {
@@ -238,7 +275,7 @@ export class MaterialEvaluator {
       if (value.operation === "multiply") {
         result.pendingEmissive = shaderEvaluator.multiplyTextureByColor(
           value.texture,
-          value.color
+          value.color,
         );
         if (value.texture.uTiling !== undefined) {
           result.emissiveUTiling = value.texture.uTiling;
@@ -248,7 +285,7 @@ export class MaterialEvaluator {
         result.pendingEmissive = shaderEvaluator.lerpColorsWithTextureAlpha(
           value.colorA,
           value.colorB,
-          value.alphaTexture
+          value.alphaTexture,
         );
       }
       result.emissive = [1, 1, 1]; // White base for texture modulation
@@ -269,7 +306,7 @@ export class MaterialEvaluator {
       const maxVal = Math.max(...result.emissive);
       if (maxVal > 1) {
         result.emissiveIntensity = maxVal;
-        result.emissive = result.emissive.map(v => v / maxVal);
+        result.emissive = result.emissive.map((v) => v / maxVal);
       } else {
         result.emissiveIntensity = 1.0;
       }
