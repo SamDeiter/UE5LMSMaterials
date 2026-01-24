@@ -106,7 +106,7 @@ export class HLSLCodePanel {
    * Update the generated code display
    */
   updateCode() {
-    if (!this.codeArea || !this.app.material) return;
+    if (!this.codeArea || !this.app.graph) return;
 
     const code = this.generateHLSL();
     this.codeArea.textContent = code;
@@ -116,9 +116,9 @@ export class HLSLCodePanel {
    * Generate HLSL code from material graph
    */
   generateHLSL() {
-    const material = this.app.material;
-    if (!material) {
-      return "// No material loaded";
+    const graph = this.app.graph;
+    if (!graph || !graph.nodes) {
+      return "// No material graph loaded";
     }
 
     const platform = this.platformSelect?.value || "SM5";
@@ -146,7 +146,7 @@ export class HLSLCodePanel {
     // Generate node declarations
     hlsl += "// === Node Declarations ===\n\n";
 
-    const nodes = [...material.nodes.values()].filter(
+    const nodes = [...graph.nodes.values()].filter(
       (n) => n.type !== "main-output",
     );
 
@@ -155,7 +155,7 @@ export class HLSLCodePanel {
     });
 
     // Generate main material function
-    hlsl += this.generateMainFunction(material);
+    hlsl += this.generateMainFunction(graph);
 
     return hlsl;
   }
