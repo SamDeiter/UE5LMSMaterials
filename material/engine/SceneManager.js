@@ -542,10 +542,20 @@ export class SceneManager {
         break;
 
       case "normal":
-        // Visualize normals using a normal visualization material
+        // Visualize the normal map texture (not mesh normals)
         this.directionalLight.intensity = 0;
         this.ambientLight.intensity = 1;
-        this.mesh.material = new THREE.MeshNormalMaterial();
+        if (this.originalMaterial.normalMap) {
+          // Show the connected normal map as a flat texture
+          this.mesh.material = new THREE.MeshBasicMaterial({
+            map: this.originalMaterial.normalMap,
+          });
+        } else {
+          // No normal map connected - show default blue (flat normal)
+          this.mesh.material = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(0.5, 0.5, 1.0), // Default normal map blue
+          });
+        }
         if (this.bloomPass) this.bloomPass.enabled = false;
         break;
 
