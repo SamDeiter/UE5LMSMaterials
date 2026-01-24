@@ -22,7 +22,7 @@ export const MATERIAL_HOTKEYS = {
   A: "Add",
   D: "Divide",
   E: "Power", // 'E' for Exponent
-  L: "Lerp",
+  // L: Reserved for L+drag light rotation in viewport
   M: "Multiply",
   O: "OneMinus",
 
@@ -38,7 +38,7 @@ export const MATERIAL_HOTKEYS = {
   // Vectors & Utility
   B: "BumpOffset",
   F: "Fresnel",
-  I: "If",
+  I: "Lerp", // I for Interpolate (moved from L to avoid conflict with light rotation)
   N: "Normalize",
   R: "ReflectionVector",
 
@@ -49,6 +49,8 @@ export const MATERIAL_HOTKEYS = {
 // Modifier key hotkeys (require Shift/Ctrl + key)
 export const MODIFIER_HOTKEYS = {
   "Shift+C": "ComponentMask",
+  "Shift+I": "If", // If node moved to Shift+I
+  "Shift+L": "Lerp", // Alternative LERP shortcut for users who prefer L
 };
 
 // Extended hotkeys for common operations (can be remapped)
@@ -57,7 +59,7 @@ export const EXTENDED_HOTKEYS = {
   W: "WorldPosition",
   X: "CrossProduct",
   ".": "DotProduct",
-  
+
   // Additional common nodes
   // Note: G is reserved for snap-to-grid toggle
   H: "Time", // H for Hour/Time
@@ -176,7 +178,7 @@ export class HotkeyManager {
     const definition = this.nodeRegistry?.get?.(this.activeNodeKey);
     if (!definition) {
       console.warn(
-        `Hotkey ${this.activeHotkey}: Node '${this.activeNodeKey}' not found in registry`
+        `Hotkey ${this.activeHotkey}: Node '${this.activeNodeKey}' not found in registry`,
       );
       return false;
     }
