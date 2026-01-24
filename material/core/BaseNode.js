@@ -258,10 +258,10 @@ export class MaterialNode {
 
       // Update wire positions after collapse/expand (fixes wires pointing to old positions)
       if (this.app?.graph?.wiring) {
-        // Small delay to allow CSS transition to complete
-        requestAnimationFrame(() => {
+        // Use setTimeout to wait for CSS transition to complete (50ms is enough for reflow)
+        setTimeout(() => {
           this.app.graph.wiring.updateAllWires();
-        });
+        }, 50);
       }
     });
     titleRow.appendChild(collapseBtn);
