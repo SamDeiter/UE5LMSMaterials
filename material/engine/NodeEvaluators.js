@@ -178,7 +178,7 @@ export function evaluateClamp(pinEvaluator, node, visited) {
   );
   const minPin = node.inputs.find((p) => p.localId === "min" || p.name === "Min");
   const maxPin = node.inputs.find((p) => p.localId === "max" || p.name === "Max");
-  let val = pinEvaluator(inputPin, new Set(visited)) ?? 0;
+  const val = pinEvaluator(inputPin, new Set(visited)) ?? 0;
   const minVal = pinEvaluator(minPin, new Set(visited)) ?? 0;
   const maxVal = pinEvaluator(maxPin, new Set(visited)) ?? 1;
   if (typeof val === "number") {

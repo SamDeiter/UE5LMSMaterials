@@ -64,7 +64,7 @@ export class StatsController {
 
     // Texture samplers - count TextureSample nodes by nodeKey
     let samplerCount = 0;
-    let textureLookups = { vs: 0, ps: 0 };
+    const textureLookups = { vs: 0, ps: 0 };
     let userInterpolators = 0;
 
     graph.nodes.forEach((node) => {
