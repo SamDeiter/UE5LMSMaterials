@@ -17,6 +17,9 @@
  * - ControlFlowNodes.js: StaticSwitch, If, Comment, Reroute nodes
  * - SubstrateNodes.js: Substrate Slab BSDF, Vertical Layer, Horizontal Blend (UE5.1+)
  * - DebugNodes.js: BRDF Visualizer, Fresnel Debug, GGX/Smith debug nodes
+ * - LayerNodes.js: Material Layers system nodes
+ * - FunctionNodes.js: Material Functions and built-in functions
+ * - AdvancedNodes.js: Curve Atlas, RVT, Nanite/Lumen, Custom Expressions
  */
 
 import { OutputNodes } from "./OutputNodes.js";
@@ -33,6 +36,7 @@ import { SubstrateNodes } from "./SubstrateNodes.js";
 import { DebugNodes } from "./DebugNodes.js";
 import { LayerNodes } from "./LayerNodes.js";
 import { FunctionNodes } from "./FunctionNodes.js";
+import { AdvancedNodes } from "./AdvancedNodes.js";
 
 // Combine all node modules into a single export
 export const MaterialExpressionDefinitions = {
@@ -50,6 +54,7 @@ export const MaterialExpressionDefinitions = {
   ...DebugNodes,
   ...LayerNodes,
   ...FunctionNodes,
+  ...AdvancedNodes,
 };
 
 // Also export individual modules for direct imports
@@ -68,4 +73,5 @@ export {
   DebugNodes,
   LayerNodes,
   FunctionNodes,
+  AdvancedNodes,
 };
