@@ -30,7 +30,7 @@ import { ViewportController } from "./ui/ViewportController.js";
 import { ActionMenuController } from "../shared/ActionMenuController.js";
 import { StatsController } from "./ui/StatsController.js";
 import { LayoutController } from "./ui/LayoutController.js";
-import { LayerPanel } from "./ui/LayerPanel.js";
+// Layer panel removed - not needed for assessment tool
 
 import { ToolbarManager } from "./core/ui/ToolbarManager.js";
 import { MenuManager } from "./core/ui/MenuManager.js";
@@ -85,14 +85,7 @@ class MaterialEditorApp {
     this.hlslPanel = new HLSLCodePanel(this);
     this.hlslPanel.init();
 
-    // Initialize Layer Panel (Material Layers feature)
-    this.layerPanel = new LayerPanel(this);
-    this.layerPanel.init();
-    // Add a default base layer
-    this.layerPanel.addLayer("Base Layer", {
-      weight: 1.0,
-      blendMode: "Normal",
-    });
+    // Layer panel removed - not needed for assessment tool
 
     // Bind persistence dialog
     this.persistence.showSaveDialog = () => this.saveAssetsModal.show();
