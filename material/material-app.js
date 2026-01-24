@@ -275,6 +275,22 @@ class MaterialEditorApp {
     this.persistence.markDirty();
     this._debouncedSave();
   }
+
+  /**
+   * Evaluate a pin's value for node preview rendering
+   * Delegates to MaterialEvaluator for actual evaluation
+   * @param {MaterialPin} pin - The pin to evaluate
+   * @returns {*} The evaluated value (color, texture, scalar, etc.)
+   */
+  evaluatePin(pin) {
+    if (!this.evaluator || !pin) return null;
+    try {
+      return this.evaluator.evaluatePin(pin);
+    } catch (e) {
+      console.debug("evaluatePin error:", e.message);
+      return null;
+    }
+  }
 }
 
 // ============================================================================
