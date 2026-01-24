@@ -280,11 +280,8 @@ export class MaterialNode {
     });
     content.appendChild(inputsDiv);
 
-    // Preview thumbnail (if applicable)
-    if (
-      this.showPreview &&
-      (this.type === "material-expression" || this.properties.showColorPreview)
-    ) {
+    // Preview thumbnail - show on all expression nodes (UE5 parity)
+    if (this.showPreview && this.type === "material-expression") {
       const preview = document.createElement("div");
       preview.className = "node-preview";
       preview.id = `preview-${this.id}`;
