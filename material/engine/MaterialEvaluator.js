@@ -123,6 +123,9 @@ export class MaterialEvaluator {
       aoVTiling: 1,
       emissiveUTiling: 1,
       emissiveVTiling: 1,
+      // Masked blend mode
+      opacityMask: 1.0,
+      opacityMaskClipValue: 0.3333,
     };
 
     // Evaluate each main node input
@@ -183,6 +186,9 @@ export class MaterialEvaluator {
           break;
         case "opacity":
           result.opacity = this.extractScalar(value, 1.0);
+          break;
+        case "opacity mask":
+          result.opacityMask = this.extractScalar(value, 1.0);
           break;
         case "subsurface color":
           result.subsurfaceColor = this.extractColor(value);

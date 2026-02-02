@@ -518,8 +518,31 @@ export class ViewportController {
       mat.emissiveIntensity = 0;
     }
 
-    mat.transparent = result.opacity < 1.0;
-    mat.opacity = result.opacity ?? 1.0;
+    // Blend Mode handling (Opaque, Masked, Translucent)
+    const blendMode = result.blendMode || "Opaque";
+
+    if (blendMode === "Masked") {
+      // Masked: Binary opacity via alphaTest (discard pixels below threshold)
+      mat.transparent = false;
+      mat.alphaTest = result.opacityMaskClipValue ?? 0.3333;
+      mat.opacity = 1.0;
+      // If opacity mask is connected, use it; otherwise use 1.0 (opaque)
+      // alphaTest compares against the alpha channel of the map
+      if (result.opacityMask !== undefined && result.opacityMask < 1.0) {
+        // For scalar opacity mask, we can set opacity which alphaTest compares against
+        mat.opacity = result.opacityMask;
+      }
+    } else if (blendMode === "Translucent" || blendMode === "Additive") {
+      // Translucent/Additive: Smooth transparency blending
+      mat.transparent = true;
+      mat.alphaTest = 0;
+      mat.opacity = result.opacity ?? 1.0;
+    } else {
+      // Opaque: No transparency
+      mat.transparent = result.opacity < 1.0;
+      mat.alphaTest = 0;
+      mat.opacity = result.opacity ?? 1.0;
+    }
 
     // Base Color
     if (result.baseColorTexture) {
