@@ -502,6 +502,24 @@ export class ViewportController {
     mat.clearcoatRoughness = result.clearCoatRoughness ?? 0;
     mat.anisotropy = result.anisotropy ?? 0;
 
+    // Subsurface Scattering via transmission (for Subsurface shading models)
+    if (result.subsurfaceColor && result.shadingModel?.includes("Subsurface")) {
+      // Enable transmission for light to pass through the material
+      mat.transmission = 0.8; // High transmission for SSS effect
+      mat.thickness = 0.5; // Simulated material thickness
+      mat.attenuationColor.setRGB(
+        result.subsurfaceColor[0],
+        result.subsurfaceColor[1],
+        result.subsurfaceColor[2]
+      );
+      mat.attenuationDistance = 0.2; // How far light travels before absorption
+      mat.ior = 1.4; // Index of refraction (skin-like)
+    } else {
+      // Disable transmission for non-SSS materials
+      mat.transmission = 0;
+      mat.thickness = 0;
+    }
+
     // Emissive: if texture is connected, set color to white so texture shows
     if (result.emissiveTexture) {
       mat.emissive.setRGB(1, 1, 1); // White lets texture color through
