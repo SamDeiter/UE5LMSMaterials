@@ -119,6 +119,21 @@ export function dispatchNodeEvaluation(pinEvaluator, node, outputPin, visited) {
   if (nodeKey === "Cos") {
     return evaluateUnaryOp(pinEvaluator, node, visited, Math.cos);
   }
+  if (nodeKey === "Tan") {
+    return evaluateUnaryOp(pinEvaluator, node, visited, Math.tan);
+  }
+  if (nodeKey === "Asin" || nodeKey === "Arcsine") {
+    return evaluateUnaryOp(pinEvaluator, node, visited, Math.asin);
+  }
+  if (nodeKey === "Acos" || nodeKey === "Arccosine") {
+    return evaluateUnaryOp(pinEvaluator, node, visited, Math.acos);
+  }
+  if (nodeKey === "Atan" || nodeKey === "Arctangent") {
+    return evaluateUnaryOp(pinEvaluator, node, visited, Math.atan);
+  }
+  if (nodeKey === "Atan2") {
+    return evaluateBinaryMath(pinEvaluator, node, visited, Math.atan2);
+  }
   if (nodeKey === "Floor") {
     return evaluateUnaryOp(pinEvaluator, node, visited, Math.floor);
   }
