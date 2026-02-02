@@ -72,10 +72,41 @@ All settings centralized in `src/constants/EditorConstants.js`:
 ## Testing
 
 ```bash
-npm test           # Run 200+ tests in watch mode
+npm test           # Run 596 tests in watch mode
 npm test -- --run  # Run once
 ```
+
+## HLSL Parity & Technical Approach
+
+This project **simulates** UE5 material evaluation for educational purposes rather than compiling true HLSL shaders.
+
+### How It Works
+
+- Node graphs are evaluated in JavaScript to compute material properties
+- Results are applied to Three.js `MeshPhysicalMaterial` for real-time preview
+- Per-pixel operations (e.g., texture-based Lerp) use canvas blending
+
+### Implemented Features
+
+| Category | Coverage |
+|----------|----------|
+| **Math Nodes** | Add, Multiply, Lerp, Clamp, Power, Abs, Trig functions |
+| **Textures** | TextureSample with channel swizzling, tiling support |
+| **Utility** | Fresnel (Schlick), Noise, SphereMask, Distance, BumpOffset |
+| **Substrate** | SlabBSDF, VerticalLayer, HorizontalBlend, LegacyConversion |
+| **PBR** | Full attribute mapping (Base Color → Emissive) |
+
+### Known Limitations
+
+| Feature | Status |
+|---------|--------|
+| Custom HLSL expressions | ❌ Not supported |
+| Masked blend mode | 🚧 Planned |
+| Vertex displacement | ❌ Not supported |
+| True GPU shaders | ❌ JS evaluation only |
+| Perlin/Simplex noise | ⚠️ Hash approximation |
 
 ## License
 
 MIT
+
