@@ -104,7 +104,7 @@ This project **simulates** UE5 material evaluation for educational purposes rath
 | Masked blend mode | ✅ Implemented |
 | Vertex displacement | ❌ Not supported |
 | True GPU shaders | ❌ JS evaluation only |
-| Perlin/Simplex noise | ⚠️ Hash approximation |
+| Perlin/Simplex noise | ✅ Implemented |
 
 ## License
 
