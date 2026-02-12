@@ -218,7 +218,26 @@ export class MaterialEvaluator {
 
   /** Process a value that could be scalar or texture */
   processScalarOrTexture(value, result, scalarKey, textureKey, fallback) {
-    if (value && typeof value === "object" && value.type === "texture") {
+    if (value && typeof value === "object" && value.type === "pending") {
+      // Multiply(Texture, Scalar) — resolve the texture operation
+      if (value.operation === "multiply" && value.texture) {
+        const pendingKey = `pending_${textureKey}`;
+        result[pendingKey] = shaderEvaluator.multiplyTextureByColor(
+          value.texture,
+          value.color,
+        );
+        // Set scalar to multiplier (for Three.js material property)
+        if (scalarKey) {
+          result[scalarKey] = typeof value.color === "number" ? value.color : 1.0;
+        }
+        // Extract tiling from the texture
+        if (value.texture.uTiling !== undefined) {
+          const tilingPrefix = textureKey.replace("Texture", "");
+          result[`${tilingPrefix}UTiling`] = value.texture.uTiling;
+          result[`${tilingPrefix}VTiling`] = value.texture.vTiling;
+        }
+      }
+    } else if (value && typeof value === "object" && value.type === "texture") {
       result[textureKey] = value.url;
       if (scalarKey) result[scalarKey] = 1.0;
 
@@ -360,6 +379,30 @@ export class MaterialEvaluator {
         console.warn("Failed to process emissive texture operation:", e);
       }
       delete result.pendingEmissive;
+    }
+
+    // Resolve pending texture operations for PBR channels
+    const pendingChannels = [
+      { key: "pending_roughnessTexture", texKey: "roughnessTexture", scalarKey: "roughness" },
+      { key: "pending_metallicTexture", texKey: "metallicTexture", scalarKey: "metallic" },
+      { key: "pending_specularTexture", texKey: "specularTexture", scalarKey: "specular" },
+      { key: "pending_normalTexture", texKey: "normalTexture", scalarKey: null },
+      { key: "pending_aoTexture", texKey: "aoTexture", scalarKey: "ao" },
+    ];
+
+    for (const ch of pendingChannels) {
+      if (result[ch.key]) {
+        try {
+          const texture = await result[ch.key];
+          if (texture && texture.url) {
+            result[ch.texKey] = texture.url;
+            if (ch.scalarKey) result[ch.scalarKey] = 1.0;
+          }
+        } catch (e) {
+          console.warn(`Failed to process ${ch.texKey} operation:`, e);
+        }
+        delete result[ch.key];
+      }
     }
 
     if (viewport) {
