@@ -1,128 +1,173 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>UE5 Educational Tools Hub</title>
+    <!-- Redirect straight to Material Editor -->
+    <meta http-equiv="refresh" content="0;url=public/material-editor.html" />
+    <script>
+      window.location.replace("public/material-editor.html");
+    </script>
+
     <!-- Prevent caching -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
     <!-- Google Font (Inter) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    
-    <link rel="stylesheet" href="public/style.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="public/style.css" />
     <style>
-        body {
-            background-color: var(--bg-darkest);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            flex-direction: column;
-        }
-        .hub-container {
-            max-width: 1000px;
-            width: 90%;
-            text-align: center;
-        }
-        .hub-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--text-bright);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .hub-subtitle {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 50px;
-        }
-        .tool-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-        }
-        .tool-card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-medium);
-            border-radius: 8px;
-            padding: 40px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            border-top: 3px solid transparent;
-        }
-        .tool-card:hover {
-            transform: translateY(-5px);
-            background: var(--bg-light);
-            border-color: var(--border-light);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .tool-card.material { border-top-color: var(--accent-orange); }
-        .tool-card.blueprint { border-top-color: #2c9aff; }
-        .tool-card.quiz { border-top-color: var(--accent-green); }
+      body {
+        background-color: var(--bg-darkest);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        flex-direction: column;
+      }
+      .hub-container {
+        max-width: 1000px;
+        width: 90%;
+        text-align: center;
+      }
+      .hub-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-bright);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .hub-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 50px;
+      }
+      .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+      }
+      .tool-card {
+        background: var(--bg-panel);
+        border: 1px solid var(--border-medium);
+        border-radius: 8px;
+        padding: 40px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        border-top: 3px solid transparent;
+      }
+      .tool-card:hover {
+        transform: translateY(-5px);
+        background: var(--bg-light);
+        border-color: var(--border-light);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+      .tool-card.material {
+        border-top-color: var(--accent-orange);
+      }
+      .tool-card.blueprint {
+        border-top-color: #2c9aff;
+      }
+      .tool-card.quiz {
+        border-top-color: var(--accent-green);
+      }
 
-        .tool-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: var(--text-bright);
-        }
-        .tool-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-bright);
-            margin-bottom: 10px;
-        }
-        .tool-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-        .ue-logo {
-            width: 60px;
-            margin-bottom: 30px;
-            opacity: 0.8;
-        }
+      .tool-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: var(--text-bright);
+      }
+      .tool-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-bright);
+        margin-bottom: 10px;
+      }
+      .tool-desc {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .ue-logo {
+        width: 60px;
+        margin-bottom: 30px;
+        opacity: 0.8;
+      }
     </style>
-</head>
-<body class="theme-dark">
+  </head>
+  <body class="theme-dark">
     <div class="hub-container">
-        <img src="public/assets/icons/ue-logo.svg" alt="UE Logo" class="ue-logo">
-        <h1 class="hub-title">Educational Tools Hub</h1>
-        <p class="hub-subtitle">Visual learning replicas of the Unreal Engine 5 workspace</p>
-        
-        <div class="tool-grid">
-            <a href="public/material-editor.html" class="tool-card material">
-                <i class="fas fa-fill-drip tool-icon" style="color: var(--accent-orange);"></i>
-                <div class="tool-name">Material Editor</div>
-                <div class="tool-desc">Replicate visual material graph creation with real-time 3D preview and HLSL generation.</div>
-            </a>
+      <img
+        src="public/assets/icons/ue-logo.svg"
+        alt="UE Logo"
+        class="ue-logo"
+      />
+      <h1 class="hub-title">Educational Tools Hub</h1>
+      <p class="hub-subtitle">
+        Visual learning replicas of the Unreal Engine 5 workspace
+      </p>
 
-            <a href="blueprint/index.html" class="tool-card blueprint">
-                <i class="fas fa-project-diagram tool-icon" style="color: #2c9aff;"></i>
-                <div class="tool-name">Blueprint Editor</div>
-                <div class="tool-desc">Node-based visual scripting environment with event graphs, variables, and logic.</div>
-            </a>
+      <div class="tool-grid">
+        <a href="public/material-editor.html" class="tool-card material">
+          <i
+            class="fas fa-fill-drip tool-icon"
+            style="color: var(--accent-orange)"
+          ></i>
+          <div class="tool-name">Material Editor</div>
+          <div class="tool-desc">
+            Replicate visual material graph creation with real-time 3D preview
+            and HLSL generation.
+          </div>
+        </a>
 
-            <a href="quizzes/index.html" class="tool-card quiz">
-                <i class="fas fa-question-circle tool-icon" style="color: var(--accent-green);"></i>
-                <div class="tool-name">Question Generator</div>
-                <div class="tool-desc">Create assessment materials and interactive quizzes for Unreal Engine educational tracks.</div>
-            </a>
-        </div>
+        <a href="blueprint/index.html" class="tool-card blueprint">
+          <i
+            class="fas fa-project-diagram tool-icon"
+            style="color: #2c9aff"
+          ></i>
+          <div class="tool-name">Blueprint Editor</div>
+          <div class="tool-desc">
+            Node-based visual scripting environment with event graphs,
+            variables, and logic.
+          </div>
+        </a>
+
+        <a href="quizzes/index.html" class="tool-card quiz">
+          <i
+            class="fas fa-question-circle tool-icon"
+            style="color: var(--accent-green)"
+          ></i>
+          <div class="tool-name">Question Generator</div>
+          <div class="tool-desc">
+            Create assessment materials and interactive quizzes for Unreal
+            Engine educational tracks.
+          </div>
+        </a>
+      </div>
     </div>
-</body>
+  </body>
 </html>
