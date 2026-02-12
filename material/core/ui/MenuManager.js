@@ -115,9 +115,6 @@ export class MenuManager {
           <span><i class="fas fa-search"></i> Find Results</span>
           <span class="shortcut">Ctrl+F</span>
         </div>
-        <div class="dropdown-item" data-action="hlsl-code">
-          <span><i class="fas fa-code"></i> HLSL Code</span>
-        </div>
         <div class="dropdown-item" data-action="stats">
           <span><i class="fas fa-chart-bar"></i> Stats</span>
         </div>
@@ -165,11 +162,6 @@ export class MenuManager {
       case "find-results":
         if (this.app.findResults) {
           this.app.findResults.show();
-        }
-        break;
-      case "hlsl-code":
-        if (this.app.hlslPanel) {
-          this.app.hlslPanel.toggle();
         }
         break;
       case "stats":

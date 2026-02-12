@@ -250,9 +250,10 @@
 }
 
 .slider-number-combo .pin-input {
-  width: 50px;
-  padding: 2px 4px;
-  font-size: 11px;
+  width: 55px;
+  padding: 3px 5px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* Standalone number input (no slider) */
@@ -328,15 +329,36 @@
   border: 2px solid var(--bg-darkest);
 }
 
+/* Filled track for WebKit (shows progress) */
+.ue5-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent-blue) 0%, var(--accent-blue) var(--value, 50%), var(--bg-dark) var(--value, 50%), var(--bg-dark) 100%);
+}
+
+/* Filled track for pin-slider */
+.pin-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent-blue) 0%, var(--accent-blue) var(--value, 50%), var(--bg-dark) var(--value, 50%), var(--bg-dark) 100%);
+}
+
 .slider-number {
-  width: 50px;
-  padding: 3px 6px;
+  width: 60px;
+  padding: 4px 6px;
   background-color: var(--bg-dark);
   border: 1px solid var(--border-medium);
-  border-radius: 2px;
+  border-radius: 3px;
   color: var(--text-primary);
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 500;
   text-align: center;
+}
+
+.slider-number:focus {
+  border-color: var(--accent-blue);
+  outline: none;
+  box-shadow: 0 0 4px rgba(0, 120, 215, 0.3);
 }
 
 /* STATUS BAR styles are defined near end of file */

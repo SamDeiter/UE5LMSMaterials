@@ -41,7 +41,6 @@ import { PersistenceManager } from "./core/PersistenceManager.js";
 import { ReferenceViewerController } from "./ui/ReferenceViewerController.js";
 import { SaveAssetsModal } from "./ui/SaveAssetsModal.js";
 import { FindResultsController } from "./ui/FindResultsController.js";
-import { HLSLCodePanel } from "./ui/HLSLCodePanel.js";
 import { UI_TIMINGS } from "../src/constants/EditorConstants.js";
 
 // ============================================================================
@@ -82,8 +81,6 @@ class MaterialEditorApp {
     this.referenceViewer = new ReferenceViewerController(this);
     this.saveAssetsModal = new SaveAssetsModal(this);
     this.findResults = new FindResultsController(this);
-    this.hlslPanel = new HLSLCodePanel(this);
-    this.hlslPanel.init();
 
     // Layer panel removed - not needed for assessment tool
 
