@@ -42,7 +42,7 @@ export class MaterialTranslator {
           if (value.operation === "multiply") {
             result.pendingBaseColor = shaderEvaluator.multiplyTextureByColor(
               value.texture,
-              value.color
+              value.color,
             );
           }
         } else if (
@@ -58,21 +58,56 @@ export class MaterialTranslator {
           result.baseColor = [value, value, value];
         }
       } else if (pinName.includes("metallic")) {
-        result.metallic =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 0;
+        if (value && typeof value === "object" && value.type === "pending") {
+          result.metallicTexture = value.texture?.url;
+          result.metallic = typeof value.color === "number" ? value.color : 1;
+        } else if (
+          value &&
+          typeof value === "object" &&
+          value.type === "texture"
+        ) {
+          result.metallicTexture = value.url;
+          result.metallic = 1;
+        } else {
+          result.metallic =
+            typeof value === "number"
+              ? value
+              : Array.isArray(value)
+                ? value[0]
+                : 0;
+        }
       } else if (pinName.includes("roughness")) {
-        result.roughness =
-          typeof value === "number"
-            ? value
-            : Array.isArray(value)
-            ? value[0]
-            : 0.5;
+        if (value && typeof value === "object" && value.type === "pending") {
+          result.roughnessTexture = value.texture?.url;
+          result.roughness = typeof value.color === "number" ? value.color : 1;
+        } else if (
+          value &&
+          typeof value === "object" &&
+          value.type === "texture"
+        ) {
+          result.roughnessTexture = value.url;
+          result.roughness = 1;
+        } else {
+          result.roughness =
+            typeof value === "number"
+              ? value
+              : Array.isArray(value)
+                ? value[0]
+                : 0.5;
+        }
       } else if (pinName.includes("emissive")) {
-        if (Array.isArray(value)) {
+        if (value && typeof value === "object" && value.type === "pending") {
+          result.emissiveTexture = value.texture?.url;
+          const c = value.color;
+          result.emissive = Array.isArray(c) ? c.slice(0, 3) : [c, c, c];
+        } else if (
+          value &&
+          typeof value === "object" &&
+          value.type === "texture"
+        ) {
+          result.emissiveTexture = value.url;
+          result.emissive = [1, 1, 1];
+        } else if (Array.isArray(value)) {
           result.emissive = value.slice(0, 3);
         }
       }
@@ -98,7 +133,7 @@ export class MaterialTranslator {
     if (!link || !link.outputPin) return null;
 
     const sourceNode = [...graph.nodes.values()].find((n) =>
-      n.outputs.some((p) => p.id === link.outputPin.id)
+      n.outputs.some((p) => p.id === link.outputPin.id),
     );
     if (!sourceNode) return null;
 
@@ -111,7 +146,7 @@ export class MaterialTranslator {
       graph,
       sourceNode,
       link.outputPin,
-      visited
+      visited,
     );
     this.scopeMap.set(hash, result);
     return result;
@@ -177,7 +212,7 @@ export class MaterialTranslator {
       const pinA = node.inputs.find((p) => p.localId === "a" || p.name === "A");
       const pinB = node.inputs.find((p) => p.localId === "b" || p.name === "B");
       const pinAlpha = node.inputs.find(
-        (p) => p.localId === "alpha" || p.name === "Alpha"
+        (p) => p.localId === "alpha" || p.name === "Alpha",
       );
       const valA = this.evaluatePin(graph, pinA, new Set(visited)) ?? 0;
       const valB = this.evaluatePin(graph, pinB, new Set(visited)) ?? 1;
